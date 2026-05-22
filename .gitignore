@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# SQLite
+*.db
+*.sqlite3
+*.db-journal
+
+# ML artifacts (keep folders, ignore binaries)
+app/ml/models/*.pkl
+app/ml/models/*.joblib
+app/ml/models/*.bin
+
+# App output
+exports/*.pdf
+data/*.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Env / secrets
+.env
+*.log
