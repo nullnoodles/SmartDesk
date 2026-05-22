@@ -34,3 +34,9 @@ data/*.db
 # Env / secrets
 .env
 *.log
+
+#kiro config
+.kiro/
+
+#Documentation
+docs/
