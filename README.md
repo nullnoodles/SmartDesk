@@ -158,11 +158,6 @@ SmartDesk follows a **layered architecture**:
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
 
-## Author
-
-**Nirmal Kumar Mahto**  
-BCA Final Year Project (2026)
-
 ---
 
 *SmartDesk — Work smarter, not harder.*
