@@ -157,7 +157,3 @@ SmartDesk follows a **layered architecture**:
 ## License
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
-
----
-
-*SmartDesk — Work smarter, not harder.*
