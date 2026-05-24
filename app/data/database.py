@@ -45,7 +45,7 @@ class Database:
     # ------------------------------------------------------------------
 
     def initialize(self) -> None:
-        """Run schema.sql to create tables if they don't exist."""
+        """Run schema.sql to create tables if they don't exist, then apply migrations."""
         import sys
         if getattr(sys, "frozen", False):
             schema_path = Path(sys.executable).parent / "_internal" / "app" / "data" / "schema.sql"
@@ -55,6 +55,10 @@ class Database:
         schema_sql = schema_path.read_text(encoding="utf-8")
         conn = self.connect()
         conn.executescript(schema_sql)
+
+        # Apply pending migrations
+        from app.data.migrations import run_migrations
+        run_migrations(conn)
 
     # ------------------------------------------------------------------
     # Query helpers

@@ -12,11 +12,12 @@ A desktop application for freelance creative professionals to manage clients, pr
 - **Client Management** — CRUD operations with search
 - **Project Tracking** — Status lifecycle (Not Started → In Progress → Completed)
 - **Invoice Generation** — Auto-numbered with 18% GST calculation
-- **PDF Export** — Professional invoice PDFs with UPI QR codes
+- **PDF Export** — Professional invoice PDFs with sender info, logo, and UPI QR codes
 - **Payment Tracking** — Record and monitor payments
 - **Time Tracking** — Live timer + manual entry per project
+- **Settings** — Business profile, preferences, backup/restore, CSV export
 
-### AI/ML Intelligence Layer (~25% of codebase)
+### AI/ML Intelligence Layer
 | Feature | Technology | Description |
 |---------|-----------|-------------|
 | **Smart Pricing Advisor** | NumPy + NLP | Suggests price ranges based on project complexity |
@@ -27,7 +28,9 @@ A desktop application for freelance creative professionals to manage clients, pr
 
 ### Additional Features
 - **PDF Contract Analysis** — Upload PDF → extract text → classify clauses → risk report
-- **UPI QR Codes** — Payment QR codes on invoices (Indian market)
+- **UPI QR Codes** — Payment QR codes embedded on invoices (Indian market)
+- **Backup & Restore** — Single-zip backup of database and exported PDFs
+- **CSV Export** — Clients, projects, and invoices for accountants
 - **Dark Theme** — Professional, eye-friendly interface
 - **Offline-First** — No internet required, all data stored locally
 
@@ -48,8 +51,8 @@ A desktop application for freelance creative professionals to manage clients, pr
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/smartdesk.git
-cd smartdesk
+git clone https://github.com/nullnoodles/SmartDesk.git
+cd SmartDesk
 
 # Create virtual environment
 python -m venv venv
@@ -59,12 +62,16 @@ venv\Scripts\activate  # Windows
 # Install dependencies
 pip install -r requirements.txt
 
-# Train ML model (first time only)
+# (Optional) Train NLP clause classifier model
 python scripts/train_clause_model.py
 
 # Run the app
 python main.py
 ```
+
+On first launch, SmartDesk shows a welcome dialog. Configure your business name,
+GSTIN, and UPI ID under **Settings → Business Profile** so they appear on
+generated invoices.
 
 ## Build Standalone Executable
 
@@ -75,49 +82,61 @@ python main.py
 # Output: dist\SmartDesk\SmartDesk.exe
 ```
 
+The PyInstaller spec is `smartdesk.spec` at the project root.
+
+## Backup & Restore
+
+Use **Settings → Backup & Restore** to:
+- Create a portable `.zip` containing your database and exported PDFs.
+- Restore a backup to migrate to a new machine or recover from data loss.
+
+## Testing
+
+```bash
+pytest
+```
+
+Tests cover repositories, services, ML modules, and a UI smoke suite that
+instantiates every page widget.
+
 ## Project Structure
 
 ```
-smartdesk/
+SmartDesk/
 ├── main.py                    # Application entry point
+├── smartdesk.spec             # PyInstaller spec
 ├── app/
 │   ├── config.py              # Constants, paths, business rules
 │   ├── data/
 │   │   ├── database.py        # SQLite connection manager
 │   │   ├── schema.sql         # Table definitions + indexes
+│   │   ├── migrations.py      # Schema migration runner
 │   │   └── repositories/      # Data access layer (one per table)
 │   ├── core/
 │   │   ├── invoice_service.py # Invoice business logic
 │   │   ├── pdf_exporter.py    # PDF generation
-│   │   └── time_tracker.py    # Timer logic
-│   ├── ml/
-│   │   ├── pricing_advisor.py # Smart pricing suggestions
-│   │   ├── payment_predictor.py # Payment delay prediction
-│   │   ├── income_forecaster.py # ARIMA forecasting
-│   │   ├── risk_analyzer.py   # Contract risk scoring
-│   │   ├── clause_classifier.py # NLP clause categorization
-│   │   ├── contract_parser.py # PDF text extraction
-│   │   └── models/            # Serialized .pkl models
+│   │   ├── time_tracker.py    # Timer logic
+│   │   ├── settings_service.py # User preferences and business profile
+│   │   ├── backup_service.py  # Backup / restore
+│   │   └── csv_exporter.py    # CSV export
+│   ├── ml/                    # Pricing, payment predictor, forecaster, etc.
 │   ├── ui/
-│   │   ├── main_window.py     # Root window + navigation
-│   │   ├── styles/theme.py    # Dark theme stylesheet
-│   │   ├── widgets/           # Reusable UI components
-│   │   └── pages/             # One module per screen
-│   └── utils/
-│       └── upi_qr.py          # UPI QR code generation
-├── scripts/
-│   ├── build.py               # Build automation
-│   ├── seed_data.py           # Sample data generator
-│   └── train_clause_model.py  # ML model training
+│   │   ├── main_window.py
+│   │   ├── styles/theme.py
+│   │   ├── widgets/           # Reusable UI components, welcome dialog
+│   │   └── pages/             # Dashboard, clients, projects, invoices, time,
+│   │                          #   contracts, analytics, settings
+│   └── utils/                 # Logger, UPI QR generator
+├── scripts/                   # Build, seed_data, ML training
+├── tests/                     # pytest suite
 ├── assets/                    # Icons, splash screen
-├── data/                      # SQLite database (gitignored)
-├── exports/                   # Generated PDFs (gitignored)
-└── tests/                     # Test suite
+├── data/                      # SQLite database + log file (gitignored)
+└── exports/                   # Generated PDFs (gitignored)
 ```
 
 ## Architecture
 
-SmartDesk follows a **layered architecture**:
+SmartDesk follows a layered architecture:
 
 ```
 ┌─────────────────────────────────────┐
@@ -134,10 +153,6 @@ SmartDesk follows a **layered architecture**:
 │         data/smartdesk.db           │
 └─────────────────────────────────────┘
 ```
-
-## Screenshots
-
-*Coming soon*
 
 ## Business Rules
 

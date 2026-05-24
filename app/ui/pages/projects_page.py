@@ -77,8 +77,24 @@ class ProjectsPage(QWidget):
         self.refresh()
 
     def refresh(self) -> None:
-        projects = self.repo.get_all()
+        try:
+            projects = self.repo.get_all()
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Could not load projects: {e}")
+            projects = []
         self._count_label.setText(f"({len(projects)} total)")
+
+        # Empty state
+        if not projects:
+            self.table.setRowCount(1)
+            empty_item = QTableWidgetItem("No projects yet — click '+ New Project' to add one")
+            empty_item.setFlags(Qt.ItemIsEnabled)
+            empty_item.setForeground(QColor(Colors.TEXT_MUTED))
+            self.table.setItem(0, 0, empty_item)
+            self.table.setSpan(0, 0, 1, 6)
+            return
+
+        self.table.clearSpans()
         self.table.setRowCount(len(projects))
         for i, p in enumerate(projects):
             self.table.setItem(i, 0, QTableWidgetItem(str(p["id"])))
@@ -109,14 +125,21 @@ class ProjectsPage(QWidget):
         dialog = ProjectDialog(self, clients=clients)
         if dialog.exec() == QDialog.Accepted:
             data = dialog.get_data()
-            self.repo.add(**data)
+            try:
+                self.repo.add(**data)
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Could not create project: {e}")
+                return
             self.refresh()
 
     def _edit_project(self) -> None:
         row = self.table.currentRow()
         if row < 0:
             return
-        project_id = int(self.table.item(row, 0).text())
+        item = self.table.item(row, 0)
+        if item is None or not item.text().isdigit():
+            return
+        project_id = int(item.text())
         project = self.repo.get_by_id(project_id)
         if not project:
             return
@@ -124,17 +147,28 @@ class ProjectsPage(QWidget):
         dialog = ProjectDialog(self, clients=clients, project=project)
         if dialog.exec() == QDialog.Accepted:
             data = dialog.get_data()
-            self.repo.update(project_id, **data)
+            try:
+                self.repo.update(project_id, **data)
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Could not update project: {e}")
+                return
             self.refresh()
 
     def _delete_project(self) -> None:
         row = self.table.currentRow()
         if row < 0:
             return
-        project_id = int(self.table.item(row, 0).text())
+        item = self.table.item(row, 0)
+        if item is None or not item.text().isdigit():
+            return
+        project_id = int(item.text())
         reply = QMessageBox.question(self, "Delete", "Delete this project and all related data?")
         if reply == QMessageBox.Yes:
-            self.repo.delete(project_id)
+            try:
+                self.repo.delete(project_id)
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Could not delete project: {e}")
+                return
             self.refresh()
 
 

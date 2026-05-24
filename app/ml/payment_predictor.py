@@ -27,18 +27,23 @@ class PaymentPredictor:
         self.db = db
         self.model_path = ML_MODELS_DIR / "payment_predictor.pkl"
         self.type_encoder_path = ML_MODELS_DIR / "payment_type_encoder.pkl"
+        self.label_encoder_path = ML_MODELS_DIR / "payment_label_encoder.pkl"
         self._model: RandomForestClassifier | None = None
         self._type_encoder: LabelEncoder | None = None
+        self._label_encoder: LabelEncoder | None = None
         self._load_model()
 
     def _load_model(self) -> None:
         if self.model_path.exists():
             self._model = joblib.load(self.model_path)
             self._type_encoder = joblib.load(self.type_encoder_path)
+            if self.label_encoder_path.exists():
+                self._label_encoder = joblib.load(self.label_encoder_path)
 
     def _save_model(self) -> None:
         joblib.dump(self._model, self.model_path)
         joblib.dump(self._type_encoder, self.type_encoder_path)
+        joblib.dump(self._label_encoder, self.label_encoder_path)
 
     @property
     def is_trained(self) -> bool:
@@ -92,7 +97,8 @@ class PaymentPredictor:
         df["type_enc"] = self._type_encoder.fit_transform(df["project_type"])
 
         X = df[["amount", "days_to_due", "type_enc"]].values
-        y = LabelEncoder().fit_transform(df["label"])
+        self._label_encoder = LabelEncoder()
+        y = self._label_encoder.fit_transform(df["label"])
 
         self._model = RandomForestClassifier(n_estimators=50, random_state=42)
         self._model.fit(X, y)
@@ -118,8 +124,14 @@ class PaymentPredictor:
         proba = self._model.predict_proba(X)[0]
         idx = np.argmax(proba)
 
+        # Map model class indices back to label strings via the trained encoder
+        if self._label_encoder is not None:
+            labels = list(self._label_encoder.classes_)
+        else:
+            labels = self.LABELS
+
         return {
-            "prediction": self.LABELS[idx],
+            "prediction": labels[idx],
             "confidence": round(float(proba[idx]) * 100, 1),
-            "probabilities": {label: round(float(p) * 100, 1) for label, p in zip(self.LABELS, proba)},
+            "probabilities": {label: round(float(p) * 100, 1) for label, p in zip(labels, proba)},
         }

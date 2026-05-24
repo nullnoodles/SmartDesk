@@ -7,8 +7,8 @@ from pathlib import Path
 # --- App metadata ---
 APP_NAME = "SmartDesk"
 APP_VERSION = "1.0.0"
-APP_AUTHOR = "N1rm"
-APP_DESCRIPTION = "Intellitgent Freelancer Management System with Predictive Analytics"
+APP_AUTHOR = "SmartDesk"
+APP_DESCRIPTION = "Intelligent Freelancer Management System with Predictive Analytics"
 
 # --- Paths ---
 # Handle PyInstaller frozen mode

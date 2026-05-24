@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QLineEdit, QMessageBox, QFrame,
 )
 from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QColor
 
 from app.data.database import Database
 from app.data.repositories.project_repo import ProjectRepository
@@ -129,12 +130,31 @@ class TimePage(QWidget):
 
     def refresh(self) -> None:
         # Reload projects
-        self.project_combo.clear()
-        for p in self.project_repo.get_all():
-            self.project_combo.addItem(p["name"], p["id"])
+        try:
+            self.project_combo.clear()
+            for p in self.project_repo.get_all():
+                self.project_combo.addItem(p["name"], p["id"])
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Could not load projects: {e}")
 
         # Reload logs
-        logs = self.time_repo.get_recent(30)
+        try:
+            logs = self.time_repo.get_recent(30)
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Could not load time logs: {e}")
+            logs = []
+
+        # Empty state
+        if not logs:
+            self.table.setRowCount(1)
+            empty_item = QTableWidgetItem("No time logs yet — start the timer or add a manual entry")
+            empty_item.setFlags(Qt.ItemIsEnabled)
+            empty_item.setForeground(QColor(Colors.TEXT_MUTED))
+            self.table.setItem(0, 0, empty_item)
+            self.table.setSpan(0, 0, 1, 5)
+            return
+
+        self.table.clearSpans()
         self.table.setRowCount(len(logs))
         for i, log in enumerate(logs):
             self.table.setItem(i, 0, QTableWidgetItem(log["project_name"]))
@@ -153,7 +173,11 @@ class TimePage(QWidget):
 
     def _toggle_timer(self) -> None:
         if self.tracker.is_running:
-            hours = self.tracker.stop()
+            try:
+                hours = self.tracker.stop()
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Could not stop timer: {e}")
+                return
             self._timer.stop()
             self._elapsed = 0
             self.timer_label.setText("00:00:00")
@@ -170,7 +194,11 @@ class TimePage(QWidget):
             if not project_id:
                 QMessageBox.warning(self, "No Project", "Select a project first.")
                 return
-            self.tracker.start(project_id, self.desc_input.text())
+            try:
+                self.tracker.start(project_id, self.desc_input.text())
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Could not start timer: {e}")
+                return
             self._elapsed = 0
             self._timer.start(1000)
             self.start_btn.setText("⏹  Stop Timer")
@@ -192,5 +220,12 @@ class TimePage(QWidget):
         if not project_id:
             QMessageBox.warning(self, "No Project", "Select a project first.")
             return
-        self.tracker.add_manual(project_id, self.manual_hours.value(), self.desc_input.text())
+        if self.manual_hours.value() <= 0:
+            QMessageBox.warning(self, "Validation", "Hours must be greater than 0.")
+            return
+        try:
+            self.tracker.add_manual(project_id, self.manual_hours.value(), self.desc_input.text())
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Could not add entry: {e}")
+            return
         self.refresh()

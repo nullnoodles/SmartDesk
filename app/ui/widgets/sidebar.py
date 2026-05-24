@@ -23,6 +23,7 @@ class Sidebar(QWidget):
         ("time", "⏱️", "Time Log"),
         ("contracts", "📝", "Contracts"),
         ("analytics", "🤖", "AI Analytics"),
+        ("settings", "⚙️", "Settings"),
     ]
 
     def __init__(self, parent=None):

@@ -31,7 +31,11 @@ if not exist "app\ml\models\clause_classifier.pkl" (
 :: Step 3: Run PyInstaller
 echo [3/4] Building executable with PyInstaller...
 echo       This may take 2-5 minutes...
-pyinstaller solodash.spec --noconfirm --clean
+if exist "smartdesk.spec" (
+    pyinstaller smartdesk.spec --noconfirm --clean
+) else (
+    pyinstaller solodash.spec --noconfirm --clean
+)
 if errorlevel 1 (
     echo.
     echo [ERROR] PyInstaller build failed!

@@ -56,8 +56,12 @@ def main():
     # Step 3: Run PyInstaller
     print("\n[3/4] Building executable with PyInstaller...")
     print("  This may take 2-5 minutes...")
+
+    # Prefer smartdesk.spec, fall back to legacy solodash.spec for compatibility
+    spec_file = "smartdesk.spec" if (ROOT / "smartdesk.spec").exists() else "solodash.spec"
+
     result = subprocess.run(
-        [python, "-m", "PyInstaller", "solodash.spec", "--noconfirm", "--clean"],
+        [python, "-m", "PyInstaller", spec_file, "--noconfirm", "--clean"],
         cwd=str(ROOT),
         capture_output=False,
     )

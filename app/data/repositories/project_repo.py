@@ -31,11 +31,17 @@ class ProjectRepository:
     def update_status(self, project_id: int, status: str) -> None:
         self.db.execute("UPDATE projects SET status=? WHERE id=?", (status, project_id))
 
-    def update(self, project_id: int, name: str, project_type: str, description: str, deadline: str, budget: float, status: str) -> None:
-        self.db.execute(
-            "UPDATE projects SET name=?, type=?, description=?, deadline=?, budget=?, status=? WHERE id=?",
-            (name, project_type, description, deadline, budget, status, project_id),
-        )
+    def update(self, project_id: int, client_id: int, name: str, project_type: str, description: str, deadline: str, budget: float, status: str | None = None) -> None:
+        if status is None:
+            self.db.execute(
+                "UPDATE projects SET client_id=?, name=?, type=?, description=?, deadline=?, budget=? WHERE id=?",
+                (client_id, name, project_type, description, deadline, budget, project_id),
+            )
+        else:
+            self.db.execute(
+                "UPDATE projects SET client_id=?, name=?, type=?, description=?, deadline=?, budget=?, status=? WHERE id=?",
+                (client_id, name, project_type, description, deadline, budget, status, project_id),
+            )
 
     def delete(self, project_id: int) -> None:
         self.db.execute("DELETE FROM projects WHERE id=?", (project_id,))

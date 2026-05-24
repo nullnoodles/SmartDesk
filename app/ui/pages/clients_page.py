@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QFormLayout, QDialogButtonBox, QMessageBox, QFrame,
 )
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor
 
 from app.data.database import Database
 from app.data.repositories.client_repo import ClientRepository
@@ -81,11 +82,26 @@ class ClientsPage(QWidget):
         self.refresh()
 
     def refresh(self) -> None:
-        clients = self.repo.get_all()
+        try:
+            clients = self.repo.get_all()
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Could not load clients: {e}")
+            clients = []
         self._count_label.setText(f"({len(clients)} total)")
         self._populate_table(clients)
 
     def _populate_table(self, clients: list) -> None:
+        # Empty state
+        if not clients:
+            self.table.setRowCount(1)
+            empty_item = QTableWidgetItem("No clients yet — click '+ Add Client' to add one")
+            empty_item.setFlags(Qt.ItemIsEnabled)
+            empty_item.setForeground(QColor(Colors.TEXT_MUTED))
+            self.table.setItem(0, 0, empty_item)
+            self.table.setSpan(0, 0, 1, 6)
+            return
+
+        self.table.clearSpans()
         self.table.setRowCount(len(clients))
         for i, c in enumerate(clients):
             self.table.setItem(i, 0, QTableWidgetItem(str(c["id"])))
@@ -96,41 +112,63 @@ class ClientsPage(QWidget):
             self.table.setItem(i, 5, QTableWidgetItem(c["created_date"] or "—"))
 
     def _on_search(self, text: str) -> None:
-        if text.strip():
-            results = self.repo.search(text)
-        else:
-            results = self.repo.get_all()
+        try:
+            if text.strip():
+                results = self.repo.search(text)
+            else:
+                results = self.repo.get_all()
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Search failed: {e}")
+            results = []
         self._populate_table(results)
 
     def _add_client(self) -> None:
         dialog = ClientDialog(self)
         if dialog.exec() == QDialog.Accepted:
             data = dialog.get_data()
-            self.repo.add(**data)
+            try:
+                self.repo.add(**data)
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Could not add client: {e}")
+                return
             self.refresh()
 
     def _edit_client(self) -> None:
         row = self.table.currentRow()
         if row < 0:
             return
-        client_id = int(self.table.item(row, 0).text())
+        item = self.table.item(row, 0)
+        if item is None or not item.text().isdigit():
+            return
+        client_id = int(item.text())
         client = self.repo.get_by_id(client_id)
         if not client:
             return
         dialog = ClientDialog(self, client)
         if dialog.exec() == QDialog.Accepted:
             data = dialog.get_data()
-            self.repo.update(client_id, **data)
+            try:
+                self.repo.update(client_id, **data)
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Could not update client: {e}")
+                return
             self.refresh()
 
     def _delete_client(self) -> None:
         row = self.table.currentRow()
         if row < 0:
             return
-        client_id = int(self.table.item(row, 0).text())
+        item = self.table.item(row, 0)
+        if item is None or not item.text().isdigit():
+            return
+        client_id = int(item.text())
         reply = QMessageBox.question(self, "Delete", "Delete this client and all related data?")
         if reply == QMessageBox.Yes:
-            self.repo.delete(client_id)
+            try:
+                self.repo.delete(client_id)
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Could not delete client: {e}")
+                return
             self.refresh()
 
 

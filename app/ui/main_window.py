@@ -17,6 +17,7 @@ from app.ui.pages.invoices_page import InvoicesPage
 from app.ui.pages.time_page import TimePage
 from app.ui.pages.contracts_page import ContractsPage
 from app.ui.pages.analytics_page import AnalyticsPage
+from app.ui.pages.settings_page import SettingsPage
 
 
 class MainWindow(QMainWindow):
@@ -63,6 +64,7 @@ class MainWindow(QMainWindow):
         self._add_page("time", TimePage(db))
         self._add_page("contracts", ContractsPage(db))
         self._add_page("analytics", AnalyticsPage(db))
+        self._add_page("settings", SettingsPage(db))
 
         # Connect sidebar
         self.sidebar.page_changed.connect(self._switch_page)
@@ -70,6 +72,15 @@ class MainWindow(QMainWindow):
     def _add_page(self, page_id: str, widget: QWidget) -> None:
         self.pages[page_id] = widget
         self.stack.addWidget(widget)
+
+    def show_page(self, page_id: str) -> None:
+        """Programmatically navigate to a page (also updates sidebar selection)."""
+        if page_id in self.pages:
+            self.stack.setCurrentWidget(self.pages[page_id])
+            self.sidebar.set_active(page_id)
+            page = self.pages[page_id]
+            if hasattr(page, "refresh"):
+                page.refresh()
 
     def _switch_page(self, page_id: str) -> None:
         if page_id in self.pages:

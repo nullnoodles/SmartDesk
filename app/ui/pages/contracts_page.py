@@ -5,10 +5,10 @@ WOW Feature: Upload a contract PDF → extract text → classify clauses → ris
 from __future__ import annotations
 
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QTextEdit, QTableWidget, QTableWidgetItem, QComboBox,
     QDoubleSpinBox, QSpinBox, QFileDialog, QMessageBox,
-    QGroupBox, QFormLayout, QProgressBar,
+    QFormLayout,
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
@@ -31,6 +31,12 @@ class ContractsPage(QWidget):
         self._risk_analyzer = None
         self._contract_parser = None
 
+        self._build_ui()
+        self.refresh()
+
+    # ------------------------------------------------------------------
+    # Lazy-loaded ML modules
+    # ------------------------------------------------------------------
     @property
     def risk_analyzer(self):
         if self._risk_analyzer is None:
@@ -45,6 +51,10 @@ class ContractsPage(QWidget):
             self._contract_parser = ContractParser()
         return self._contract_parser
 
+    # ------------------------------------------------------------------
+    # UI
+    # ------------------------------------------------------------------
+    def _build_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(32, 32, 32, 32)
         layout.setSpacing(20)
@@ -66,7 +76,9 @@ class ContractsPage(QWidget):
         # PDF upload row
         pdf_row = QHBoxLayout()
         self.file_label = QLabel("📄  No file selected")
-        self.file_label.setStyleSheet(f"color: {Colors.TEXT_SECONDARY}; background: transparent;")
+        self.file_label.setStyleSheet(
+            f"color: {Colors.TEXT_SECONDARY}; background: transparent;"
+        )
         pdf_row.addWidget(self.file_label)
         pdf_row.addStretch()
 
@@ -93,7 +105,9 @@ class ContractsPage(QWidget):
         self.timeline_input.setValue(14)
         self.timeline_input.setSuffix(" days")
         self.type_combo = QComboBox()
-        self.type_combo.addItems(["Design", "Video", "Writing", "Music", "Development", "General"])
+        self.type_combo.addItems(
+            ["Design", "Video", "Writing", "Music", "Development", "General"]
+        )
 
         params_layout.addRow("Project", self.project_combo)
         params_layout.addRow("Hourly Rate", self.rate_input)
@@ -104,7 +118,9 @@ class ContractsPage(QWidget):
 
         # Contract text
         self.contract_text = QTextEdit()
-        self.contract_text.setPlaceholderText("Paste contract text here, or upload a PDF above...")
+        self.contract_text.setPlaceholderText(
+            "Paste contract text here, or upload a PDF above..."
+        )
         self.contract_text.setMaximumHeight(120)
         upload_layout.addWidget(self.contract_text)
 
@@ -123,24 +139,33 @@ class ContractsPage(QWidget):
         results_layout.setSpacing(14)
 
         results_header = QLabel("Analysis Results")
-        results_header.setStyleSheet(f"font-size: 16px; font-weight: 600; color: {Colors.TEXT_PRIMARY}; background: transparent;")
+        results_header.setStyleSheet(
+            f"font-size: 16px; font-weight: 600; color: {Colors.TEXT_PRIMARY}; "
+            f"background: transparent;"
+        )
         results_layout.addWidget(results_header)
 
         # Risk level + score bar
         risk_row = QHBoxLayout()
         self.risk_label = QLabel("Risk Level: —")
-        self.risk_label.setStyleSheet(f"font-size: 18px; font-weight: 700; color: {Colors.TEXT_SECONDARY}; background: transparent;")
+        self.risk_label.setStyleSheet(
+            f"font-size: 18px; font-weight: 700; color: {Colors.TEXT_SECONDARY}; "
+            f"background: transparent;"
+        )
         risk_row.addWidget(self.risk_label)
         risk_row.addStretch()
 
         self.score_label = QLabel("Score: 0/100")
-        self.score_label.setStyleSheet(f"font-size: 14px; color: {Colors.TEXT_SECONDARY}; background: transparent;")
+        self.score_label.setStyleSheet(
+            f"font-size: 14px; color: {Colors.TEXT_SECONDARY}; background: transparent;"
+        )
         risk_row.addWidget(self.score_label)
         results_layout.addLayout(risk_row)
 
         # Gradient risk bar
         self.risk_bar = GradientBar(
-            value=0, max_value=100,
+            value=0,
+            max_value=100,
             color_start=Colors.ACCENT_SUCCESS,
             color_end=Colors.ACCENT_DANGER,
             height=10,
@@ -159,41 +184,69 @@ class ContractsPage(QWidget):
 
         layout.addWidget(results_card)
 
-        self.refresh()
-
+    # ------------------------------------------------------------------
+    # Data + actions
+    # ------------------------------------------------------------------
     def refresh(self) -> None:
-        self.project_combo.clear()
-        for p in self.project_repo.get_all():
-            self.project_combo.addItem(p["name"], p["id"])
+        try:
+            self.project_combo.clear()
+            for p in self.project_repo.get_all():
+                self.project_combo.addItem(p["name"], p["id"])
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Could not load projects: {e}")
 
     def _upload_pdf(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(self, "Select Contract PDF", "", "PDF Files (*.pdf)")
-        if path:
-            filename = path.replace("\\", "/").split("/")[-1]
-            self.file_label.setText(f"📄  {filename}")
-            self.file_label.setStyleSheet(f"color: {Colors.ACCENT_SUCCESS}; background: transparent;")
-            try:
-                text = self.contract_parser.extract_text(path)
-                self.contract_text.setPlainText(text)
-            except Exception as e:
-                QMessageBox.warning(self, "Error", f"Could not read PDF: {e}")
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Select Contract PDF", "", "PDF Files (*.pdf)"
+        )
+        if not path:
+            return
+        filename = path.replace("\\", "/").split("/")[-1]
+        self.file_label.setText(f"📄  {filename}")
+        self.file_label.setStyleSheet(
+            f"color: {Colors.ACCENT_SUCCESS}; background: transparent;"
+        )
+        try:
+            text = self.contract_parser.extract_text(path)
+            self.contract_text.setPlainText(text)
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Could not read PDF: {e}")
 
     def _analyze(self) -> None:
-        result = self.risk_analyzer.full_analysis(
-            hourly_rate=self.rate_input.value(),
-            revisions=self.revisions_input.value(),
-            timeline_days=self.timeline_input.value(),
-            project_type=self.type_combo.currentText(),
-            contract_text=self.contract_text.toPlainText(),
-        )
+        # Validation
+        if not self.contract_text.toPlainText().strip():
+            QMessageBox.warning(
+                self,
+                "Missing Text",
+                "Please paste contract text or upload a PDF before analyzing.",
+            )
+            return
+
+        try:
+            result = self.risk_analyzer.full_analysis(
+                hourly_rate=self.rate_input.value(),
+                revisions=self.revisions_input.value(),
+                timeline_days=self.timeline_input.value(),
+                project_type=self.type_combo.currentText(),
+                contract_text=self.contract_text.toPlainText(),
+            )
+        except Exception as e:
+            QMessageBox.critical(self, "Analysis Failed", f"Error: {e}")
+            return
 
         # Update risk display
         level = result["risk_level"]
-        level_colors = {"LOW": Colors.ACCENT_SUCCESS, "MEDIUM": Colors.ACCENT_WARNING, "HIGH": Colors.ACCENT_DANGER}
+        level_colors = {
+            "LOW": Colors.ACCENT_SUCCESS,
+            "MEDIUM": Colors.ACCENT_WARNING,
+            "HIGH": Colors.ACCENT_DANGER,
+        }
         color = level_colors.get(level, Colors.TEXT_SECONDARY)
 
         self.risk_label.setText(f"Risk Level: {level}")
-        self.risk_label.setStyleSheet(f"font-size: 18px; font-weight: 700; color: {color}; background: transparent;")
+        self.risk_label.setStyleSheet(
+            f"font-size: 18px; font-weight: 700; color: {color}; background: transparent;"
+        )
 
         score = min(result["total_score"], 100)
         self.score_label.setText(f"Score: {score}/100")
@@ -218,14 +271,19 @@ class ContractsPage(QWidget):
         # Save to DB
         project_id = self.project_combo.currentData()
         if project_id:
-            import json
-            self.contract_repo.add(
-                project_id=project_id,
-                contract_text=self.contract_text.toPlainText()[:5000],
-                hourly_rate=self.rate_input.value(),
-                revision_rounds=self.revisions_input.value(),
-                timeline_days=self.timeline_input.value(),
-                risk_score=result["total_score"],
-                risk_level=level,
-                findings=json.dumps(findings),
-            )
+            try:
+                import json
+                self.contract_repo.add(
+                    project_id=project_id,
+                    contract_text=self.contract_text.toPlainText()[:5000],
+                    hourly_rate=self.rate_input.value(),
+                    revision_rounds=self.revisions_input.value(),
+                    timeline_days=self.timeline_input.value(),
+                    risk_score=result["total_score"],
+                    risk_level=level,
+                    findings=json.dumps(findings),
+                )
+            except Exception as e:
+                QMessageBox.warning(
+                    self, "Save Failed", f"Analysis succeeded but could not save: {e}"
+                )

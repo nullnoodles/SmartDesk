@@ -56,9 +56,17 @@ class InvoiceRepository:
         self.db.execute("UPDATE invoices SET status=? WHERE id=?", (status, invoice_id))
 
     def next_invoice_number(self) -> str:
-        rows = self.db.execute("SELECT COUNT(*) as cnt FROM invoices")
+        """Generate next invoice number using current year, scoped per-year."""
+        from datetime import date
+        from app.config import INVOICE_PREFIX
+        year = date.today().year
+        prefix = f"{INVOICE_PREFIX}-{year}-"
+        rows = self.db.execute(
+            "SELECT COUNT(*) as cnt FROM invoices WHERE invoice_number LIKE ?",
+            (f"{prefix}%",),
+        )
         count = (rows[0]["cnt"] if rows else 0) + 1
-        return f"INV-2026-{count:04d}"
+        return f"{prefix}{count:04d}"
 
     def total_earned(self) -> float:
         rows = self.db.execute("SELECT COALESCE(SUM(total), 0) as total FROM invoices WHERE status='Paid'")
