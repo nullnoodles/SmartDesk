@@ -40,3 +40,6 @@ data/*.db
 
 #Documentation
 docs/
+
+# UI design references (kept locally, not in repo)
+UI Reference/

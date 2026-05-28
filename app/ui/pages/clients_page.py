@@ -1,22 +1,31 @@
-"""Clients management page — CRUD with search, animated interactions."""
+"""Clients page — Studio Graphite redesign with stat row + clean table."""
 from __future__ import annotations
 
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
-    QPushButton, QTableWidget, QTableWidgetItem, QDialog,
-    QFormLayout, QDialogButtonBox, QMessageBox, QFrame,
-)
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
+from PySide6.QtWidgets import (
+    QDialog,
+    QDialogButtonBox,
+    QFormLayout,
+    QHBoxLayout,
+    QLineEdit,
+    QMessageBox,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
 
 from app.data.database import Database
 from app.data.repositories.client_repo import ClientRepository
 from app.ui.styles.theme import Colors
-from app.ui.widgets.animated import AnimatedButton, AnimatedCard
+from app.ui.widgets.animated import AnimatedButton
+from app.ui.widgets.page_header import PageHeader
+from app.ui.widgets.stat_card import StatCard
 
 
 class ClientsPage(QWidget):
-    """Client list with add/edit/delete/search — redesigned with soft UI."""
+    """Client list with add/edit/delete/search — Studio Graphite design."""
 
     def __init__(self, db: Database):
         super().__init__()
@@ -24,35 +33,49 @@ class ClientsPage(QWidget):
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(32, 32, 32, 32)
-        layout.setSpacing(20)
+        layout.setSpacing(24)
 
-        # Header row
-        header_row = QHBoxLayout()
-        title = QLabel("Clients")
-        title.setObjectName("heading")
-        header_row.addWidget(title)
+        # ─── Header ───────────────────────────────────────────────────────
+        self.header = PageHeader(
+            title="Clients",
+            subtitle="Manage your active client base and relationships",
+            count_text="0 total",
+        )
 
-        count_label = QLabel("")
-        count_label.setObjectName("subheading")
-        self._count_label = count_label
-        header_row.addWidget(count_label)
-        header_row.addStretch()
-
-        # Search
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("🔍  Search clients...")
-        self.search_input.setFixedWidth(260)
+        self.search_input.setFixedWidth(280)
         self.search_input.textChanged.connect(self._on_search)
-        header_row.addWidget(self.search_input)
+        self.header.add_action(self.search_input)
 
-        # Add button
         add_btn = AnimatedButton("+ Add Client", accent=Colors.ACCENT_PRIMARY)
         add_btn.setCursor(Qt.PointingHandCursor)
         add_btn.clicked.connect(self._add_client)
-        header_row.addWidget(add_btn)
-        layout.addLayout(header_row)
+        self.header.add_action(add_btn)
 
-        # Table
+        layout.addWidget(self.header)
+
+        # ─── Stat row ─────────────────────────────────────────────────────
+        self.card_total = StatCard(
+            "Total Clients", "0", icon="👥", accent=Colors.ACCENT_PRIMARY_LIGHT,
+            sub_text="Active relationships",
+        )
+        self.card_new = StatCard(
+            "New This Month", "0", icon="🌱", accent=Colors.ACCENT_SUCCESS,
+            sub_text="—", sub_color=Colors.ACCENT_SUCCESS,
+        )
+        self.card_companies = StatCard(
+            "Companies", "0", icon="🏢", accent=Colors.ACCENT_INFO,
+            sub_text="Distinct employers",
+        )
+
+        stat_row = QHBoxLayout()
+        stat_row.setSpacing(20)
+        for card in (self.card_total, self.card_new, self.card_companies):
+            stat_row.addWidget(card, 1)
+        layout.addLayout(stat_row)
+
+        # ─── Table ────────────────────────────────────────────────────────
         self.table = QTableWidget()
         self.table.setColumnCount(6)
         self.table.setHorizontalHeaderLabels(["ID", "Name", "Email", "Phone", "Company", "Created"])
@@ -64,7 +87,7 @@ class ClientsPage(QWidget):
         self.table.doubleClicked.connect(self._edit_client)
         layout.addWidget(self.table)
 
-        # Action buttons row
+        # Action buttons
         btn_row = QHBoxLayout()
         btn_row.addStretch()
 
@@ -81,17 +104,35 @@ class ClientsPage(QWidget):
 
         self.refresh()
 
+    # ------------------------------------------------------------------
+    # Data
+    # ------------------------------------------------------------------
     def refresh(self) -> None:
         try:
             clients = self.repo.get_all()
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Could not load clients: {e}")
             clients = []
-        self._count_label.setText(f"({len(clients)} total)")
+        self.header.set_count(f"{len(clients)} total")
+        self.card_total.set_value(str(len(clients)))
+
+        # Companies count (distinct, non-empty)
+        companies = {(c["company"] or "").strip() for c in clients if (c["company"] or "").strip()}
+        self.card_companies.set_value(str(len(companies)))
+
+        # New this month — use created_date string starting with current YYYY-MM
+        from datetime import date
+        prefix = date.today().strftime("%Y-%m")
+        new_count = sum(1 for c in clients if (c["created_date"] or "").startswith(prefix))
+        self.card_new.set_value(str(new_count))
+        self.card_new.set_sub_text(
+            "↑ This month" if new_count else "No new clients this month",
+            color=Colors.ACCENT_SUCCESS if new_count else Colors.TEXT_MUTED,
+        )
+
         self._populate_table(clients)
 
     def _populate_table(self, clients: list) -> None:
-        # Empty state
         if not clients:
             self.table.setRowCount(1)
             empty_item = QTableWidgetItem("No clients yet — click '+ Add Client' to add one")
@@ -113,15 +154,15 @@ class ClientsPage(QWidget):
 
     def _on_search(self, text: str) -> None:
         try:
-            if text.strip():
-                results = self.repo.search(text)
-            else:
-                results = self.repo.get_all()
+            results = self.repo.search(text) if text.strip() else self.repo.get_all()
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Search failed: {e}")
             results = []
         self._populate_table(results)
 
+    # ------------------------------------------------------------------
+    # CRUD handlers
+    # ------------------------------------------------------------------
     def _add_client(self) -> None:
         dialog = ClientDialog(self)
         if dialog.exec() == QDialog.Accepted:
@@ -173,12 +214,12 @@ class ClientsPage(QWidget):
 
 
 class ClientDialog(QDialog):
-    """Add/Edit client dialog — soft styled."""
+    """Add/Edit client dialog."""
 
     def __init__(self, parent=None, client=None):
         super().__init__(parent)
         self.setWindowTitle("Edit Client" if client else "Add Client")
-        self.setMinimumWidth(420)
+        self.setMinimumWidth(440)
 
         layout = QFormLayout(self)
         layout.setSpacing(14)

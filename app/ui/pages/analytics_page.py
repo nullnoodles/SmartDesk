@@ -1,4 +1,4 @@
-"""AI Analytics page — ML predictions, income forecast, pricing advisor — soft UI."""
+"""AI Analytics page — ML predictions, income forecast, pricing advisor — Studio Graphite."""
 from __future__ import annotations
 
 from PySide6.QtWidgets import (
@@ -11,10 +11,11 @@ from PySide6.QtCore import Qt
 from app.data.database import Database
 from app.ui.styles.theme import Colors
 from app.ui.widgets.animated import AnimatedButton, AnimatedCard, GradientBar
+from app.ui.widgets.page_header import PageHeader
 
 
 class AnalyticsPage(QWidget):
-    """AI-powered analytics: pricing, payment prediction, income forecast — redesigned."""
+    """AI-powered analytics: pricing, payment prediction, income forecast."""
 
     def __init__(self, db: Database):
         super().__init__()
@@ -25,27 +26,24 @@ class AnalyticsPage(QWidget):
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(32, 32, 32, 32)
-        layout.setSpacing(20)
+        layout.setSpacing(24)
 
         # Header
-        header_row = QHBoxLayout()
-        title = QLabel("AI Analytics & Predictions")
-        title.setObjectName("heading")
-        header_row.addWidget(title)
-        header_row.addStretch()
+        header = PageHeader(
+            title="AI Analytics",
+            subtitle="Predictions and recommendations powered by your data",
+        )
 
         badge = QLabel("🤖 ML-Powered")
-        badge.setStyleSheet(f"""
-            background-color: {Colors.BG_CARD};
-            color: {Colors.ACCENT_PRIMARY};
-            border: 1px solid {Colors.ACCENT_PRIMARY};
-            border-radius: 12px;
-            padding: 4px 12px;
-            font-size: 11px;
-            font-weight: 600;
-        """)
-        header_row.addWidget(badge)
-        layout.addLayout(header_row)
+        badge.setStyleSheet(
+            f"background-color: rgba(124, 138, 244, 0.10); "
+            f"color: {Colors.ACCENT_PRIMARY_LIGHT}; "
+            f"border: 1px solid {Colors.BORDER_SUBTLE}; "
+            f"border-radius: 999px; padding: 6px 14px; "
+            f"font-size: 12px; font-weight: 700;"
+        )
+        header.add_action(badge)
+        layout.addWidget(header)
 
         # Tabs for different ML features
         tabs = QTabWidget()

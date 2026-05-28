@@ -1,27 +1,44 @@
-"""Invoices page — create, view, export PDF, mark paid — soft UI redesign."""
+"""Invoices page — Studio Graphite redesign with stat row, clean table, status pills."""
 from __future__ import annotations
 
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QTableWidget, QTableWidgetItem, QDialog, QFormLayout,
-    QDoubleSpinBox, QSpinBox, QComboBox, QDialogButtonBox,
-    QMessageBox, QFileDialog,
-)
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
+from PySide6.QtWidgets import (
+    QComboBox,
+    QDialog,
+    QDialogButtonBox,
+    QDoubleSpinBox,
+    QFormLayout,
+    QHBoxLayout,
+    QMessageBox,
+    QSpinBox,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
 
-from app.data.database import Database
-from app.data.repositories.invoice_repo import InvoiceRepository
-from app.data.repositories.project_repo import ProjectRepository
 from app.core.invoice_service import InvoiceService
 from app.core.pdf_exporter import PDFExporter
 from app.core.settings_service import SettingsService
+from app.data.database import Database
+from app.data.repositories.invoice_repo import InvoiceRepository
+from app.data.repositories.project_repo import ProjectRepository
 from app.ui.styles.theme import Colors
 from app.ui.widgets.animated import AnimatedButton
+from app.ui.widgets.page_header import PageHeader
+from app.ui.widgets.stat_card import StatCard
+from app.ui.widgets.status_pill import StatusPill
 
 
 class InvoicesPage(QWidget):
-    """Invoice list with create, export PDF, and status management — redesigned."""
+    """Invoice list with create/export/mark paid — Studio Graphite design."""
+
+    STATUS_COLORS = {
+        "Paid": Colors.ACCENT_SUCCESS,
+        "Unpaid": Colors.ACCENT_WARNING,
+        "Cancelled": Colors.TEXT_MUTED,
+    }
 
     def __init__(self, db: Database):
         super().__init__()
@@ -34,29 +51,47 @@ class InvoicesPage(QWidget):
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(32, 32, 32, 32)
-        layout.setSpacing(20)
+        layout.setSpacing(24)
 
-        # Header
-        header_row = QHBoxLayout()
-        title = QLabel("Invoices")
-        title.setObjectName("heading")
-        header_row.addWidget(title)
-
-        self._count_label = QLabel("")
-        self._count_label.setObjectName("subheading")
-        header_row.addWidget(self._count_label)
-        header_row.addStretch()
+        # ─── Header ───────────────────────────────────────────────────────
+        self.header = PageHeader(
+            title="Invoices",
+            subtitle="Track payments, export PDFs, and stay on top of receivables",
+            count_text="0 total",
+        )
 
         add_btn = AnimatedButton("+ Create Invoice", accent=Colors.ACCENT_PRIMARY)
         add_btn.setCursor(Qt.PointingHandCursor)
         add_btn.clicked.connect(self._create_invoice)
-        header_row.addWidget(add_btn)
-        layout.addLayout(header_row)
+        self.header.add_action(add_btn)
+        layout.addWidget(self.header)
 
-        # Table
+        # ─── Stat row ─────────────────────────────────────────────────────
+        self.card_revenue = StatCard(
+            "Total Revenue", "₹0", icon="💰", accent=Colors.ACCENT_SUCCESS,
+            sub_text="Lifetime earnings",
+        )
+        self.card_pending = StatCard(
+            "Pending Payment", "₹0", icon="⏳", accent=Colors.ACCENT_WARNING,
+            sub_text="Awaiting collection",
+        )
+        self.card_overdue = StatCard(
+            "Overdue", "₹0", icon="🚨", accent=Colors.ACCENT_DANGER,
+            sub_text="Past due date",
+        )
+
+        stat_row = QHBoxLayout()
+        stat_row.setSpacing(20)
+        for c in (self.card_revenue, self.card_pending, self.card_overdue):
+            stat_row.addWidget(c, 1)
+        layout.addLayout(stat_row)
+
+        # ─── Table ────────────────────────────────────────────────────────
         self.table = QTableWidget()
         self.table.setColumnCount(7)
-        self.table.setHorizontalHeaderLabels(["#", "Invoice No.", "Client", "Project", "Total", "Due Date", "Status"])
+        self.table.setHorizontalHeaderLabels(
+            ["#", "Invoice No.", "Client", "Project", "Total", "Due Date", "Status"]
+        )
         self.table.setAlternatingRowColors(True)
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
@@ -64,10 +99,9 @@ class InvoicesPage(QWidget):
         self.table.setShowGrid(False)
         layout.addWidget(self.table)
 
-        # Actions
+        # Action buttons
         btn_row = QHBoxLayout()
         btn_row.addStretch()
-
         pdf_btn = AnimatedButton("📄 Export PDF", accent=Colors.ACCENT_INFO)
         pdf_btn.setCursor(Qt.PointingHandCursor)
         pdf_btn.clicked.connect(self._export_pdf)
@@ -87,9 +121,23 @@ class InvoicesPage(QWidget):
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Could not load invoices: {e}")
             invoices = []
-        self._count_label.setText(f"({len(invoices)} total)")
 
-        # Empty state
+        self.header.set_count(f"{len(invoices)} total")
+
+        # Stat values
+        try:
+            self.card_revenue.set_value(f"₹{self.repo.total_earned():,.0f}")
+            self.card_pending.set_value(f"₹{self.repo.total_pending():,.0f}")
+            overdue_rows = self.repo.get_overdue()
+            overdue_total = sum(float(r["total"]) for r in overdue_rows) if overdue_rows else 0.0
+            self.card_overdue.set_value(f"₹{overdue_total:,.0f}")
+            self.card_overdue.set_sub_text(
+                f"{len(overdue_rows)} invoice(s) overdue" if overdue_rows else "All caught up",
+                color=Colors.ACCENT_DANGER if overdue_rows else Colors.ACCENT_SUCCESS,
+            )
+        except Exception:
+            pass
+
         if not invoices:
             self.table.setRowCount(1)
             empty_item = QTableWidgetItem("No invoices yet — click 'Create Invoice' to add one")
@@ -109,17 +157,10 @@ class InvoicesPage(QWidget):
             self.table.setItem(i, 4, QTableWidgetItem(f"₹{inv['total']:,.2f}"))
             self.table.setItem(i, 5, QTableWidgetItem(inv["due_date"] or "—"))
 
-            # Color-coded status (matches DB vocabulary: Paid / Unpaid / Cancelled)
-            status_item = QTableWidgetItem(inv["status"])
-            status_colors = {
-                "Paid": Colors.ACCENT_SUCCESS,
-                "Unpaid": Colors.ACCENT_WARNING,
-                "Cancelled": Colors.TEXT_MUTED,
-            }
-            color = status_colors.get(inv["status"], Colors.TEXT_SECONDARY)
-            status_item.setForeground(QColor(color))
-            self.table.setItem(i, 6, status_item)
+            color = self.STATUS_COLORS.get(inv["status"], Colors.TEXT_SECONDARY)
+            self.table.setCellWidget(i, 6, StatusPill(inv["status"], color))
 
+    # ------------------------------------------------------------------
     def _create_invoice(self) -> None:
         projects = self.project_repo.get_all()
         if not projects:
@@ -149,13 +190,16 @@ class InvoicesPage(QWidget):
             return
 
         try:
-            rows = self.db.execute("""
+            rows = self.db.execute(
+                """
                 SELECT i.*, p.name as project_name, c.name as client_name, c.email as client_email
                 FROM invoices i
                 JOIN projects p ON i.project_id = p.id
                 JOIN clients c ON p.client_id = c.id
                 WHERE i.id = ?
-            """, (invoice_id,))
+                """,
+                (invoice_id,),
+            )
             if not rows:
                 return
 
@@ -196,12 +240,12 @@ class InvoicesPage(QWidget):
 
 
 class InvoiceDialog(QDialog):
-    """Create invoice dialog — soft styled."""
+    """Create invoice dialog."""
 
     def __init__(self, parent=None, projects=None, default_due_days: int = 14):
         super().__init__(parent)
         self.setWindowTitle("Create Invoice")
-        self.setMinimumWidth(420)
+        self.setMinimumWidth(440)
 
         layout = QFormLayout(self)
         layout.setSpacing(14)

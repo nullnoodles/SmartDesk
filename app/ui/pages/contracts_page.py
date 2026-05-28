@@ -1,27 +1,34 @@
-"""Contracts page — upload PDF, analyze risk, view findings — soft UI.
-
-WOW Feature: Upload a contract PDF → extract text → classify clauses → risk report.
-"""
+"""Contracts page — Studio Graphite redesign."""
 from __future__ import annotations
 
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QTextEdit, QTableWidget, QTableWidgetItem, QComboBox,
-    QDoubleSpinBox, QSpinBox, QFileDialog, QMessageBox,
-    QFormLayout,
-)
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
+from PySide6.QtWidgets import (
+    QComboBox,
+    QDoubleSpinBox,
+    QFileDialog,
+    QFormLayout,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QSpinBox,
+    QTableWidget,
+    QTableWidgetItem,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
 from app.data.database import Database
-from app.data.repositories.project_repo import ProjectRepository
 from app.data.repositories.contract_repo import ContractRepository
+from app.data.repositories.project_repo import ProjectRepository
 from app.ui.styles.theme import Colors
 from app.ui.widgets.animated import AnimatedButton, AnimatedCard, GradientBar
+from app.ui.widgets.page_header import PageHeader
 
 
 class ContractsPage(QWidget):
-    """Contract analysis with PDF upload and risk scoring — redesigned."""
+    """Contract analysis with PDF upload and risk scoring."""
 
     def __init__(self, db: Database):
         super().__init__()
@@ -34,8 +41,6 @@ class ContractsPage(QWidget):
         self._build_ui()
         self.refresh()
 
-    # ------------------------------------------------------------------
-    # Lazy-loaded ML modules
     # ------------------------------------------------------------------
     @property
     def risk_analyzer(self):
@@ -52,45 +57,40 @@ class ContractsPage(QWidget):
         return self._contract_parser
 
     # ------------------------------------------------------------------
-    # UI
-    # ------------------------------------------------------------------
     def _build_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(32, 32, 32, 32)
-        layout.setSpacing(20)
+        layout.setSpacing(24)
 
-        title = QLabel("Contract Risk Analyzer")
-        title.setObjectName("heading")
-        layout.addWidget(title)
+        header = PageHeader(
+            title="Contract Risk Analyzer",
+            subtitle="Upload a contract PDF or paste text — get a risk score plus flagged clauses",
+        )
+        layout.addWidget(header)
 
-        subtitle = QLabel("Upload a contract PDF or paste text to analyze risk factors")
-        subtitle.setObjectName("subheading")
-        layout.addWidget(subtitle)
-
-        # ─── Upload & Parameters Card ────────────────────────────────────
+        # ─── Inputs card ─────────────────────────────────────────────────
         upload_card = AnimatedCard()
         upload_layout = QVBoxLayout(upload_card)
-        upload_layout.setContentsMargins(24, 20, 24, 20)
-        upload_layout.setSpacing(14)
+        upload_layout.setContentsMargins(24, 22, 24, 22)
+        upload_layout.setSpacing(16)
 
-        # PDF upload row
-        pdf_row = QHBoxLayout()
+        # File row
+        file_row = QHBoxLayout()
         self.file_label = QLabel("📄  No file selected")
         self.file_label.setStyleSheet(
-            f"color: {Colors.TEXT_SECONDARY}; background: transparent;"
+            f"color: {Colors.TEXT_SECONDARY}; background: transparent; font-size: 13px;"
         )
-        pdf_row.addWidget(self.file_label)
-        pdf_row.addStretch()
+        file_row.addWidget(self.file_label, 1)
 
         upload_btn = AnimatedButton("Upload PDF", accent=Colors.ACCENT_INFO)
         upload_btn.setCursor(Qt.PointingHandCursor)
         upload_btn.clicked.connect(self._upload_pdf)
-        pdf_row.addWidget(upload_btn)
-        upload_layout.addLayout(pdf_row)
+        file_row.addWidget(upload_btn)
+        upload_layout.addLayout(file_row)
 
         # Parameters
         params_layout = QFormLayout()
-        params_layout.setSpacing(10)
+        params_layout.setSpacing(12)
 
         self.project_combo = QComboBox()
         self.rate_input = QDoubleSpinBox()
@@ -105,9 +105,7 @@ class ContractsPage(QWidget):
         self.timeline_input.setValue(14)
         self.timeline_input.setSuffix(" days")
         self.type_combo = QComboBox()
-        self.type_combo.addItems(
-            ["Design", "Video", "Writing", "Music", "Development", "General"]
-        )
+        self.type_combo.addItems(["Design", "Video", "Writing", "Music", "Development", "General"])
 
         params_layout.addRow("Project", self.project_combo)
         params_layout.addRow("Hourly Rate", self.rate_input)
@@ -118,13 +116,11 @@ class ContractsPage(QWidget):
 
         # Contract text
         self.contract_text = QTextEdit()
-        self.contract_text.setPlaceholderText(
-            "Paste contract text here, or upload a PDF above..."
-        )
-        self.contract_text.setMaximumHeight(120)
+        self.contract_text.setPlaceholderText("Paste contract text here, or upload a PDF above...")
+        self.contract_text.setMaximumHeight(140)
         upload_layout.addWidget(self.contract_text)
 
-        # Analyze button
+        # Analyze button (full width)
         analyze_btn = AnimatedButton("🔍  Analyze Risk", accent=Colors.ACCENT_PRIMARY)
         analyze_btn.setCursor(Qt.PointingHandCursor)
         analyze_btn.clicked.connect(self._analyze)
@@ -132,37 +128,35 @@ class ContractsPage(QWidget):
 
         layout.addWidget(upload_card)
 
-        # ─── Results Card ─────────────────────────────────────────────────
+        # ─── Results card ────────────────────────────────────────────────
         results_card = AnimatedCard()
         results_layout = QVBoxLayout(results_card)
-        results_layout.setContentsMargins(24, 20, 24, 20)
-        results_layout.setSpacing(14)
+        results_layout.setContentsMargins(24, 22, 24, 22)
+        results_layout.setSpacing(16)
 
         results_header = QLabel("Analysis Results")
         results_header.setStyleSheet(
-            f"font-size: 16px; font-weight: 600; color: {Colors.TEXT_PRIMARY}; "
-            f"background: transparent;"
+            f"color: {Colors.TEXT_PRIMARY}; background: transparent; "
+            f"font-size: 16px; font-weight: 700;"
         )
         results_layout.addWidget(results_header)
 
-        # Risk level + score bar
         risk_row = QHBoxLayout()
         self.risk_label = QLabel("Risk Level: —")
         self.risk_label.setStyleSheet(
-            f"font-size: 18px; font-weight: 700; color: {Colors.TEXT_SECONDARY}; "
-            f"background: transparent;"
+            f"color: {Colors.TEXT_SECONDARY}; background: transparent; "
+            f"font-size: 18px; font-weight: 700;"
         )
         risk_row.addWidget(self.risk_label)
         risk_row.addStretch()
 
         self.score_label = QLabel("Score: 0/100")
         self.score_label.setStyleSheet(
-            f"font-size: 14px; color: {Colors.TEXT_SECONDARY}; background: transparent;"
+            f"color: {Colors.TEXT_SECONDARY}; background: transparent; font-size: 14px;"
         )
         risk_row.addWidget(self.score_label)
         results_layout.addLayout(risk_row)
 
-        # Gradient risk bar
         self.risk_bar = GradientBar(
             value=0,
             max_value=100,
@@ -172,7 +166,6 @@ class ContractsPage(QWidget):
         )
         results_layout.addWidget(self.risk_bar)
 
-        # Findings table
         self.findings_table = QTableWidget()
         self.findings_table.setColumnCount(3)
         self.findings_table.setHorizontalHeaderLabels(["Check", "Finding", "Score"])
@@ -185,8 +178,6 @@ class ContractsPage(QWidget):
         layout.addWidget(results_card)
 
     # ------------------------------------------------------------------
-    # Data + actions
-    # ------------------------------------------------------------------
     def refresh(self) -> None:
         try:
             self.project_combo.clear()
@@ -196,15 +187,13 @@ class ContractsPage(QWidget):
             QMessageBox.warning(self, "Error", f"Could not load projects: {e}")
 
     def _upload_pdf(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(
-            self, "Select Contract PDF", "", "PDF Files (*.pdf)"
-        )
+        path, _ = QFileDialog.getOpenFileName(self, "Select Contract PDF", "", "PDF Files (*.pdf)")
         if not path:
             return
         filename = path.replace("\\", "/").split("/")[-1]
         self.file_label.setText(f"📄  {filename}")
         self.file_label.setStyleSheet(
-            f"color: {Colors.ACCENT_SUCCESS}; background: transparent;"
+            f"color: {Colors.ACCENT_SUCCESS}; background: transparent; font-size: 13px;"
         )
         try:
             text = self.contract_parser.extract_text(path)
@@ -213,7 +202,6 @@ class ContractsPage(QWidget):
             QMessageBox.warning(self, "Error", f"Could not read PDF: {e}")
 
     def _analyze(self) -> None:
-        # Validation
         if not self.contract_text.toPlainText().strip():
             QMessageBox.warning(
                 self,
@@ -234,7 +222,6 @@ class ContractsPage(QWidget):
             QMessageBox.critical(self, "Analysis Failed", f"Error: {e}")
             return
 
-        # Update risk display
         level = result["risk_level"]
         level_colors = {
             "LOW": Colors.ACCENT_SUCCESS,
@@ -245,14 +232,14 @@ class ContractsPage(QWidget):
 
         self.risk_label.setText(f"Risk Level: {level}")
         self.risk_label.setStyleSheet(
-            f"font-size: 18px; font-weight: 700; color: {color}; background: transparent;"
+            f"color: {color}; background: transparent; "
+            f"font-size: 18px; font-weight: 700;"
         )
 
         score = min(result["total_score"], 100)
         self.score_label.setText(f"Score: {score}/100")
         self.risk_bar.set_value(score, animate=True)
 
-        # Findings table
         findings = result["findings"]
         self.findings_table.setRowCount(len(findings))
         for i, f in enumerate(findings):
@@ -268,7 +255,7 @@ class ContractsPage(QWidget):
                 score_item.setForeground(QColor(Colors.ACCENT_SUCCESS))
             self.findings_table.setItem(i, 2, score_item)
 
-        # Save to DB
+        # Save
         project_id = self.project_combo.currentData()
         if project_id:
             try:

@@ -44,13 +44,12 @@ class SettingsPage(QWidget):
         outer.setContentsMargins(32, 32, 32, 32)
         outer.setSpacing(20)
 
-        title = QLabel("Settings")
-        title.setObjectName("heading")
-        outer.addWidget(title)
-
-        subtitle = QLabel("Configure business info, preferences, and manage your data")
-        subtitle.setObjectName("subheading")
-        outer.addWidget(subtitle)
+        from app.ui.widgets.page_header import PageHeader
+        header = PageHeader(
+            title="Settings",
+            subtitle="Business profile, preferences, backup, and CSV export",
+        )
+        outer.addWidget(header)
 
         tabs = QTabWidget()
         tabs.addTab(self._build_business_tab(), "Business Profile")

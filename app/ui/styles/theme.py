@@ -1,65 +1,65 @@
 """
-SmartDesk — Soft Professional Theme
-A clean, modern dark theme with soft pastel accents, smooth transitions,
-and a professional feel. Colors are muted and calming.
+SmartDesk — Studio Graphite Theme
+Professional dark palette tuned for long focus sessions. Soft pastels for
+status, deep neutrals layered for spatial hierarchy.
 """
 from __future__ import annotations
 
 from PySide6.QtWidgets import QApplication
-from PySide6.QtGui import QColor
 
 
 # ─── Color Palette ───────────────────────────────────────────────────────────
-# Soft dark backgrounds with warm undertones
 class Colors:
-    """Central color definitions for the soft professional theme."""
-    # Backgrounds
-    BG_DARKEST = "#12131a"      # Sidebar / deepest layer
-    BG_DARK = "#1a1b26"         # Main background
-    BG_CARD = "#222336"         # Card surfaces
-    BG_ELEVATED = "#2a2b3d"     # Elevated elements (hover states, inputs)
-    BG_HOVER = "#32334a"        # Hover overlays
+    """Central color definitions for the Studio Graphite palette."""
+
+    # Backgrounds (3 tiers of dark neutrals)
+    BG_DARKEST = "#12131a"       # Sidebar — anchored / deepest layer
+    BG_DARK = "#1a1b26"          # Main canvas
+    BG_CARD = "#222336"           # Card surfaces (Level 2)
+    BG_ELEVATED = "#1e1f2a"      # Inputs / table headers (Level 1.5)
+    BG_HOVER = "#28293c"         # Hover overlays
+    BG_DEEPEST = "#0c0d18"       # Sub-card / contextual deep
 
     # Borders
-    BORDER_SUBTLE = "#2e2f42"
-    BORDER_DEFAULT = "#3b3c54"
+    BORDER_SUBTLE = "#2d2e42"
+    BORDER_DEFAULT = "#454652"
     BORDER_FOCUS = "#7c8af4"
 
     # Text
     TEXT_PRIMARY = "#e2e4f0"
     TEXT_SECONDARY = "#9a9cb8"
     TEXT_MUTED = "#6b6d85"
-    TEXT_INVERSE = "#1a1b26"
+    TEXT_INVERSE = "#0f208b"     # Used on primary-container buttons
+    TEXT_ON_PRIMARY = "#061987"
 
-    # Accent colors — soft pastels
-    ACCENT_PRIMARY = "#7c8af4"      # Soft lavender-blue (primary actions)
+    # Accent — primary (lavender-blue family)
+    ACCENT_PRIMARY = "#7c8af4"           # primary-container — for buttons
     ACCENT_PRIMARY_HOVER = "#9aa4f7"
     ACCENT_PRIMARY_PRESSED = "#6470e0"
+    ACCENT_PRIMARY_LIGHT = "#bcc2ff"     # primary — for active text/icons
 
-    ACCENT_SUCCESS = "#7dd3a8"      # Soft mint green
+    # Accent — semantic statuses
+    ACCENT_SUCCESS = "#82d8ac"           # secondary — mint
     ACCENT_SUCCESS_HOVER = "#9ae3be"
-
-    ACCENT_WARNING = "#f0c878"      # Soft amber
+    ACCENT_WARNING = "#f0c878"           # status-warning — amber
     ACCENT_WARNING_HOVER = "#f5d898"
-
-    ACCENT_DANGER = "#e87c8a"       # Soft rose
+    ACCENT_DANGER = "#e87c8a"            # status-danger — rose
     ACCENT_DANGER_HOVER = "#f09aa5"
-
-    ACCENT_INFO = "#6ec5d4"         # Soft teal
+    ACCENT_INFO = "#7dd3e3"              # tertiary — teal
     ACCENT_INFO_HOVER = "#8dd4e0"
 
-    # Chart / graph colors (harmonious soft palette)
+    # Chart colors (harmonious soft palette)
     CHART_1 = "#7c8af4"     # Lavender
-    CHART_2 = "#7dd3a8"     # Mint
+    CHART_2 = "#82d8ac"     # Mint
     CHART_3 = "#f0c878"     # Amber
     CHART_4 = "#e87c8a"     # Rose
-    CHART_5 = "#6ec5d4"     # Teal
-    CHART_6 = "#c49cf4"     # Soft purple
+    CHART_5 = "#7dd3e3"     # Teal
+    CHART_6 = "#bcc2ff"     # Light lavender
     CHART_7 = "#f4a87c"     # Soft coral
 
-    # Gradients (for special elements)
+    # Gradients
     GRADIENT_PRIMARY_START = "#7c8af4"
-    GRADIENT_PRIMARY_END = "#6ec5d4"
+    GRADIENT_PRIMARY_END = "#bcc2ff"
 
 
 # ─── Main Stylesheet ─────────────────────────────────────────────────────────
@@ -76,7 +76,7 @@ QMainWindow {{
 QWidget {{
     background-color: {Colors.BG_DARK};
     color: {Colors.TEXT_PRIMARY};
-    font-family: "Segoe UI", "Inter", "SF Pro Display", sans-serif;
+    font-family: "Inter", "Segoe UI", "SF Pro Display", sans-serif;
     font-size: 13px;
 }}
 
@@ -93,23 +93,29 @@ QWidget {{
     background-color: transparent;
     color: {Colors.TEXT_SECONDARY};
     border: none;
-    border-radius: 10px;
-    padding: 12px 16px;
+    border-left: 3px solid transparent;
+    border-radius: 0px;
+    padding: 11px 16px;
     text-align: left;
     font-size: 13px;
-    margin: 2px 0px;
+    font-weight: 500;
+    margin: 1px 8px;
 }}
 
 #sidebar QPushButton:hover {{
     background-color: {Colors.BG_HOVER};
     color: {Colors.TEXT_PRIMARY};
+    border-radius: 8px;
+    border-left: 3px solid transparent;
 }}
 
 #sidebar QPushButton:checked {{
-    background-color: {Colors.BG_CARD};
-    color: {Colors.ACCENT_PRIMARY};
-    font-weight: 600;
+    background-color: rgba(124, 138, 244, 0.10);
+    color: {Colors.ACCENT_PRIMARY_LIGHT};
+    font-weight: 700;
     border-left: 3px solid {Colors.ACCENT_PRIMARY};
+    border-radius: 0px 8px 8px 0px;
+    margin-left: 0px;
     padding-left: 13px;
 }}
 
@@ -124,51 +130,73 @@ QWidget {{
     padding: 22px;
 }}
 
+QFrame#stat_card {{
+    background-color: {Colors.BG_CARD};
+    border: 1px solid {Colors.BORDER_SUBTLE};
+    border-radius: 14px;
+}}
+
+QFrame#stat_card:hover {{
+    background-color: {Colors.BG_HOVER};
+    border: 1px solid {Colors.BORDER_DEFAULT};
+}}
+
 /* ═══════════════════════════════════════════════════════════════════════════
-   TABLES
+   TABLES — clean style, no vertical grid, row dividers via item border
    ═══════════════════════════════════════════════════════════════════════════ */
 
 QTableWidget {{
-    background-color: {Colors.BG_DARK};
-    alternate-background-color: {Colors.BG_DARKEST};
+    background-color: {Colors.BG_CARD};
+    alternate-background-color: {Colors.BG_ELEVATED};
     border: 1px solid {Colors.BORDER_SUBTLE};
-    border-radius: 10px;
-    gridline-color: {Colors.BORDER_SUBTLE};
-    selection-background-color: {Colors.BG_ELEVATED};
+    border-radius: 14px;
+    gridline-color: transparent;
+    selection-background-color: {Colors.BG_HOVER};
     selection-color: {Colors.TEXT_PRIMARY};
 }}
 
 QTableWidget::item {{
-    padding: 10px 8px;
+    padding: 12px 8px;
+    border: none;
     border-bottom: 1px solid {Colors.BORDER_SUBTLE};
 }}
 
 QTableWidget::item:selected {{
-    background-color: {Colors.BG_ELEVATED};
+    background-color: {Colors.BG_HOVER};
+    color: {Colors.TEXT_PRIMARY};
 }}
 
 QHeaderView::section {{
-    background-color: {Colors.BG_CARD};
-    color: {Colors.TEXT_SECONDARY};
-    padding: 10px 8px;
+    background-color: {Colors.BG_ELEVATED};
+    color: {Colors.TEXT_PRIMARY};
+    padding: 12px 8px;
     border: none;
-    border-bottom: 2px solid {Colors.BORDER_DEFAULT};
-    font-weight: 600;
-    font-size: 12px;
+    border-bottom: 1px solid {Colors.BORDER_SUBTLE};
+    font-weight: 700;
+    font-size: 11px;
     text-transform: uppercase;
+    letter-spacing: 0.05em;
+}}
+
+QHeaderView::section:first {{
+    border-top-left-radius: 14px;
+}}
+
+QHeaderView::section:last {{
+    border-top-right-radius: 14px;
 }}
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   BUTTONS — Animated feel via transitions (QSS supports basic states)
+   BUTTONS
    ═══════════════════════════════════════════════════════════════════════════ */
 
 QPushButton {{
     background-color: {Colors.ACCENT_PRIMARY};
-    color: {Colors.TEXT_INVERSE};
+    color: {Colors.TEXT_ON_PRIMARY};
     border: none;
     border-radius: 10px;
     padding: 10px 22px;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 13px;
 }}
 
@@ -178,7 +206,6 @@ QPushButton:hover {{
 
 QPushButton:pressed {{
     background-color: {Colors.ACCENT_PRIMARY_PRESSED};
-    padding: 11px 22px 9px 22px;
 }}
 
 QPushButton:disabled {{
@@ -188,7 +215,7 @@ QPushButton:disabled {{
 
 QPushButton#danger {{
     background-color: {Colors.ACCENT_DANGER};
-    color: {Colors.TEXT_INVERSE};
+    color: #1a1b26;
 }}
 
 QPushButton#danger:hover {{
@@ -197,7 +224,7 @@ QPushButton#danger:hover {{
 
 QPushButton#success {{
     background-color: {Colors.ACCENT_SUCCESS};
-    color: {Colors.TEXT_INVERSE};
+    color: #1a1b26;
 }}
 
 QPushButton#success:hover {{
@@ -205,14 +232,26 @@ QPushButton#success:hover {{
 }}
 
 QPushButton#secondary {{
-    background-color: {Colors.BG_ELEVATED};
+    background-color: transparent;
     color: {Colors.TEXT_PRIMARY};
-    border: 1px solid {Colors.BORDER_DEFAULT};
+    border: 1px solid {Colors.BORDER_SUBTLE};
 }}
 
 QPushButton#secondary:hover {{
     background-color: {Colors.BG_HOVER};
-    border-color: {Colors.ACCENT_PRIMARY};
+    border: 1px solid {Colors.ACCENT_PRIMARY};
+    color: {Colors.ACCENT_PRIMARY_LIGHT};
+}}
+
+QPushButton#ghost {{
+    background-color: transparent;
+    color: {Colors.TEXT_SECONDARY};
+    border: none;
+}}
+
+QPushButton#ghost:hover {{
+    background-color: {Colors.BG_HOVER};
+    color: {Colors.TEXT_PRIMARY};
 }}
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -221,16 +260,16 @@ QPushButton#secondary:hover {{
 
 QLineEdit, QTextEdit, QComboBox, QSpinBox, QDoubleSpinBox, QDateEdit {{
     background-color: {Colors.BG_ELEVATED};
-    border: 1px solid {Colors.BORDER_DEFAULT};
+    border: 1px solid {Colors.BORDER_SUBTLE};
     border-radius: 10px;
     padding: 9px 14px;
     color: {Colors.TEXT_PRIMARY};
     selection-background-color: {Colors.ACCENT_PRIMARY};
-    selection-color: {Colors.TEXT_INVERSE};
+    selection-color: {Colors.TEXT_ON_PRIMARY};
 }}
 
 QLineEdit:focus, QTextEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus, QDateEdit:focus {{
-    border: 1.5px solid {Colors.ACCENT_PRIMARY};
+    border: 1px solid {Colors.ACCENT_PRIMARY};
     background-color: {Colors.BG_CARD};
 }}
 
@@ -246,8 +285,8 @@ QComboBox::drop-down {{
 QComboBox QAbstractItemView {{
     background-color: {Colors.BG_CARD};
     border: 1px solid {Colors.BORDER_DEFAULT};
-    border-radius: 8px;
-    selection-background-color: {Colors.BG_ELEVATED};
+    border-radius: 10px;
+    selection-background-color: {Colors.BG_HOVER};
     padding: 4px;
 }}
 
@@ -260,10 +299,17 @@ QLabel {{
 }}
 
 QLabel#heading {{
+    font-size: 32px;
+    font-weight: 700;
+    color: {Colors.TEXT_PRIMARY};
+    letter-spacing: -0.02em;
+}}
+
+QLabel#heading-lg {{
     font-size: 24px;
     font-weight: 700;
     color: {Colors.TEXT_PRIMARY};
-    letter-spacing: -0.5px;
+    letter-spacing: -0.01em;
 }}
 
 QLabel#subheading {{
@@ -273,17 +319,26 @@ QLabel#subheading {{
 }}
 
 QLabel#card_title {{
-    font-size: 12px;
-    color: {Colors.TEXT_SECONDARY};
-    font-weight: 500;
+    font-size: 11px;
+    color: {Colors.TEXT_MUTED};
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.05em;
 }}
 
 QLabel#card_value {{
-    font-size: 26px;
+    font-size: 28px;
     font-weight: 700;
-    color: {Colors.ACCENT_PRIMARY};
+    color: {Colors.TEXT_PRIMARY};
+    letter-spacing: -0.01em;
+}}
+
+QLabel#caps {{
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: {Colors.TEXT_MUTED};
 }}
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -298,13 +353,13 @@ QScrollBar:vertical {{
 }}
 
 QScrollBar::handle:vertical {{
-    background-color: {Colors.BORDER_DEFAULT};
+    background-color: {Colors.BORDER_SUBTLE};
     border-radius: 4px;
     min-height: 30px;
 }}
 
 QScrollBar::handle:vertical:hover {{
-    background-color: {Colors.TEXT_MUTED};
+    background-color: {Colors.BORDER_DEFAULT};
 }}
 
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
@@ -318,7 +373,7 @@ QScrollBar:horizontal {{
 }}
 
 QScrollBar::handle:horizontal {{
-    background-color: {Colors.BORDER_DEFAULT};
+    background-color: {Colors.BORDER_SUBTLE};
     border-radius: 4px;
     min-width: 30px;
 }}
@@ -329,8 +384,8 @@ QScrollBar::handle:horizontal {{
 
 QTabWidget::pane {{
     border: 1px solid {Colors.BORDER_SUBTLE};
-    border-radius: 10px;
-    background-color: {Colors.BG_DARK};
+    border-radius: 14px;
+    background-color: {Colors.BG_CARD};
     top: -1px;
 }}
 
@@ -350,9 +405,9 @@ QTabBar::tab:hover {{
 }}
 
 QTabBar::tab:selected {{
-    color: {Colors.ACCENT_PRIMARY};
+    color: {Colors.ACCENT_PRIMARY_LIGHT};
     border-bottom: 2px solid {Colors.ACCENT_PRIMARY};
-    font-weight: 600;
+    font-weight: 700;
 }}
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -392,17 +447,17 @@ QStatusBar {{
 
 QGroupBox {{
     border: 1px solid {Colors.BORDER_SUBTLE};
-    border-radius: 10px;
+    border-radius: 14px;
     margin-top: 14px;
     padding-top: 18px;
-    font-weight: 600;
+    font-weight: 700;
 }}
 
 QGroupBox::title {{
     subcontrol-origin: margin;
     left: 14px;
     padding: 0 8px;
-    color: {Colors.ACCENT_PRIMARY};
+    color: {Colors.ACCENT_PRIMARY_LIGHT};
 }}
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -437,5 +492,5 @@ QDialogButtonBox QPushButton {{
 
 
 def apply_dark_theme(app: QApplication) -> None:
-    """Apply the soft professional dark theme to the application."""
+    """Apply the Studio Graphite dark theme to the application."""
     app.setStyleSheet(DARK_STYLESHEET)
