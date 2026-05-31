@@ -23,6 +23,7 @@ from app.data.repositories.invoice_repo import InvoiceRepository
 from app.data.repositories.project_repo import ProjectRepository
 from app.ui.styles.theme import Colors
 from app.ui.widgets.animated import AnimatedCard, GradientBar, StaggeredFadeIn
+from app.ui.widgets.charts import IncomeTrendChart, ProjectTypeChart
 from app.ui.widgets.page_header import PageHeader
 from app.ui.widgets.stat_card import StatCard
 from app.ui.widgets.status_pill import StatusPill
@@ -158,6 +159,28 @@ class DashboardPage(QWidget):
 
         layout.addLayout(mid_row)
 
+        # ─── Charts row ──────────────────────────────────────────────────
+        charts_row = QHBoxLayout()
+        charts_row.setSpacing(20)
+
+        income_card = AnimatedCard()
+        income_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        income_layout = QVBoxLayout(income_card)
+        income_layout.setContentsMargins(20, 18, 20, 18)
+        self.income_chart = IncomeTrendChart(self.db)
+        income_layout.addWidget(self.income_chart)
+        charts_row.addWidget(income_card, 3)
+
+        type_card = AnimatedCard()
+        type_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        type_layout = QVBoxLayout(type_card)
+        type_layout.setContentsMargins(20, 18, 20, 18)
+        self.type_chart = ProjectTypeChart(self.db)
+        type_layout.addWidget(self.type_chart)
+        charts_row.addWidget(type_card, 2)
+
+        layout.addLayout(charts_row)
+
         # ─── Recent projects table ────────────────────────────────────────
         table_header = QLabel("Recent Projects")
         table_header.setStyleSheet(
@@ -242,6 +265,13 @@ class DashboardPage(QWidget):
 
             for status_name, _ in self.status_definitions:
                 self.status_labels[status_name].setText(str(status_counts.get(status_name, 0)))
+
+            # Refresh charts
+            try:
+                self.income_chart.refresh()
+                self.type_chart.refresh()
+            except Exception:
+                pass
 
             self._populate_recent_projects()
         except Exception:

@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.core.email_service import EmailService
 from app.core.invoice_service import InvoiceService
 from app.core.pdf_exporter import PDFExporter
 from app.core.settings_service import SettingsService
@@ -48,6 +49,7 @@ class InvoicesPage(QWidget):
         self.service = InvoiceService(db)
         self.pdf_exporter = PDFExporter()
         self.settings = SettingsService(db)
+        self.email = EmailService(db)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(32, 32, 32, 32)
@@ -106,6 +108,16 @@ class InvoicesPage(QWidget):
         pdf_btn.setCursor(Qt.PointingHandCursor)
         pdf_btn.clicked.connect(self._export_pdf)
         btn_row.addWidget(pdf_btn)
+
+        email_btn = AnimatedButton("✉️ Email Invoice", accent=Colors.ACCENT_INFO)
+        email_btn.setCursor(Qt.PointingHandCursor)
+        email_btn.clicked.connect(self._email_invoice)
+        btn_row.addWidget(email_btn)
+
+        remind_btn = AnimatedButton("🔔 Send Reminders", accent=Colors.ACCENT_WARNING)
+        remind_btn.setCursor(Qt.PointingHandCursor)
+        remind_btn.clicked.connect(self._send_overdue_reminders)
+        btn_row.addWidget(remind_btn)
 
         paid_btn = AnimatedButton("✓ Mark Paid", accent=Colors.ACCENT_SUCCESS)
         paid_btn.setCursor(Qt.PointingHandCursor)
@@ -237,6 +249,159 @@ class InvoicesPage(QWidget):
             QMessageBox.critical(self, "Error", f"Could not mark paid: {e}")
             return
         self.refresh()
+
+    # ------------------------------------------------------------------
+    # Email helpers
+    # ------------------------------------------------------------------
+    def _selected_invoice_data(self) -> dict | None:
+        row = self.table.currentRow()
+        if row < 0:
+            return None
+        item = self.table.item(row, 0)
+        if item is None or not item.text().isdigit():
+            return None
+        invoice_id = int(item.text())
+        rows = self.db.execute(
+            """
+            SELECT i.*, p.name as project_name, c.name as client_name, c.email as client_email
+            FROM invoices i
+            JOIN projects p ON i.project_id = p.id
+            JOIN clients c ON p.client_id = c.id
+            WHERE i.id = ?
+            """,
+            (invoice_id,),
+        )
+        return rows[0] if rows else None
+
+    def _email_invoice(self) -> None:
+        data = self._selected_invoice_data()
+        if not data:
+            QMessageBox.information(self, "Email Invoice", "Select an invoice first.")
+            return
+        if not data["client_email"]:
+            QMessageBox.warning(
+                self,
+                "Missing Email",
+                f"{data['client_name']} has no email address on file.",
+            )
+            return
+
+        # Build PDF if missing
+        try:
+            invoice_data = {
+                "invoice_number": data["invoice_number"],
+                "client_name": data["client_name"],
+                "client_email": data["client_email"],
+                "project_name": data["project_name"],
+                "amount": data["amount"],
+                "tax": data["tax"],
+                "total": data["total"],
+                "date_issued": data["date_issued"],
+                "due_date": data["due_date"],
+            }
+            business = self.settings.export_business_as_dict()
+            pdf_path = self.pdf_exporter.export_invoice(invoice_data, business=business)
+        except Exception as e:
+            QMessageBox.critical(self, "Export Failed", f"Could not generate PDF: {e}")
+            return
+
+        biz_name = self.settings.get_business().name
+        subject = self.email.invoice_subject(data["invoice_number"], biz_name)
+        body = self.email.invoice_body(
+            client_name=data["client_name"],
+            invoice_number=data["invoice_number"],
+            total=float(data["total"]),
+            due_date=data["due_date"] or "—",
+            business_name=biz_name,
+        )
+
+        confirm = QMessageBox.question(
+            self,
+            "Send Invoice",
+            f"Send {data['invoice_number']} to {data['client_email']}?\n\n"
+            "Subject: " + subject,
+        )
+        if confirm != QMessageBox.Yes:
+            return
+
+        try:
+            self.email.send(data["client_email"], subject, body, attachment=pdf_path)
+        except Exception as e:
+            QMessageBox.critical(self, "Email Failed", f"Could not send: {e}")
+            return
+        QMessageBox.information(self, "Sent", f"Invoice emailed to {data['client_email']}.")
+
+    def _send_overdue_reminders(self) -> None:
+        try:
+            overdue_rows = self.db.execute(
+                """
+                SELECT i.invoice_number, i.total, i.due_date, c.name as client_name,
+                       c.email as client_email
+                FROM invoices i
+                JOIN projects p ON i.project_id = p.id
+                JOIN clients c ON p.client_id = c.id
+                WHERE i.status = 'Unpaid' AND i.due_date < DATE('now')
+                ORDER BY i.due_date ASC
+                """
+            )
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Could not load overdue invoices: {e}")
+            return
+
+        with_emails = [r for r in overdue_rows if r["client_email"]]
+        if not with_emails:
+            QMessageBox.information(
+                self,
+                "No Reminders Needed",
+                "No overdue invoices have a client email address on file.",
+            )
+            return
+
+        confirm = QMessageBox.question(
+            self,
+            "Send Reminders",
+            f"Send overdue reminders to {len(with_emails)} client(s)?",
+        )
+        if confirm != QMessageBox.Yes:
+            return
+
+        from datetime import date
+
+        biz_name = self.settings.get_business().name
+        sent = 0
+        failures: list[str] = []
+        today = date.today()
+
+        for row in with_emails:
+            try:
+                due = date.fromisoformat(row["due_date"])
+                days_overdue = max((today - due).days, 1)
+            except Exception:
+                days_overdue = 1
+
+            subject = self.email.overdue_subject(row["invoice_number"])
+            body = self.email.overdue_body(
+                client_name=row["client_name"],
+                invoice_number=row["invoice_number"],
+                total=float(row["total"]),
+                due_date=row["due_date"] or "—",
+                days_overdue=days_overdue,
+                business_name=biz_name,
+            )
+            try:
+                self.email.send(row["client_email"], subject, body)
+                sent += 1
+            except Exception as e:
+                failures.append(f"{row['invoice_number']}: {e}")
+
+        if failures:
+            QMessageBox.warning(
+                self,
+                "Partial Success",
+                f"Sent {sent} reminder(s). Failed:\n" + "\n".join(failures[:5]),
+            )
+        else:
+            QMessageBox.information(self, "Done", f"Sent {sent} overdue reminder(s).")
 
 
 class InvoiceDialog(QDialog):

@@ -1,8 +1,7 @@
-"""Stat card — compact metric tile used at the top of list pages.
+"""Stat card — KPI tile matching the Studio Graphite reference.
 
-Layout matches the Studio Graphite reference: small uppercase label, large
-tabular-numbers value, accent icon bubble in the top-right, optional trend
-sub-line below the value.
+Layout: small uppercase label on the left, big value below; circular emoji
+icon bubble on the right, optional trend sub-line at the bottom.
 """
 from __future__ import annotations
 
@@ -12,8 +11,16 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QSizePolicy, QVBoxLay
 from app.ui.styles.theme import Colors
 
 
+def _hex_to_rgba(hex_color: str, alpha: float) -> str:
+    h = hex_color.lstrip("#")
+    r = int(h[0:2], 16)
+    g = int(h[2:4], 16)
+    b = int(h[4:6], 16)
+    return f"rgba({r}, {g}, {b}, {alpha})"
+
+
 class StatCard(QFrame):
-    """Compact KPI tile with icon bubble, label, value, and optional sub-line."""
+    """Compact KPI tile: label, big value, accent icon bubble, optional trend."""
 
     def __init__(
         self,
@@ -28,51 +35,54 @@ class StatCard(QFrame):
         super().__init__(parent)
         self.setObjectName("stat_card")
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.setMinimumHeight(120)
+        self.setMinimumHeight(132)
         self._accent = accent
-        self._sub_color = sub_color or Colors.TEXT_MUTED
+        self._default_sub_color = sub_color or Colors.TEXT_MUTED
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(22, 20, 22, 20)
-        layout.setSpacing(10)
+        layout.setSpacing(8)
 
-        # Top row — label on left, icon bubble on right
+        # Top row — uppercase label + circular icon bubble
         top_row = QHBoxLayout()
         top_row.setSpacing(8)
 
         self._label = QLabel(label.upper())
-        self._label.setObjectName("caps")
         self._label.setStyleSheet(
             f"color: {Colors.TEXT_MUTED}; background: transparent; "
-            f"font-size: 11px; font-weight: 700; letter-spacing: 0.05em;"
+            f"font-size: 11px; font-weight: 700; letter-spacing: 0.06em;"
         )
         top_row.addWidget(self._label, 1)
 
         self._icon = QLabel(icon)
-        self._icon.setFixedSize(36, 36)
+        self._icon.setFixedSize(40, 40)
         self._icon.setAlignment(Qt.AlignCenter)
+        bubble_bg = _hex_to_rgba(accent, 0.12)
         self._icon.setStyleSheet(
-            f"background-color: rgba(124, 138, 244, 0.10); "
-            f"border-radius: 10px; color: {accent}; font-size: 16px;"
+            f"background-color: {bubble_bg}; "
+            f"border-radius: 20px; color: {accent}; "
+            f"font-size: 18px;"
         )
         top_row.addWidget(self._icon, 0)
         layout.addLayout(top_row)
 
-        # Value
+        layout.addSpacing(2)
+
+        # Value (tabular numbers)
         self._value = QLabel(value)
         self._value.setStyleSheet(
             f"color: {Colors.TEXT_PRIMARY}; background: transparent; "
-            f"font-size: 28px; font-weight: 700; letter-spacing: -0.01em;"
+            f"font-size: 30px; font-weight: 700; letter-spacing: -0.02em;"
         )
         layout.addWidget(self._value)
 
-        # Sub-line
+        # Sub-line / trend
         self._sub = QLabel(sub_text)
+        self._sub.setVisible(bool(sub_text))
         self._sub.setStyleSheet(
-            f"color: {self._sub_color}; background: transparent; "
+            f"color: {self._default_sub_color}; background: transparent; "
             f"font-size: 12px; font-weight: 500;"
         )
-        self._sub.setVisible(bool(sub_text))
         layout.addWidget(self._sub)
 
         layout.addStretch()

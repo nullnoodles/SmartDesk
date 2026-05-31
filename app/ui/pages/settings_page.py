@@ -54,6 +54,8 @@ class SettingsPage(QWidget):
         tabs = QTabWidget()
         tabs.addTab(self._build_business_tab(), "Business Profile")
         tabs.addTab(self._build_preferences_tab(), "Preferences")
+        tabs.addTab(self._build_email_tab(), "Email (SMTP)")
+        tabs.addTab(self._build_receipt_tab(), "Receipt OCR")
         tabs.addTab(self._build_data_tab(), "Backup & Export")
         tabs.addTab(self._build_about_tab(), "About")
         outer.addWidget(tabs)
@@ -251,6 +253,144 @@ class SettingsPage(QWidget):
         return host
 
     # ------------------------------------------------------------------
+    # Email (SMTP) tab
+    # ------------------------------------------------------------------
+    def _build_email_tab(self) -> QWidget:
+        from app.core.email_service import EmailService
+
+        self.email_service = EmailService(self.db)
+
+        host = QWidget()
+        layout = QVBoxLayout(host)
+        layout.setContentsMargins(0, 16, 0, 16)
+        layout.setSpacing(16)
+
+        card = AnimatedCard()
+        form = QFormLayout(card)
+        form.setContentsMargins(24, 20, 24, 20)
+        form.setSpacing(12)
+
+        layout.addWidget(self._helper_text(
+            "Configure SMTP to send invoices and overdue reminders directly from the app. "
+            "For Gmail, create an App Password and use smtp.gmail.com on port 587."
+        ))
+
+        from PySide6.QtWidgets import QCheckBox
+
+        self.smtp_host = QLineEdit()
+        self.smtp_host.setPlaceholderText("smtp.gmail.com")
+        self.smtp_port = QSpinBox()
+        self.smtp_port.setRange(1, 65535)
+        self.smtp_port.setValue(587)
+        self.smtp_username = QLineEdit()
+        self.smtp_username.setPlaceholderText("you@gmail.com")
+        self.smtp_password = QLineEdit()
+        self.smtp_password.setEchoMode(QLineEdit.Password)
+        self.smtp_password.setPlaceholderText("App password (not your regular password)")
+        self.smtp_from = QLineEdit()
+        self.smtp_from.setPlaceholderText("you@gmail.com")
+        self.smtp_use_tls = QCheckBox("Use STARTTLS (recommended)")
+        self.smtp_use_tls.setChecked(True)
+
+        form.addRow("SMTP Host", self.smtp_host)
+        form.addRow("SMTP Port", self.smtp_port)
+        form.addRow("Username", self.smtp_username)
+        form.addRow("Password", self.smtp_password)
+        form.addRow("From Address", self.smtp_from)
+        form.addRow("", self.smtp_use_tls)
+        layout.addWidget(card)
+
+        button_row = QHBoxLayout()
+        save_btn = AnimatedButton("Save SMTP Settings", accent=Colors.ACCENT_PRIMARY)
+        save_btn.setCursor(Qt.PointingHandCursor)
+        save_btn.clicked.connect(self._save_smtp)
+        button_row.addWidget(save_btn)
+
+        test_btn = QPushButton("Send Test Email")
+        test_btn.setObjectName("secondary")
+        test_btn.clicked.connect(self._send_test_email)
+        button_row.addWidget(test_btn)
+        button_row.addStretch()
+        layout.addLayout(button_row)
+
+        layout.addStretch()
+        return host
+
+    # ------------------------------------------------------------------
+    # Receipt OCR tab
+    # ------------------------------------------------------------------
+    def _build_receipt_tab(self) -> QWidget:
+        from app.core.receipt_ocr import ReceiptOCR
+
+        self.ocr = ReceiptOCR()
+
+        host = QWidget()
+        layout = QVBoxLayout(host)
+        layout.setContentsMargins(0, 16, 0, 16)
+        layout.setSpacing(16)
+
+        card = AnimatedCard()
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(24, 20, 24, 20)
+        card_layout.setSpacing(14)
+
+        card_layout.addWidget(self._section_title("Receipt OCR"))
+        card_layout.addWidget(self._helper_text(
+            "Extract text and a likely total amount from a scanned receipt. "
+            "Requires Tesseract OCR installed on your system."
+        ))
+
+        availability = QLabel(
+            "✓ Tesseract detected" if self.ocr.is_available()
+            else "⚠ Tesseract not found — install from "
+                 "https://github.com/UB-Mannheim/tesseract/wiki"
+        )
+        availability.setWordWrap(True)
+        availability.setStyleSheet(
+            f"color: {Colors.ACCENT_SUCCESS if self.ocr.is_available() else Colors.ACCENT_WARNING}; "
+            f"background: transparent; font-size: 12px;"
+        )
+        card_layout.addWidget(availability)
+
+        upload_row = QHBoxLayout()
+        self.receipt_path_label = QLabel("No image selected")
+        self.receipt_path_label.setStyleSheet(
+            f"color: {Colors.TEXT_SECONDARY}; background: transparent;"
+        )
+        upload_row.addWidget(self.receipt_path_label, 1)
+
+        choose_btn = QPushButton("Choose Image…")
+        choose_btn.setObjectName("secondary")
+        choose_btn.clicked.connect(self._choose_receipt)
+        upload_row.addWidget(choose_btn)
+
+        run_btn = AnimatedButton("Extract Text", accent=Colors.ACCENT_PRIMARY)
+        run_btn.clicked.connect(self._run_receipt_ocr)
+        upload_row.addWidget(run_btn)
+        card_layout.addLayout(upload_row)
+
+        self.receipt_summary = QLabel(
+            "Extracted total / date will appear here after processing."
+        )
+        self.receipt_summary.setStyleSheet(
+            f"color: {Colors.TEXT_PRIMARY}; background: transparent; "
+            f"font-size: 13px; font-weight: 500;"
+        )
+        card_layout.addWidget(self.receipt_summary)
+
+        self.receipt_text = QTextEdit()
+        self.receipt_text.setReadOnly(True)
+        self.receipt_text.setPlaceholderText("Recognized text will appear here…")
+        self.receipt_text.setMinimumHeight(160)
+        card_layout.addWidget(self.receipt_text)
+
+        layout.addWidget(card)
+        layout.addStretch()
+
+        self._receipt_path: str = ""
+        return host
+
+    # ------------------------------------------------------------------
     # About tab
     # ------------------------------------------------------------------
     def _build_about_tab(self) -> QWidget:
@@ -340,6 +480,87 @@ class SettingsPage(QWidget):
         self._set_logo_path(profile.logo_path)
 
         self.due_days_input.setValue(self.settings.get_default_due_days())
+
+        # SMTP config
+        if hasattr(self, "email_service"):
+            try:
+                cfg = self.email_service.get_config()
+                self.smtp_host.setText(cfg.host)
+                self.smtp_port.setValue(cfg.port)
+                self.smtp_username.setText(cfg.username)
+                self.smtp_password.setText(cfg.password)
+                self.smtp_from.setText(cfg.from_addr)
+                self.smtp_use_tls.setChecked(cfg.use_tls)
+            except Exception:
+                pass
+
+    # ------------------------------------------------------------------
+    # SMTP handlers
+    # ------------------------------------------------------------------
+    def _save_smtp(self) -> None:
+        from app.core.email_service import SMTPConfig
+
+        cfg = SMTPConfig(
+            host=self.smtp_host.text().strip(),
+            port=self.smtp_port.value(),
+            username=self.smtp_username.text().strip(),
+            password=self.smtp_password.text(),
+            from_addr=self.smtp_from.text().strip(),
+            use_tls=self.smtp_use_tls.isChecked(),
+        )
+        try:
+            self.email_service.save_config(cfg)
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Could not save SMTP settings: {e}")
+            return
+        QMessageBox.information(self, "Saved", "SMTP settings updated.")
+
+    def _send_test_email(self) -> None:
+        from_addr = self.smtp_from.text().strip()
+        if not from_addr:
+            QMessageBox.warning(self, "Validation", "Save SMTP settings first.")
+            return
+
+        # Save first so the test uses the latest config
+        self._save_smtp()
+
+        try:
+            self.email_service.send(
+                to_addr=from_addr,
+                subject="SmartDesk SMTP test",
+                body="This is a test message from SmartDesk. If you received this, SMTP is configured correctly.",
+            )
+        except Exception as e:
+            QMessageBox.critical(self, "Test Failed", f"Could not send: {e}")
+            return
+        QMessageBox.information(self, "Sent", f"Test email sent to {from_addr}.")
+
+    # ------------------------------------------------------------------
+    # Receipt OCR handlers
+    # ------------------------------------------------------------------
+    def _choose_receipt(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Choose Receipt Image", "", "Images (*.png *.jpg *.jpeg *.bmp *.tiff)"
+        )
+        if not path:
+            return
+        self._receipt_path = path
+        self.receipt_path_label.setText(Path(path).name)
+
+    def _run_receipt_ocr(self) -> None:
+        if not getattr(self, "_receipt_path", ""):
+            QMessageBox.warning(self, "No File", "Choose a receipt image first.")
+            return
+        result = self.ocr.extract(self._receipt_path)
+        if not result.get("success"):
+            QMessageBox.critical(self, "OCR Failed", result.get("error", "Unknown error"))
+            return
+
+        amount = result.get("amount")
+        date_str = result.get("date") or "—"
+        amount_str = f"₹{amount:,.2f}" if amount else "Could not detect"
+        self.receipt_summary.setText(f"Detected total: {amount_str}    Date: {date_str}")
+        self.receipt_text.setPlainText(result.get("text", ""))
 
     # ------------------------------------------------------------------
     # Logo handling
