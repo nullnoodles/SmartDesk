@@ -1,7 +1,4 @@
-"""Dashboard — Studio Graphite redesign.
 
-Stat row → revenue overview + project status → recent projects table.
-"""
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, QTimer
