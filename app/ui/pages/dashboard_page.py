@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
+    QScrollArea,
     QSizePolicy,
     QTableWidget,
     QTableWidgetItem,
@@ -36,9 +37,27 @@ class DashboardPage(QWidget):
         self.project_repo = ProjectRepository(db)
         self.client_repo = ClientRepository(db)
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(36, 36, 36, 36)  # Fix: Increased margins (min 12px)
-        layout.setSpacing(28)  # Fix: Increased spacing
+        # Main page layout with scroll area
+        page_layout = QVBoxLayout(self)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+        page_layout.setSpacing(0)
+
+        # Create scroll area
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        
+        # Create content widget that will go inside scroll area
+        content_widget = QWidget()
+        content_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
+        
+        # Content layout - this is where all dashboard elements go
+        layout = QVBoxLayout(content_widget)
+        layout.setContentsMargins(36, 36, 36, 36)
+        layout.setSpacing(28)
+        layout.setAlignment(Qt.AlignTop)  # Important: align to top
 
         # ─── Header ───────────────────────────────────────────────────────
         header_row = QHBoxLayout()
@@ -72,7 +91,7 @@ class DashboardPage(QWidget):
 
         # Fix: Ensure all cards expand equally with proper stretch factor
         for card in (self.card_earned, self.card_pending, self.card_projects, self.card_clients):
-            card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)  # Fix: Allow vertical expansion
+            card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)  # Fix: Preferred not Expanding vertically
             cards_row.addWidget(card, 1)
         layout.addLayout(cards_row)
 
@@ -82,7 +101,7 @@ class DashboardPage(QWidget):
 
         # Revenue overview
         self.revenue_card = AnimatedCard()
-        self.revenue_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)  # Fix: Allow full expansion
+        self.revenue_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)  # Fix: Preferred height
         self.revenue_card.setMinimumHeight(320)  # Fix: Ensure minimum height
         rev_layout = QVBoxLayout(self.revenue_card)
         rev_layout.setContentsMargins(26, 24, 26, 24)  # Fix: Increased padding (min 12px)
@@ -110,7 +129,7 @@ class DashboardPage(QWidget):
 
         # Project status
         self.status_card = AnimatedCard()
-        self.status_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)  # Fix: Allow full expansion
+        self.status_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)  # Fix: Preferred height
         self.status_card.setMinimumHeight(320)  # Fix: Match revenue card height
         status_layout = QVBoxLayout(self.status_card)
         status_layout.setContentsMargins(26, 24, 26, 24)  # Fix: Increased padding (min 12px)
@@ -186,7 +205,7 @@ class DashboardPage(QWidget):
 
         # Income Trend Chart Card
         income_card = AnimatedCard()
-        income_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        income_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)  # Fix: Preferred height
         income_card.setMinimumHeight(450)  # Fix: Much larger height (was 340)
         income_layout = QVBoxLayout(income_card)
         income_layout.setContentsMargins(28, 26, 28, 26)  # Fix: Increased padding
@@ -219,7 +238,7 @@ class DashboardPage(QWidget):
 
         # Project Type Chart Card
         type_card = AnimatedCard()
-        type_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        type_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)  # Fix: Preferred height
         type_card.setMinimumHeight(450)  # Fix: Much larger height (was 340)
         type_layout = QVBoxLayout(type_card)
         type_layout.setContentsMargins(28, 26, 28, 26)  # Fix: Increased padding
@@ -270,7 +289,7 @@ class DashboardPage(QWidget):
         self.table.verticalHeader().setVisible(False)
         self.table.setShowGrid(False)
         self.table.setMinimumHeight(300)  # Fix: Set minimum height for table
-        self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)  # Fix: Allow expansion
+        self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)  # Fix: Maximum not Expanding
         layout.addWidget(self.table)
 
         # Staggered entrance for stat cards
@@ -279,6 +298,11 @@ class DashboardPage(QWidget):
             delay_ms=100,
             duration_ms=400,
         )
+        
+        # Set up scroll area
+        scroll.setWidget(content_widget)
+        page_layout.addWidget(scroll)
+        
         QTimer.singleShot(50, self._initial_load)
 
     # ------------------------------------------------------------------
