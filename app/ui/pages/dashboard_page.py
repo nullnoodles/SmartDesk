@@ -37,57 +37,63 @@ class DashboardPage(QWidget):
         self.client_repo = ClientRepository(db)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(32, 32, 32, 32)
-        layout.setSpacing(24)
+        layout.setContentsMargins(36, 36, 36, 36)  # Fix: Increased margins (min 12px)
+        layout.setSpacing(28)  # Fix: Increased spacing
 
         # ─── Header ───────────────────────────────────────────────────────
         header_row = QHBoxLayout()
-        header_row.setSpacing(16)
+        header_row.setSpacing(20)  # Fix: Increased spacing
 
         header = PageHeader(
             title="Dashboard",
             subtitle="Overview of your freelance business at a glance",
         )
+        header.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)  # Fix: Allow expansion
         header_row.addWidget(header, 1)
 
         greeting = QLabel("Welcome back 👋")
         greeting.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
         greeting.setStyleSheet(
             f"color: {Colors.TEXT_PRIMARY}; background: transparent; "
-            f"font-size: 13px; font-weight: 500;"
+            f"font-size: 14px; font-weight: 600; padding: 4px 8px;"  # Fix: Increased size and padding
         )
+        greeting.setMinimumHeight(24)  # Fix: Minimum height
         header_row.addWidget(greeting, 0)
         layout.addLayout(header_row)
 
         # ─── Stat cards row ───────────────────────────────────────────────
         cards_row = QHBoxLayout()
-        cards_row.setSpacing(20)
+        cards_row.setSpacing(24)  # Fix: Increased spacing between cards
 
         self.card_earned = StatCard("Total Earned", "₹0", icon="💰", accent=Colors.ACCENT_SUCCESS)
         self.card_pending = StatCard("Pending Amount", "₹0", icon="⏳", accent=Colors.ACCENT_WARNING)
         self.card_projects = StatCard("Active Projects", "0", icon="🚀", accent=Colors.ACCENT_INFO)
         self.card_clients = StatCard("Total Clients", "0", icon="👥", accent=Colors.ACCENT_PRIMARY_LIGHT)
 
+        # Fix: Ensure all cards expand equally with proper stretch factor
         for card in (self.card_earned, self.card_pending, self.card_projects, self.card_clients):
+            card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)  # Fix: Allow vertical expansion
             cards_row.addWidget(card, 1)
         layout.addLayout(cards_row)
 
         # ─── Middle row: revenue + status ────────────────────────────────
         mid_row = QHBoxLayout()
-        mid_row.setSpacing(20)
+        mid_row.setSpacing(24)  # Fix: Increased spacing
 
         # Revenue overview
         self.revenue_card = AnimatedCard()
-        self.revenue_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.revenue_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)  # Fix: Allow full expansion
+        self.revenue_card.setMinimumHeight(320)  # Fix: Ensure minimum height
         rev_layout = QVBoxLayout(self.revenue_card)
-        rev_layout.setContentsMargins(24, 22, 24, 22)
-        rev_layout.setSpacing(20)
+        rev_layout.setContentsMargins(26, 24, 26, 24)  # Fix: Increased padding (min 12px)
+        rev_layout.setSpacing(22)  # Fix: Increased spacing
 
         rev_title = QLabel("Revenue Overview")
         rev_title.setStyleSheet(
             f"color: {Colors.TEXT_PRIMARY}; background: transparent; "
-            f"font-size: 16px; font-weight: 700;"
+            f"font-size: 17px; font-weight: 700; padding: 4px 0px;"  # Fix: Increased size and padding
         )
+        rev_title.setMinimumHeight(24)  # Fix: Minimum height
         rev_layout.addWidget(rev_title)
 
         self.bar_earned = self._build_bar_row("Collected Revenue", Colors.ACCENT_SUCCESS, Colors.ACCENT_PRIMARY_LIGHT)
@@ -104,18 +110,20 @@ class DashboardPage(QWidget):
 
         # Project status
         self.status_card = AnimatedCard()
-        self.status_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.status_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)  # Fix: Allow full expansion
+        self.status_card.setMinimumHeight(320)  # Fix: Match revenue card height
         status_layout = QVBoxLayout(self.status_card)
-        status_layout.setContentsMargins(24, 22, 24, 22)
-        status_layout.setSpacing(8)
+        status_layout.setContentsMargins(26, 24, 26, 24)  # Fix: Increased padding (min 12px)
+        status_layout.setSpacing(12)  # Fix: Increased spacing
 
         status_title = QLabel("Project Status")
         status_title.setStyleSheet(
             f"color: {Colors.TEXT_PRIMARY}; background: transparent; "
-            f"font-size: 16px; font-weight: 700;"
+            f"font-size: 17px; font-weight: 700; padding: 4px 0px;"  # Fix: Increased size and padding
         )
+        status_title.setMinimumHeight(24)  # Fix: Minimum height
         status_layout.addWidget(status_title)
-        status_layout.addSpacing(8)
+        status_layout.addSpacing(10)  # Fix: Increased spacing
 
         self.status_labels: dict[str, QLabel] = {}
         self.status_definitions = [
@@ -126,26 +134,33 @@ class DashboardPage(QWidget):
         ]
         for status_name, color in self.status_definitions:
             row = QHBoxLayout()
-            row.setSpacing(10)
-            row.setContentsMargins(0, 6, 0, 6)
+            row.setSpacing(14)  # Fix: Increased spacing
+            row.setContentsMargins(0, 8, 0, 8)  # Fix: Increased vertical margins
 
             dot = QLabel("●")
-            dot.setStyleSheet(f"color: {color}; background: transparent; font-size: 10px;")
+            dot.setFixedWidth(18)  # Fix: Fixed width for alignment
+            dot.setStyleSheet(
+                f"color: {color}; background: transparent; "
+                f"font-size: 12px; padding: 2px;"  # Fix: Increased size and padding
+            )
+            dot.setMinimumHeight(20)  # Fix: Minimum height
             row.addWidget(dot)
 
             name_lbl = QLabel(status_name)
             name_lbl.setStyleSheet(
                 f"color: {Colors.TEXT_SECONDARY}; background: transparent; "
-                f"font-size: 13px;"
+                f"font-size: 14px; font-weight: 500; padding: 2px 4px;"  # Fix: Increased size and padding
             )
+            name_lbl.setMinimumHeight(20)  # Fix: Minimum height
             row.addWidget(name_lbl)
             row.addStretch()
 
             count_lbl = QLabel("0")
             count_lbl.setStyleSheet(
                 f"color: {Colors.TEXT_PRIMARY}; background: transparent; "
-                f"font-size: 14px; font-weight: 700;"
+                f"font-size: 16px; font-weight: 700; padding: 2px 4px;"  # Fix: Increased size and padding
             )
+            count_lbl.setMinimumHeight(20)  # Fix: Minimum height
             row.addWidget(count_lbl)
 
             self.status_labels[status_name] = count_lbl
@@ -157,23 +172,82 @@ class DashboardPage(QWidget):
         layout.addLayout(mid_row)
 
         # ─── Charts row ──────────────────────────────────────────────────
+        # Fix: Larger charts with proper titles and context
+        charts_section_title = QLabel("Performance Analytics")
+        charts_section_title.setStyleSheet(
+            f"color: {Colors.TEXT_PRIMARY}; background: transparent; "
+            f"font-size: 18px; font-weight: 700; padding: 8px 0px;"
+        )
+        charts_section_title.setMinimumHeight(28)
+        layout.addWidget(charts_section_title)
+        
         charts_row = QHBoxLayout()
-        charts_row.setSpacing(20)
+        charts_row.setSpacing(24)  # Fix: Increased spacing
 
+        # Income Trend Chart Card
         income_card = AnimatedCard()
-        income_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        income_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        income_card.setMinimumHeight(450)  # Fix: Much larger height (was 340)
         income_layout = QVBoxLayout(income_card)
-        income_layout.setContentsMargins(20, 18, 20, 18)
+        income_layout.setContentsMargins(28, 26, 28, 26)  # Fix: Increased padding
+        income_layout.setSpacing(12)
+        
+        # Chart title and description
+        income_title = QLabel("💰 Income Trend")
+        income_title.setStyleSheet(
+            f"color: {Colors.TEXT_PRIMARY}; background: transparent; "
+            f"font-size: 16px; font-weight: 700; padding: 4px 0px;"
+        )
+        income_title.setMinimumHeight(24)
+        income_layout.addWidget(income_title)
+        
+        income_desc = QLabel("Monthly revenue from paid invoices over the last 6 months")
+        income_desc.setWordWrap(True)
+        income_desc.setStyleSheet(
+            f"color: {Colors.TEXT_MUTED}; background: transparent; "
+            f"font-size: 12px; padding: 0px 0px 8px 0px;"
+        )
+        income_desc.setMinimumHeight(18)
+        income_layout.addWidget(income_desc)
+        
+        # Chart widget - now much larger
         self.income_chart = IncomeTrendChart(self.db)
-        income_layout.addWidget(self.income_chart)
+        self.income_chart.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.income_chart.setMinimumHeight(320)  # Fix: Larger chart (was none)
+        income_layout.addWidget(self.income_chart, 1)  # Fix: Stretch factor
         charts_row.addWidget(income_card, 3)
 
+        # Project Type Chart Card
         type_card = AnimatedCard()
-        type_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        type_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        type_card.setMinimumHeight(450)  # Fix: Much larger height (was 340)
         type_layout = QVBoxLayout(type_card)
-        type_layout.setContentsMargins(20, 18, 20, 18)
+        type_layout.setContentsMargins(28, 26, 28, 26)  # Fix: Increased padding
+        type_layout.setSpacing(12)
+        
+        # Chart title and description
+        type_title = QLabel("📊 Revenue by Type")
+        type_title.setStyleSheet(
+            f"color: {Colors.TEXT_PRIMARY}; background: transparent; "
+            f"font-size: 16px; font-weight: 700; padding: 4px 0px;"
+        )
+        type_title.setMinimumHeight(24)
+        type_layout.addWidget(type_title)
+        
+        type_desc = QLabel("Total revenue breakdown by project category")
+        type_desc.setWordWrap(True)
+        type_desc.setStyleSheet(
+            f"color: {Colors.TEXT_MUTED}; background: transparent; "
+            f"font-size: 12px; padding: 0px 0px 8px 0px;"
+        )
+        type_desc.setMinimumHeight(18)
+        type_layout.addWidget(type_desc)
+        
+        # Chart widget - now much larger
         self.type_chart = ProjectTypeChart(self.db)
-        type_layout.addWidget(self.type_chart)
+        self.type_chart.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.type_chart.setMinimumHeight(320)  # Fix: Larger chart (was none)
+        type_layout.addWidget(self.type_chart, 1)  # Fix: Stretch factor
         charts_row.addWidget(type_card, 2)
 
         layout.addLayout(charts_row)
@@ -182,8 +256,9 @@ class DashboardPage(QWidget):
         table_header = QLabel("Recent Projects")
         table_header.setStyleSheet(
             f"color: {Colors.TEXT_PRIMARY}; background: transparent; "
-            f"font-size: 16px; font-weight: 700;"
+            f"font-size: 17px; font-weight: 700; padding: 4px 0px;"  # Fix: Increased size and padding
         )
+        table_header.setMinimumHeight(24)  # Fix: Minimum height
         layout.addWidget(table_header)
 
         self.table = QTableWidget()
@@ -194,6 +269,8 @@ class DashboardPage(QWidget):
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.verticalHeader().setVisible(False)
         self.table.setShowGrid(False)
+        self.table.setMinimumHeight(300)  # Fix: Set minimum height for table
+        self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)  # Fix: Allow expansion
         layout.addWidget(self.table)
 
         # Staggered entrance for stat cards

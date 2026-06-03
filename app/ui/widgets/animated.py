@@ -49,10 +49,12 @@ class AnimatedButton(QPushButton):
                     border: none;
                     border-radius: 10px;
                     padding: 10px 22px;
-                    font-weight: 600;
+                    font-size: 13px;
+                    font-weight: 700;
                 }}
                 QPushButton:hover {{
                     background-color: {accent};
+                    opacity: 0.94;
                 }}
             """)
 
@@ -118,6 +120,9 @@ class AnimatedCard(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setProperty("class", "card")
+        # Fix: Set proper size policies for expansion
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.setMinimumHeight(280)  # Fix: Set minimum height to prevent compression
         self._is_hovered = False
         self._update_style(False)
 
@@ -128,7 +133,7 @@ class AnimatedCard(QFrame):
                     background-color: {Colors.BG_CARD};
                     border: 1px solid {Colors.ACCENT_PRIMARY};
                     border-radius: 14px;
-                    padding: 22px;
+                    padding: 24px;  /* Fix: Increased padding (min 12px) */
                 }}
             """)
         else:
@@ -137,7 +142,7 @@ class AnimatedCard(QFrame):
                     background-color: {Colors.BG_CARD};
                     border: 1px solid {Colors.BORDER_SUBTLE};
                     border-radius: 14px;
-                    padding: 22px;
+                    padding: 24px;  /* Fix: Increased padding (min 12px) */
                 }}
             """)
 
