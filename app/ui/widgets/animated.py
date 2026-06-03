@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from PySide6.QtWidgets import (
     QWidget, QPushButton, QFrame, QGraphicsOpacityEffect, QVBoxLayout, QLabel,
+    QSizePolicy,
 )
 from PySide6.QtCore import (
     QPropertyAnimation, QEasingCurve, Property, QSize, Qt, QTimer,
