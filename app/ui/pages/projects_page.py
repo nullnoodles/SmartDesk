@@ -15,10 +15,13 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QDoubleSpinBox,
     QFormLayout,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QMessageBox,
+    QScrollArea,
+    QSizePolicy,
     QTableWidget,
     QTableWidgetItem,
     QTextEdit,
@@ -66,16 +69,37 @@ class ProjectsPage(QWidget):
         self.repo = ProjectRepository(db)
         self.client_repo = ClientRepository(db)
 
-        # Main layout with consistent spacing
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(36, 36, 36, 36)
-        layout.setSpacing(28)
+        # Main page layout with scroll area
+        page_layout = QVBoxLayout(self)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+        page_layout.setSpacing(0)
+
+        # Create scroll area
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        
+        # Create content widget
+        content_widget = QWidget()
+        content_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
+        
+        # Content layout - standardized spacing
+        layout = QVBoxLayout(content_widget)
+        layout.setContentsMargins(36, 36, 36, 36)  # Standardized margins
+        layout.setSpacing(28)  # Standardized spacing
+        layout.setAlignment(Qt.AlignTop)
 
         # Build UI sections
         self._build_header(layout)
         self._build_stat_cards(layout)
         self._build_table(layout)
         self._build_action_buttons(layout)
+        
+        # Set up scroll area
+        scroll.setWidget(content_widget)
+        page_layout.addWidget(scroll)
         
         # Load initial data
         self.refresh()
@@ -104,7 +128,7 @@ class ProjectsPage(QWidget):
     def _build_stat_cards(self, parent_layout: QVBoxLayout) -> None:
         """Build project status stat cards row."""
         stat_row = QHBoxLayout()
-        stat_row.setSpacing(22)
+        stat_row.setSpacing(24)  # Standardized spacing
 
         # Active projects card
         self.card_active = StatCard(
