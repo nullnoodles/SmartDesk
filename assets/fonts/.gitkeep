@@ -1,0 +1,10 @@
+# Font files directory
+#
+# To use custom Inter fonts:
+# 1. Download Inter from https://rsms.me/inter/download/
+# 2. Extract and place these TTF files here:
+#    - Inter-Regular.ttf
+#    - Inter-Medium.ttf
+#    - Inter-Bold.ttf
+#
+# The app will fall back to system sans-serif fonts if these are not present.

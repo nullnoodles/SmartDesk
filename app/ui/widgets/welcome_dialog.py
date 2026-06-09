@@ -62,7 +62,25 @@ class WelcomeDialog(QDialog):
         layout.addStretch()
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok)
-        buttons.button(QDialogButtonBox.Ok).setText("Get Started")
+        btn_ok = buttons.button(QDialogButtonBox.Ok)
+        btn_ok.setText("Get Started")
+        btn_ok.setCursor(Qt.PointingHandCursor)
+        btn_ok.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {Colors.ACCENT_PRIMARY};
+                color: {Colors.TEXT_INVERSE};
+                border: none;
+                border-radius: 10px;
+                padding: 10px 24px;
+                font-weight: 700;
+                font-size: 13px;
+                min-width: 120px;
+                min-height: 38px;
+            }}
+            QPushButton:hover {{
+                background-color: {Colors.ACCENT_PRIMARY_HOVER};
+            }}
+        """)
         buttons.accepted.connect(self.accept)
         layout.addWidget(buttons)
 

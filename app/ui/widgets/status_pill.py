@@ -20,17 +20,27 @@ class StatusPill(QWidget):
 
     def __init__(self, label: str, color: str = Colors.ACCENT_PRIMARY, parent=None):
         super().__init__(parent)
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-
         bg = _hex_to_rgba(color, 0.12)
-        inner = QLabel(f"●  {label.upper()}")
-        inner.setAlignment(Qt.AlignVCenter)
-        inner.setStyleSheet(
-            f"background-color: {bg}; color: {color}; "
-            f"border-radius: 999px; padding: 3px 10px; "
+        self.setStyleSheet(
+            f"background-color: {bg}; border-radius: 999px;"
+        )
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(10, 4, 10, 4)
+        layout.setSpacing(7)
+
+        dot = QLabel("●")
+        dot.setAlignment(Qt.AlignVCenter)
+        dot.setStyleSheet(
+            f"background: transparent; color: {color}; font-size: 9px;"
+        )
+        layout.addWidget(dot)
+
+        text = QLabel(label.upper())
+        text.setAlignment(Qt.AlignVCenter)
+        text.setStyleSheet(
+            f"background: transparent; color: {color}; "
             f"font-size: 10px; font-weight: 700; letter-spacing: 0.04em;"
         )
-        layout.addWidget(inner)
+        layout.addWidget(text)
         layout.addStretch()

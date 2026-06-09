@@ -1,8 +1,4 @@
-"""SmartDesk — Freelancer Management System with Predictive Analytics.
 
-Application entry point. Shows a splash screen, initializes the database,
-applies the theme, and launches the main window.
-"""
 from __future__ import annotations
 
 import sys
@@ -28,7 +24,6 @@ from app.utils.logger import get_logger, log_exception
 
 
 def show_error(title: str, message: str) -> None:
-    """Show a critical error dialog."""
     msg = QMessageBox()
     msg.setIcon(QMessageBox.Critical)
     msg.setWindowTitle(title)
@@ -74,6 +69,9 @@ def main() -> int:
     logger.info("Starting %s v%s", APP_NAME, APP_VERSION)
 
     app = QApplication(sys.argv)
+    from app.core.signals import DataChangedSignal
+    app.data_changed = DataChangedSignal()
+    
     app.setApplicationName(APP_NAME)
     app.setApplicationVersion(APP_VERSION)
     app.setOrganizationName("SmartDesk")
@@ -122,6 +120,12 @@ def main() -> int:
 
         # Show welcome on first run (after window is up)
         QTimer.singleShot(150, lambda: _maybe_show_welcome(window, db))
+        
+        # Start notification scheduler
+        from app.core.notification_scheduler import NotificationScheduler
+        scheduler = NotificationScheduler(db, check_interval_ms=3600000)  # 1 hour
+        scheduler.start()
+        logger.info("Notification scheduler started (1 hour interval)")
 
     except Exception:
         if splash:

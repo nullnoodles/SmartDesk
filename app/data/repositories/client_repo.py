@@ -24,8 +24,8 @@ class ClientRepository:
     def search(self, keyword: str) -> list:
         kw = f"%{keyword}%"
         return self.db.execute(
-            "SELECT * FROM clients WHERE name LIKE ? OR email LIKE ? OR company LIKE ?",
-            (kw, kw, kw),
+            "SELECT * FROM clients WHERE name LIKE ? OR email LIKE ? OR phone LIKE ? OR company LIKE ?",
+            (kw, kw, kw, kw),
         )
 
     def update(self, client_id: int, name: str, email: str, phone: str, address: str, company: str, notes: str = "") -> None:

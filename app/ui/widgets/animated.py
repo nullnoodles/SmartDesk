@@ -130,7 +130,7 @@ class AnimatedCard(QFrame):
     def _update_style(self, hovered: bool) -> None:
         if hovered:
             self.setStyleSheet(f"""
-                QFrame {{
+                .AnimatedCard {{
                     background-color: {Colors.BG_CARD};
                     border: 1px solid {Colors.ACCENT_PRIMARY};
                     border-radius: 14px;
@@ -139,7 +139,7 @@ class AnimatedCard(QFrame):
             """)
         else:
             self.setStyleSheet(f"""
-                QFrame {{
+                .AnimatedCard {{
                     background-color: {Colors.BG_CARD};
                     border: 1px solid {Colors.BORDER_SUBTLE};
                     border-radius: 14px;

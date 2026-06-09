@@ -212,7 +212,7 @@ def seed():
             task_count += 1
     print(f"    Created {task_count} tasks")
 
-    print("\n✓ Database seeded successfully!")
+    print("\n[SUCCESS] Database seeded successfully!")
     print(f"  DB path: {DB_PATH}")
     print("\n  Run 'python main.py' to see the app with data.")
 

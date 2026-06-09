@@ -9,6 +9,7 @@ from __future__ import annotations
 from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
+    QFrame,
     QHBoxLayout,
     QMainWindow,
     QStackedWidget,
@@ -86,18 +87,6 @@ class MainWindow(QMainWindow):
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
         self.status_bar.showMessage(f"SmartDesk v{APP_VERSION} — Ready")
-        
-        # Enhanced status bar styling
-        self.status_bar.setStyleSheet(f"""
-            QStatusBar {{
-                background-color: {Colors.BG_DARKEST};
-                color: {Colors.TEXT_MUTED};
-                border-top: 1px solid {Colors.BORDER_SUBTLE};
-                font-size: 11px;
-                padding: 6px 20px;
-                font-weight: 500;
-            }}
-        """)
 
     def _setup_central_widget(self) -> None:
         """
@@ -105,6 +94,7 @@ class MainWindow(QMainWindow):
         No margins or spacing for edge-to-edge design.
         """
         central = QWidget()
+        central.setObjectName("app_shell")
         self.setCentralWidget(central)
         
         # Root horizontal layout: sidebar + right column
@@ -117,8 +107,8 @@ class MainWindow(QMainWindow):
         root_layout.addWidget(self.sidebar)
 
         # Right column: top bar above content stack
-        right_column = QWidget()
-        right_column.setStyleSheet(f"background-color: {Colors.BG_DARK};")
+        right_column = QFrame()
+        right_column.setObjectName("right_workspace")
         right_layout = QVBoxLayout(right_column)
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(0)
@@ -129,12 +119,6 @@ class MainWindow(QMainWindow):
 
         # Content stack (all page widgets)
         self.stack = QStackedWidget()
-        self.stack.setStyleSheet(f"""
-            QStackedWidget {{
-                background-color: {Colors.BG_DARK};
-                border: none;
-            }}
-        """)
         right_layout.addWidget(self.stack, 1)
         
         root_layout.addWidget(right_column, 1)
@@ -168,8 +152,14 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(widget)
 
     def _connect_signals(self) -> None:
-        """Wire up sidebar navigation to page switching."""
+        """Wire up sidebar navigation to page switching and global data change signals."""
         self.sidebar.page_changed.connect(self._switch_page)
+        
+        # Connect to global data change signal to refresh relevant pages
+        from PySide6.QtWidgets import QApplication
+        app = QApplication.instance()
+        if app and hasattr(app, "data_changed"):
+            app.data_changed.signal.connect(self._on_data_changed)
 
     def show_page(self, page_id: str) -> None:
         """
@@ -218,3 +208,30 @@ class MainWindow(QMainWindow):
             page_id: The unique identifier for the page
         """
         self.show_page(page_id)
+
+    def _on_data_changed(self) -> None:
+        """
+        Handle global data change signals by refreshing relevant pages.
+        This ensures all pages stay in sync when data is modified.
+        """
+        # Always refresh dashboard as it aggregates data from all sources
+        if "dashboard" in self.pages:
+            dashboard = self.pages["dashboard"]
+            if hasattr(dashboard, "refresh"):
+                dashboard.refresh()
+        
+        # Refresh the currently visible page to show updated data
+        current_widget = self.stack.currentWidget()
+        if current_widget and hasattr(current_widget, "refresh"):
+            current_widget.refresh()
+            
+        # Optionally refresh other critical pages that might cache data
+        # This can be expanded based on which pages need real-time updates
+        pages_to_refresh = ["clients", "projects", "invoices"]
+        for page_id in pages_to_refresh:
+            if page_id in self.pages:
+                page = self.pages[page_id]
+                if hasattr(page, "refresh"):
+                    # Only refresh if it's not the current page (already refreshed above)
+                    if page != current_widget:
+                        page.refresh()

@@ -6,10 +6,13 @@ from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QComboBox,
     QDoubleSpinBox,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QMessageBox,
+    QScrollArea,
+    QSizePolicy,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -24,6 +27,7 @@ from app.ui.styles.theme import Colors
 from app.ui.widgets.animated import AnimatedButton, AnimatedCard
 from app.ui.widgets.page_header import PageHeader
 from app.ui.widgets.stat_card import StatCard
+from app.core.signals import emit_data_changed
 
 
 class TimePage(QWidget):
@@ -36,9 +40,28 @@ class TimePage(QWidget):
         self.time_repo = TimeLogRepository(db)
         self.tracker = TimeTracker(db)
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(32, 32, 32, 32)
-        layout.setSpacing(24)
+
+        # Main page layout with scroll area
+        page_layout = QVBoxLayout(self)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+        page_layout.setSpacing(0)
+
+        # Create scroll area
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        
+        # Create content widget
+        content_widget = QWidget()
+        content_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
+        
+        # Content layout - standardized spacing
+        layout = QVBoxLayout(content_widget)
+        layout.setContentsMargins(36, 36, 36, 36)
+        layout.setSpacing(28)
+        layout.setAlignment(Qt.AlignTop)
 
         # ─── Header ───────────────────────────────────────────────────────
         self.header = PageHeader(
@@ -53,7 +76,7 @@ class TimePage(QWidget):
         self.card_total = StatCard("Total Logged", "0.0 h", icon="🎯", accent=Colors.ACCENT_SUCCESS)
 
         stat_row = QHBoxLayout()
-        stat_row.setSpacing(20)
+        stat_row.setSpacing(24)
         for c in (self.card_today, self.card_week, self.card_total):
             stat_row.addWidget(c, 1)
         layout.addLayout(stat_row)
@@ -148,6 +171,10 @@ class TimePage(QWidget):
         self.table.setShowGrid(False)
         layout.addWidget(self.table)
 
+        # Set scroll area widget and add to page
+        scroll.setWidget(content_widget)
+        page_layout.addWidget(scroll)
+
         # Timer ticker
         self._elapsed = 0
         self._timer = QTimer(self)
@@ -235,6 +262,7 @@ class TimePage(QWidget):
             )
             self.start_btn.setText("▶  Start Timer")
             self.refresh()
+            emit_data_changed()
             QMessageBox.information(self, "Logged", f"Logged {hours:.2f} hours.")
         else:
             project_id = self.project_combo.currentData()
@@ -271,6 +299,7 @@ class TimePage(QWidget):
             return
         try:
             self.tracker.add_manual(project_id, self.manual_hours.value(), self.desc_input.text())
+            emit_data_changed()
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Could not add entry: {e}")
             return

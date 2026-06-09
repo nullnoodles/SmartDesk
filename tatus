@@ -1,0 +1,10 @@
+[33m0d20f56[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Add scroll areas and standardize spacing (24px) for Clients and Projects pages
+[33m1f134c5[m Fix: Add scroll area to dashboard to prevent element compression and enable vertical scrolling
+[33m9c3a664[m Fix: Add missing QSizePolicy import in animated.py
+[33m645587f[m Fix dashboard layout: larger charts with context, proper spacing, and better readability
+[33m53f288b[m Rebuild Dashboard, Clients, and Projects pages with modern minimalist UI following PySide6 design system
+[33m10457cb[m Rebuild main_window.py with modern structure and add comprehensive PySide6 UI prompt documentation
+[33me7bec7e[m Add P2 stretch goals: SMTP email, receipt OCR, dashboard charts, overdue reminders
+[33mcc33eb5[m Rebuild UI to Studio Graphite design system
+[33m78de530[m Add settings, backup/restore, CSV export, first-run, logging; fix critical bugs and add tests
+[33mdf98127[m Remove .kiro from repo

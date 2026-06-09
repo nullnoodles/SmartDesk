@@ -1,14 +1,22 @@
-"""Stat card — KPI tile matching the Studio Graphite reference.
+"""Stat card — KPI tile matching the Stitch Dashboard reference.
 
-Layout: small uppercase label on the left, big value below; circular emoji
-icon bubble on the right, optional trend sub-line at the bottom.
+Layout: icon bubble (32x32, 4px radius) + uppercase label on top row,
+big value below, optional sub-text at bottom. No hover animation on
+the card itself. All styling via QSS #dashboard_stat_card.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QIcon, QPixmap, QPainter, QColor
+from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout
 
+from app.config import ASSETS_DIR
 from app.ui.styles.theme import Colors
+
+_ICONS_DIR = ASSETS_DIR / "icons"
 
 
 def _hex_to_rgba(hex_color: str, alpha: float) -> str:
@@ -19,86 +27,86 @@ def _hex_to_rgba(hex_color: str, alpha: float) -> str:
     return f"rgba({r}, {g}, {b}, {alpha})"
 
 
+def _load_svg_icon(name: str, size: int = 20, color: str = "#bcc2ff") -> QPixmap:
+    """Load an SVG icon, render at size, tint with color."""
+    svg_path = _ICONS_DIR / f"{name}.svg"
+    pixmap = QPixmap(size, size)
+    pixmap.fill(Qt.transparent)
+
+    if not svg_path.exists():
+        return pixmap
+
+    renderer = QSvgRenderer(str(svg_path))
+    painter = QPainter(pixmap)
+    renderer.render(painter)
+    painter.setCompositionMode(QPainter.CompositionMode_SourceIn)
+    painter.fillRect(pixmap.rect(), QColor(color))
+    painter.end()
+    return pixmap
+
+
 class StatCard(QFrame):
-    """Compact KPI tile: label, big value, accent icon bubble, optional trend."""
+    """Compact KPI tile: icon bubble + label, big value, sub-text.
+    
+    No hover animation on the card. setSizePolicy(Expanding, Fixed).
+    """
 
     def __init__(
         self,
         label: str,
         value: str = "—",
-        icon: str = "•",
+        icon: str = "",
         accent: str = Colors.ACCENT_PRIMARY,
         sub_text: str = "",
         sub_color: str | None = None,
         parent=None,
     ):
         super().__init__(parent)
-        self.setObjectName("stat_card")
-        # Fix: Use Expanding for both to allow proper card growth
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.setMinimumHeight(150)  # Fix: Increased minimum height
-        self.setMinimumWidth(200)   # Fix: Add minimum width to prevent compression
-        self.setCursor(Qt.ArrowCursor)
-        self._accent = accent
-        self._default_sub_color = sub_color or Colors.TEXT_MUTED
+        self.setObjectName("dashboard_stat_card")
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.setMinimumHeight(140)
+        self.setMinimumWidth(200)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 22, 24, 22)  # Fix: Increased padding (min 12px)
-        layout.setSpacing(12)  # Fix: Increased spacing
+        layout.setContentsMargins(24, 24, 24, 24)  # Stitch: p-6 = 24px
+        layout.setSpacing(8)
 
-        # Top row — uppercase label + circular icon bubble
+        # ─── Top row: icon bubble + label ─────────────────────────────────
         top_row = QHBoxLayout()
-        top_row.setSpacing(12)  # Fix: Increased spacing
+        top_row.setSpacing(12)  # Stitch: gap-3 = 12px
 
+        # Icon bubble — 32x32, 4px radius, 10% tinted background
+        self._icon_bubble = QLabel()
+        self._icon_bubble.setObjectName("stat_card_icon_bubble")
+        self._icon_bubble.setFixedSize(32, 32)
+        self._icon_bubble.setAlignment(Qt.AlignCenter)
+
+        # Try to load SVG icon, fall back to text
+        if icon and (_ICONS_DIR / f"{icon}.svg").exists():
+            icon_pixmap = _load_svg_icon(icon, size=20, color=accent)
+            self._icon_bubble.setPixmap(icon_pixmap)
+        else:
+            self._icon_bubble.setText(icon[:1] if icon else "")
+        top_row.addWidget(self._icon_bubble)
+
+        # Label — label-caps style (11px, 700, uppercase)
         self._label = QLabel(label.upper())
-        self._label.setWordWrap(True)  # Fix: Allow text wrapping
-        self._label.setStyleSheet(
-            f"color: {Colors.TEXT_MUTED}; background: transparent; "
-            f"font-size: 11px; font-weight: 700; letter-spacing: 0.06em; "
-            f"padding: 2px;"  # Fix: Add padding to prevent cutoff
-        )
-        self._label.setMinimumHeight(16)  # Fix: Ensure minimum height
+        self._label.setObjectName("stat_card_label")
         top_row.addWidget(self._label, 1)
-
-        self._icon = QLabel(icon)
-        self._icon.setFixedSize(40, 40)
-        self._icon.setAlignment(Qt.AlignCenter)
-        bubble_bg = _hex_to_rgba(accent, 0.12)
-        self._icon.setStyleSheet(
-            f"background-color: {bubble_bg}; "
-            f"border-radius: 20px; color: {accent}; "
-            f"font-size: 18px;"
-        )
-        top_row.addWidget(self._icon, 0)
         layout.addLayout(top_row)
 
-        layout.addSpacing(6)  # Fix: Increased spacing
+        layout.addSpacing(8)  # Stitch: mb-2 = 8px
 
-        # Value (tabular numbers)
+        # ─── Value — headline-lg (24px, 700) ─────────────────────────────
         self._value = QLabel(value)
-        self._value.setWordWrap(False)  # Fix: Prevent value wrapping
-        self._value.setStyleSheet(
-            f"color: {Colors.TEXT_PRIMARY}; background: transparent; "
-            f"font-size: 30px; font-weight: 800; letter-spacing: -0.02em; "
-            f"padding: 4px 0px;"  # Fix: Add vertical padding
-        )
-        self._value.setMinimumHeight(42)  # Fix: Increased minimum height
+        self._value.setObjectName("stat_card_value")
         layout.addWidget(self._value)
 
-        layout.addSpacing(4)  # Fix: Add spacing before subtext
-
-        # Sub-line / trend
+        # ─── Sub-text — body-sm (13px, 400) ──────────────────────────────
         self._sub = QLabel(sub_text)
+        self._sub.setObjectName("stat_card_subtext")
         self._sub.setVisible(bool(sub_text))
-        self._sub.setWordWrap(True)  # Fix: Allow wrapping for long text
-        self._sub.setStyleSheet(
-            f"color: {self._default_sub_color}; background: transparent; "
-            f"font-size: 12px; font-weight: 500; padding: 2px;"  # Fix: Add padding
-        )
-        self._sub.setMinimumHeight(16)  # Fix: Minimum height
         layout.addWidget(self._sub)
-
-        layout.addStretch()
 
     def set_value(self, value: str) -> None:
         self._value.setText(value)
@@ -106,8 +114,3 @@ class StatCard(QFrame):
     def set_sub_text(self, text: str, color: str | None = None) -> None:
         self._sub.setText(text)
         self._sub.setVisible(bool(text))
-        if color is not None:
-            self._sub.setStyleSheet(
-                f"color: {color}; background: transparent; "
-                f"font-size: 12px; font-weight: 500; padding: 2px;"  # Fix: Maintain padding
-            )

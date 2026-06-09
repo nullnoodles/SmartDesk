@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTabWidget, QGroupBox, QFormLayout, QComboBox,
     QDoubleSpinBox, QSpinBox, QTextEdit, QMessageBox, QFrame,
+    QScrollArea, QSizePolicy,
 )
 from PySide6.QtCore import Qt
 
@@ -24,9 +25,27 @@ class AnalyticsPage(QWidget):
         self._payment_predictor = None
         self._income_forecaster = None
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(32, 32, 32, 32)
-        layout.setSpacing(24)
+        # Main page layout with scroll area
+        page_layout = QVBoxLayout(self)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+        page_layout.setSpacing(0)
+
+        # Create scroll area
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        
+        # Create content widget
+        content_widget = QWidget()
+        content_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
+        
+        # Content layout - standardized spacing
+        layout = QVBoxLayout(content_widget)
+        layout.setContentsMargins(36, 36, 36, 36)
+        layout.setSpacing(28)
+        layout.setAlignment(Qt.AlignTop)
 
         # Header
         header = PageHeader(
@@ -51,6 +70,10 @@ class AnalyticsPage(QWidget):
         tabs.addTab(self._build_payment_tab(), "⏰ Payment Predictor")
         tabs.addTab(self._build_forecast_tab(), "📈 Income Forecast")
         layout.addWidget(tabs)
+
+        # Set scroll area widget and add to page
+        scroll.setWidget(content_widget)
+        page_layout.addWidget(scroll)
 
     def _build_pricing_tab(self) -> QWidget:
         widget = QWidget()

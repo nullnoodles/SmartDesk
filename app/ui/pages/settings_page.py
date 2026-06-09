@@ -8,12 +8,14 @@ from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QFileDialog,
     QFormLayout,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QMessageBox,
     QPushButton,
     QScrollArea,
+    QSizePolicy,
     QSpinBox,
     QTabWidget,
     QTextEdit,
@@ -25,6 +27,7 @@ from app.config import APP_AUTHOR, APP_DESCRIPTION, APP_NAME, APP_VERSION
 from app.core.backup_service import BackupService
 from app.core.csv_exporter import CSVExporter
 from app.core.settings_service import BusinessProfile, SettingsService
+from app.core.signals import emit_data_changed
 from app.data.database import Database
 from app.ui.styles.theme import Colors
 from app.ui.widgets.animated import AnimatedButton, AnimatedCard
@@ -39,10 +42,32 @@ class SettingsPage(QWidget):
         self.settings = SettingsService(db)
         self.backup = BackupService(db)
         self.csv = CSVExporter(db)
+        
+        # Notification service
+        from app.core.notification_service import NotificationService
+        self.notification_service = NotificationService(db)
 
-        outer = QVBoxLayout(self)
-        outer.setContentsMargins(32, 32, 32, 32)
-        outer.setSpacing(20)
+        # Main page layout with scroll area
+        page_layout = QVBoxLayout(self)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+        page_layout.setSpacing(0)
+
+        # Create scroll area
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        
+        # Create content widget
+        content_widget = QWidget()
+        content_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
+        
+        # Content layout - standardized spacing
+        outer = QVBoxLayout(content_widget)
+        outer.setContentsMargins(36, 36, 36, 36)
+        outer.setSpacing(28)
+        outer.setAlignment(Qt.AlignTop)
 
         from app.ui.widgets.page_header import PageHeader
         header = PageHeader(
@@ -54,11 +79,16 @@ class SettingsPage(QWidget):
         tabs = QTabWidget()
         tabs.addTab(self._build_business_tab(), "Business Profile")
         tabs.addTab(self._build_preferences_tab(), "Preferences")
+        tabs.addTab(self._build_notifications_tab(), "Notifications")
         tabs.addTab(self._build_email_tab(), "Email (SMTP)")
         tabs.addTab(self._build_receipt_tab(), "Receipt OCR")
         tabs.addTab(self._build_data_tab(), "Backup & Export")
         tabs.addTab(self._build_about_tab(), "About")
         outer.addWidget(tabs)
+
+        # Set scroll area widget and add to page
+        scroll.setWidget(content_widget)
+        page_layout.addWidget(scroll)
 
         self.refresh()
 
@@ -183,6 +213,126 @@ class SettingsPage(QWidget):
 
         layout.addWidget(card)
         layout.addWidget(save_btn)
+        layout.addStretch()
+        return host
+
+    # ------------------------------------------------------------------
+    # Notifications tab
+    # ------------------------------------------------------------------
+    def _build_notifications_tab(self) -> QWidget:
+        from PySide6.QtWidgets import QCheckBox
+
+        host = QWidget()
+        layout = QVBoxLayout(host)
+        layout.setContentsMargins(0, 16, 0, 16)
+        layout.setSpacing(16)
+
+        # General settings card
+        general_card = AnimatedCard()
+        general_layout = QVBoxLayout(general_card)
+        general_layout.setContentsMargins(24, 20, 24, 20)
+        general_layout.setSpacing(14)
+
+        general_layout.addWidget(self._section_title("🔔 Notification Settings"))
+        general_layout.addWidget(self._helper_text(
+            "Enable automated reminders for overdue invoices and upcoming deadlines. "
+            "Desktop notifications require 'plyer' package (pip install plyer)."
+        ))
+
+        self.notifications_enabled = QCheckBox("Enable Notifications")
+        self.notifications_enabled.setStyleSheet(f"color: {Colors.TEXT_PRIMARY};")
+        general_layout.addWidget(self.notifications_enabled)
+
+        self.desktop_notifications = QCheckBox("Desktop Notifications (Pop-ups)")
+        self.desktop_notifications.setStyleSheet(f"color: {Colors.TEXT_PRIMARY};")
+        general_layout.addWidget(self.desktop_notifications)
+
+        self.email_reminders = QCheckBox("Email Reminders")
+        self.email_reminders.setStyleSheet(f"color: {Colors.TEXT_PRIMARY};")
+        general_layout.addWidget(self.email_reminders)
+
+        layout.addWidget(general_card)
+
+        # Frequency settings card
+        freq_card = AnimatedCard()
+        freq_form = QFormLayout(freq_card)
+        freq_form.setContentsMargins(24, 20, 24, 20)
+        freq_form.setSpacing(12)
+
+        from PySide6.QtWidgets import QComboBox
+        self.reminder_frequency = QComboBox()
+        self.reminder_frequency.addItems(["Daily", "Weekly"])
+        freq_form.addRow("Check Frequency", self.reminder_frequency)
+
+        self.days_before_due = QSpinBox()
+        self.days_before_due.setRange(1, 30)
+        self.days_before_due.setValue(3)
+        self.days_before_due.setSuffix(" days")
+        freq_form.addRow("Remind Before Deadline", self.days_before_due)
+
+        layout.addWidget(freq_card)
+
+        # Notification types card
+        types_card = AnimatedCard()
+        types_layout = QVBoxLayout(types_card)
+        types_layout.setContentsMargins(24, 20, 24, 20)
+        types_layout.setSpacing(12)
+
+        types_layout.addWidget(self._section_title("Notification Types"))
+
+        self.notify_overdue = QCheckBox("Overdue Invoices")
+        self.notify_overdue.setStyleSheet(f"color: {Colors.TEXT_PRIMARY};")
+        types_layout.addWidget(self.notify_overdue)
+
+        self.notify_deadlines = QCheckBox("Upcoming Project Deadlines")
+        self.notify_deadlines.setStyleSheet(f"color: {Colors.TEXT_PRIMARY};")
+        types_layout.addWidget(self.notify_deadlines)
+
+        self.notify_payments = QCheckBox("Payments Received")
+        self.notify_payments.setStyleSheet(f"color: {Colors.TEXT_PRIMARY};")
+        types_layout.addWidget(self.notify_payments)
+
+        layout.addWidget(types_card)
+
+        # Status card
+        status_card = AnimatedCard()
+        status_layout = QVBoxLayout(status_card)
+        status_layout.setContentsMargins(24, 20, 24, 20)
+        status_layout.setSpacing(12)
+
+        status_layout.addWidget(self._section_title("Current Status"))
+
+        self.notification_status_label = QLabel("Loading...")
+        self.notification_status_label.setWordWrap(True)
+        self.notification_status_label.setStyleSheet(
+            f"color: {Colors.TEXT_SECONDARY}; background: transparent; font-size: 12px;"
+        )
+        status_layout.addWidget(self.notification_status_label)
+
+        self._update_notification_status()
+
+        layout.addWidget(status_card)
+
+        # Action buttons
+        button_row = QHBoxLayout()
+        
+        save_btn = AnimatedButton("Save Settings", accent=Colors.ACCENT_PRIMARY)
+        save_btn.setCursor(Qt.PointingHandCursor)
+        save_btn.clicked.connect(self._save_notification_settings)
+        button_row.addWidget(save_btn)
+
+        test_btn = QPushButton("Send Test Notification")
+        test_btn.setObjectName("secondary")
+        test_btn.clicked.connect(self._send_test_notification)
+        button_row.addWidget(test_btn)
+
+        check_now_btn = AnimatedButton("Check Now", accent=Colors.ACCENT_INFO)
+        check_now_btn.clicked.connect(self._check_notifications_now)
+        button_row.addWidget(check_now_btn)
+
+        button_row.addStretch()
+        layout.addLayout(button_row)
+
         layout.addStretch()
         return host
 
@@ -494,6 +644,22 @@ class SettingsPage(QWidget):
             except Exception:
                 pass
 
+        # Notification config
+        if hasattr(self, "notification_service"):
+            try:
+                notif_cfg = self.notification_service.get_config()
+                self.notifications_enabled.setChecked(notif_cfg.enabled)
+                self.desktop_notifications.setChecked(notif_cfg.desktop_enabled)
+                self.email_reminders.setChecked(notif_cfg.email_enabled)
+                self.days_before_due.setValue(notif_cfg.days_before_due)
+                self.reminder_frequency.setCurrentText(notif_cfg.frequency.capitalize())
+                self.notify_overdue.setChecked(notif_cfg.notify_overdue)
+                self.notify_deadlines.setChecked(notif_cfg.notify_deadlines)
+                self.notify_payments.setChecked(notif_cfg.notify_payments)
+                self._update_notification_status()
+            except Exception:
+                pass
+
     # ------------------------------------------------------------------
     # SMTP handlers
     # ------------------------------------------------------------------
@@ -612,6 +778,7 @@ class SettingsPage(QWidget):
         )
         try:
             self.settings.save_business(profile)
+            emit_data_changed()  # Notify dashboard of business settings changes
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Could not save: {e}")
             return
@@ -620,6 +787,7 @@ class SettingsPage(QWidget):
     def _save_preferences(self) -> None:
         try:
             self.settings.set_default_due_days(self.due_days_input.value())
+            emit_data_changed()  # Notify dashboard of preferences changes
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Could not save: {e}")
             return
@@ -689,3 +857,114 @@ class SettingsPage(QWidget):
             QMessageBox.critical(self, "Export Failed", f"Error: {e}")
             return
         QMessageBox.information(self, "Exported", f"Saved to:\n{output}")
+
+    # ------------------------------------------------------------------
+    # Notification handlers
+    # ------------------------------------------------------------------
+    def _save_notification_settings(self) -> None:
+        from app.core.notification_service import NotificationConfig
+
+        config = NotificationConfig(
+            enabled=self.notifications_enabled.isChecked(),
+            desktop_enabled=self.desktop_notifications.isChecked(),
+            email_enabled=self.email_reminders.isChecked(),
+            days_before_due=self.days_before_due.value(),
+            frequency=self.reminder_frequency.currentText().lower(),
+            notify_overdue=self.notify_overdue.isChecked(),
+            notify_deadlines=self.notify_deadlines.isChecked(),
+            notify_payments=self.notify_payments.isChecked(),
+        )
+
+        try:
+            self.notification_service.save_config(config)
+            self._update_notification_status()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Could not save settings: {e}")
+            return
+
+        QMessageBox.information(self, "Saved", "Notification settings updated.")
+
+    def _send_test_notification(self) -> None:
+        """Send a test desktop notification."""
+        success = self.notification_service.send_desktop_notification(
+            title="SmartDesk Test Notification",
+            message="If you can see this, desktop notifications are working!",
+            timeout=10,
+        )
+
+        if success:
+            QMessageBox.information(
+                self,
+                "Test Sent",
+                "Test notification sent! Check your system notifications.",
+            )
+        else:
+            QMessageBox.warning(
+                self,
+                "Test Failed",
+                "Desktop notifications are not available.\n\n"
+                "Make sure 'plyer' is installed: pip install plyer\n"
+                "Also check that notifications are enabled in settings.",
+            )
+
+    def _check_notifications_now(self) -> None:
+        """Manually trigger notification check."""
+        try:
+            # Check overdue invoices
+            overdue_results = self.notification_service.send_all_overdue_reminders()
+            
+            # Check deadlines
+            deadline_results = self.notification_service.send_all_deadline_reminders()
+            
+            # Mark check as done
+            self.notification_service.mark_reminder_check_done()
+            
+            # Show summary
+            message = (
+                f"Notification check completed:\n\n"
+                f"Overdue Invoices:\n"
+                f"  • Found: {overdue_results['total']}\n"
+                f"  • Desktop notifications: {overdue_results['desktop_sent']}\n"
+                f"  • Emails sent: {overdue_results['emails_sent']}\n\n"
+                f"Upcoming Deadlines:\n"
+                f"  • Found: {deadline_results['total']}\n"
+                f"  • Notifications sent: {deadline_results['sent']}\n"
+            )
+            
+            if overdue_results['failed'] or deadline_results['failed']:
+                message += f"\n⚠️ Some notifications failed to send."
+            
+            self._update_notification_status()
+            QMessageBox.information(self, "Check Complete", message)
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Check Failed", f"Error: {e}")
+
+    def _update_notification_status(self) -> None:
+        """Update the notification status display."""
+        try:
+            summary = self.notification_service.get_notification_summary()
+            
+            status_parts = []
+            
+            if summary["enabled"]:
+                status_parts.append("✅ Notifications enabled")
+            else:
+                status_parts.append("❌ Notifications disabled")
+            
+            if summary["desktop_available"]:
+                status_parts.append("✅ Desktop notifications available")
+            else:
+                status_parts.append("⚠️ Desktop notifications unavailable (install plyer)")
+            
+            status_parts.append(
+                f"📧 {summary['pending_overdue']} overdue invoice(s) need reminders"
+            )
+            status_parts.append(
+                f"📅 {summary['pending_deadlines']} upcoming deadline(s)"
+            )
+            
+            self.notification_status_label.setText("\n".join(status_parts))
+            
+        except Exception:
+            self.notification_status_label.setText("⚠️ Could not load notification status")

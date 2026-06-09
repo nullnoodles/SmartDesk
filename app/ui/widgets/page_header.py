@@ -35,7 +35,7 @@ class PageHeader(QWidget):
         self._title = QLabel(title)
         self._title.setStyleSheet(
             f"color: {Colors.TEXT_PRIMARY}; background: transparent; "
-            f"font-size: 30px; font-weight: 700; letter-spacing: -0.02em;"
+            f"font-size: 32px; font-weight: 700; letter-spacing: -0.02em;"
         )
         title_row.addWidget(self._title, 0)
 
@@ -56,8 +56,8 @@ class PageHeader(QWidget):
         self._subtitle = QLabel(subtitle)
         self._subtitle.setVisible(bool(subtitle))
         self._subtitle.setStyleSheet(
-            f"color: {Colors.TEXT_MUTED}; background: transparent; "
-            f"font-size: 14px;"
+            f"color: {Colors.TEXT_SECONDARY}; background: transparent; "
+            f"font-size: 14px; font-weight: 500;"
         )
         left.addWidget(self._subtitle)
 

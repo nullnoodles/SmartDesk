@@ -9,8 +9,11 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QDoubleSpinBox,
     QFormLayout,
+    QFrame,
     QHBoxLayout,
     QMessageBox,
+    QScrollArea,
+    QSizePolicy,
     QSpinBox,
     QTableWidget,
     QTableWidgetItem,
@@ -30,6 +33,7 @@ from app.ui.widgets.animated import AnimatedButton
 from app.ui.widgets.page_header import PageHeader
 from app.ui.widgets.stat_card import StatCard
 from app.ui.widgets.status_pill import StatusPill
+from app.core.signals import emit_data_changed
 
 
 class InvoicesPage(QWidget):
@@ -51,9 +55,28 @@ class InvoicesPage(QWidget):
         self.settings = SettingsService(db)
         self.email = EmailService(db)
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(32, 32, 32, 32)
-        layout.setSpacing(24)
+
+        # Main page layout with scroll area
+        page_layout = QVBoxLayout(self)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+        page_layout.setSpacing(0)
+
+        # Create scroll area
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        
+        # Create content widget
+        content_widget = QWidget()
+        content_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
+        
+        # Content layout - standardized spacing
+        layout = QVBoxLayout(content_widget)
+        layout.setContentsMargins(36, 36, 36, 36)
+        layout.setSpacing(28)
+        layout.setAlignment(Qt.AlignTop)
 
         # ─── Header ───────────────────────────────────────────────────────
         self.header = PageHeader(
@@ -83,7 +106,7 @@ class InvoicesPage(QWidget):
         )
 
         stat_row = QHBoxLayout()
-        stat_row.setSpacing(20)
+        stat_row.setSpacing(24)  # Standardized spacing
         for c in (self.card_revenue, self.card_pending, self.card_overdue):
             stat_row.addWidget(c, 1)
         layout.addLayout(stat_row)
@@ -124,6 +147,10 @@ class InvoicesPage(QWidget):
         paid_btn.clicked.connect(self._mark_paid)
         btn_row.addWidget(paid_btn)
         layout.addLayout(btn_row)
+
+        # Set up scroll area
+        scroll.setWidget(content_widget)
+        page_layout.addWidget(scroll)
 
         self.refresh()
 
@@ -184,6 +211,7 @@ class InvoicesPage(QWidget):
             data = dialog.get_data()
             try:
                 self.service.create_invoice(data["project_id"], data["amount"], due_days=data["due_days"])
+                emit_data_changed()
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Could not create invoice: {e}")
                 return
@@ -245,6 +273,7 @@ class InvoicesPage(QWidget):
         invoice_id = int(item.text())
         try:
             self.service.mark_paid(invoice_id)
+            emit_data_changed()
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Could not mark paid: {e}")
             return
@@ -435,6 +464,45 @@ class InvoiceDialog(QDialog):
         layout.addRow("Payment Due In", self.due_days_input)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.button(QDialogButtonBox.Ok).setText("Save Invoice")
+        buttons.button(QDialogButtonBox.Cancel).setText("Cancel")
+        
+        # Style buttons
+        buttons.button(QDialogButtonBox.Ok).setStyleSheet(f"""
+            QPushButton {{
+                background-color: {Colors.ACCENT_PRIMARY};
+                color: {Colors.TEXT_INVERSE};
+                border: none;
+                border-radius: 10px;
+                padding: 10px 24px;
+                font-weight: 700;
+                font-size: 13px;
+                min-width: 120px;
+                min-height: 38px;
+            }}
+            QPushButton:hover {{
+                background-color: {Colors.ACCENT_PRIMARY_HOVER};
+            }}
+        """)
+        
+        buttons.button(QDialogButtonBox.Cancel).setStyleSheet(f"""
+            QPushButton {{
+                background-color: transparent;
+                color: {Colors.TEXT_PRIMARY};
+                border: 1px solid {Colors.BORDER_SUBTLE};
+                border-radius: 10px;
+                padding: 10px 24px;
+                font-weight: 600;
+                font-size: 13px;
+                min-width: 120px;
+                min-height: 38px;
+            }}
+            QPushButton:hover {{
+                background-color: {Colors.BG_HOVER};
+                border: 1px solid {Colors.BORDER_DEFAULT};
+            }}
+        """)
+        
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addRow(buttons)

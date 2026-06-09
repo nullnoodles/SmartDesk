@@ -37,6 +37,7 @@ from app.ui.widgets.animated import AnimatedButton
 from app.ui.widgets.page_header import PageHeader
 from app.ui.widgets.stat_card import StatCard
 from app.ui.widgets.status_pill import StatusPill
+from app.core.signals import emit_data_changed
 
 
 class ProjectsPage(QWidget):
@@ -68,6 +69,7 @@ class ProjectsPage(QWidget):
         self.db = db
         self.repo = ProjectRepository(db)
         self.client_repo = ClientRepository(db)
+
 
         # Main page layout with scroll area
         page_layout = QVBoxLayout(self)
@@ -331,6 +333,7 @@ class ProjectsPage(QWidget):
             data = dialog.get_data()
             try:
                 self.repo.add(**data)
+                emit_data_changed()
                 QMessageBox.information(
                     self,
                     "Success",
@@ -373,6 +376,7 @@ class ProjectsPage(QWidget):
             data = dialog.get_data()
             try:
                 self.repo.update(project_id, **data)
+                emit_data_changed()
                 QMessageBox.information(
                     self,
                     "Success",
@@ -416,6 +420,7 @@ class ProjectsPage(QWidget):
         if reply == QMessageBox.Yes:
             try:
                 self.repo.delete(project_id)
+                emit_data_changed()
                 QMessageBox.information(
                     self,
                     "Success",
