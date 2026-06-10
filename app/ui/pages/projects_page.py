@@ -114,6 +114,25 @@ def _create_avatar_pixmap(initials: str, bg_color: str, size: int = 24) -> QPixm
 
 
 
+class PaginationTableWidget(QTableWidget):
+    """QTableWidget subclass that dynamically sizes its height to fit its contents."""
+
+    def sizeHint(self) -> QSize:
+        sh = super().sizeHint()
+        hh = self.horizontalHeader().height()
+        if hh <= 0:
+            hh = 38
+        total_rows_height = 0
+        for r in range(self.rowCount()):
+            total_rows_height += self.rowHeight(r)
+        sh.setHeight(hh + total_rows_height + 4)
+        return sh
+
+    def minimumSizeHint(self) -> QSize:
+        return self.sizeHint()
+
+
+
 class ProjectsPage(QWidget):
     """Projects page following exact design tokens from extracted_design_tokens.md"""
 
@@ -363,7 +382,7 @@ class ProjectsPage(QWidget):
         table_layout.addWidget(filter_bar)
 
         # Table widget
-        self.table = QTableWidget()
+        self.table = PaginationTableWidget()
         self.table.setColumnCount(8)
         self.table.setHorizontalHeaderLabels([
             "ID", "PROJECT", "CLIENT", "TYPE", "STATUS", "DEADLINE", "BUDGET", "ACTIONS"
@@ -435,6 +454,9 @@ class ProjectsPage(QWidget):
         self.table.setColumnWidth(5, 150)
         self.table.setColumnWidth(6, 140)
         self.table.setColumnWidth(7, 100)
+
+        self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
         table_layout.addWidget(self.table)
         parent_layout.addWidget(table_card)
@@ -643,6 +665,7 @@ class ProjectsPage(QWidget):
 
             # CLIENT column: avatar + name
             client_widget = QWidget()
+            client_widget.setStyleSheet("background: transparent; border: none;")
             client_layout = QHBoxLayout(client_widget)
             client_layout.setContentsMargins(0, 0, 0, 0)
             client_layout.setSpacing(8)  # gap-2
