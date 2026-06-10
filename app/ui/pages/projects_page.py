@@ -382,7 +382,48 @@ class ProjectsPage(QWidget):
         self.table.setShowGrid(False)
         self.table.setFrameShape(QFrame.NoFrame)
         self.table.setFocusPolicy(Qt.NoFocus)
-        self.table.verticalHeader().setDefaultSectionSize(48)
+        self.table.verticalHeader().setDefaultSectionSize(64)
+
+        # Apply custom style sheet for table matching formatting.md / clients_page.py
+        self.table.setStyleSheet("""
+            QTableWidget {
+                background-color: transparent;
+                alternate-background-color: rgba(34, 35, 54, 0.3);
+                border: none;
+                color: #e2e4f0;
+                font-size: 13px;
+                outline: none;
+            }
+            QTableWidget::item {
+                padding: 10px 12px;
+                border: none;
+                background: transparent;
+                border-bottom: 1px solid #2d2e42;
+            }
+            QTableWidget::item:selected {
+                background-color: #2a2a4a;
+                color: #ffffff;
+                border: none;
+            }
+        """)
+
+        self.table.horizontalHeader().setStyleSheet("""
+            QHeaderView {
+                background-color: transparent;
+                border: none;
+            }
+            QHeaderView::section {
+                background-color: transparent;
+                color: #6b6d85;
+                font-size: 11px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 1.5px;
+                padding: 14px 12px;
+                border: none;
+                border-bottom: 1px solid #2d2e42;
+            }
+        """)
 
         # Proportional column sizing
         header = self.table.horizontalHeader()
@@ -397,12 +438,12 @@ class ProjectsPage(QWidget):
         header.setSectionResizeMode(6, QHeaderView.Fixed)            # BUDGET
         header.setSectionResizeMode(7, QHeaderView.Fixed)            # ACTIONS
 
-        self.table.setColumnWidth(0, 85)
-        self.table.setColumnWidth(3, 110)
-        self.table.setColumnWidth(4, 120)
-        self.table.setColumnWidth(5, 110)
-        self.table.setColumnWidth(6, 110)
-        self.table.setColumnWidth(7, 80)
+        self.table.setColumnWidth(0, 110)                            # ID (110px)
+        self.table.setColumnWidth(3, 150)                            # TYPE (150px)
+        self.table.setColumnWidth(4, 130)                            # STATUS (130px)
+        self.table.setColumnWidth(5, 140)                            # DEADLINE (140px)
+        self.table.setColumnWidth(6, 120)                            # BUDGET (120px)
+        self.table.setColumnWidth(7, 100)                            # ACTIONS (100px)
 
         self.table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -584,7 +625,7 @@ class ProjectsPage(QWidget):
             self.table.setCellWidget(0, 0, empty_label)
         else:
             self.table.setRowCount(len(projects))
-            self.table.verticalHeader().setDefaultSectionSize(48)
+            self.table.verticalHeader().setDefaultSectionSize(64)
 
             for i, p in enumerate(projects):
                 # ID column (e.g. SD-042)
@@ -595,13 +636,29 @@ class ProjectsPage(QWidget):
                 id_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
                 self.table.setItem(i, 0, id_item)
 
-                # PROJECT column: show project name only (no subtitle description)
+                # PROJECT column: two-line name + subtitle
+                project_widget = QFrame()
+                project_widget.setObjectName("table_project_container")
+                project_widget.setFrameShape(QFrame.NoFrame)
+                project_widget.setStyleSheet("background: transparent; border: none;")
+                project_layout = QVBoxLayout(project_widget)
+                project_layout.setContentsMargins(8, 8, 8, 8)
+                project_layout.setSpacing(3)
+                
                 project_name = p.get("name", "Unnamed Project")
-                project_item = QTableWidgetItem(project_name)
-                project_item.setForeground(QColor(Colors.TEXT_PRIMARY))
-                project_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-                project_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-                self.table.setItem(i, 1, project_item)
+                project_desc = p.get("description") or ""
+                
+                name_lbl = QLabel(project_name)
+                name_lbl.setObjectName("table_project_name")
+                name_lbl.setStyleSheet(f"color: {Colors.TEXT_PRIMARY}; font-size: 14px; font-weight: 600; background: transparent; border: none;")
+                project_layout.addWidget(name_lbl)
+                
+                sub_lbl = QLabel(project_desc if project_desc else "—")
+                sub_lbl.setObjectName("table_project_subtitle")
+                sub_lbl.setStyleSheet(f"color: {Colors.TEXT_MUTED}; font-size: 11px; font-weight: 400; background: transparent; border: none;")
+                project_layout.addWidget(sub_lbl)
+                
+                self.table.setCellWidget(i, 1, project_widget)
 
                 # CLIENT column: avatar + name
                 client_widget = QFrame()
@@ -610,7 +667,7 @@ class ProjectsPage(QWidget):
                 client_widget.setStyleSheet("background: transparent; border: none;")
                 client_layout = QHBoxLayout(client_widget)
                 client_layout.setContentsMargins(8, 0, 8, 0)
-                client_layout.setSpacing(8)
+                client_layout.setSpacing(10)
                 
                 client_name = p.get("client_name", "Unknown")
                 initials = "".join([word[0] for word in client_name.split()[:2]]).upper()
@@ -620,14 +677,15 @@ class ProjectsPage(QWidget):
                 avatar_color = avatar_colors[hash(client_name) % len(avatar_colors)]
                 
                 avatar_label = QLabel()
-                avatar_pixmap = _create_avatar_pixmap(initials, avatar_color, size=28)
+                avatar_pixmap = _create_avatar_pixmap(initials, avatar_color, size=32)
                 avatar_label.setPixmap(avatar_pixmap)
+                avatar_label.setFixedSize(32, 32)
                 avatar_label.setStyleSheet("background: transparent; border: none;")
                 client_layout.addWidget(avatar_label)
                 
                 client_label = QLabel(client_name)
                 client_label.setObjectName("table_client_name")
-                client_label.setStyleSheet("color: #9a9cb8; background: transparent; border: none;")
+                client_label.setStyleSheet(f"color: {Colors.TEXT_SECONDARY}; font-size: 13px; font-weight: 500; background: transparent; border: none;")
                 client_layout.addWidget(client_label)
                 client_layout.addStretch()
                 
@@ -647,18 +705,32 @@ class ProjectsPage(QWidget):
                 # DEADLINE column
                 deadline_str = p.get("deadline", "")
                 is_overdue = False
+                is_urgent = False
+                formatted_deadline = "—"
                 if deadline_str:
-                    deadline_date = QDate.fromString(deadline_str, "yyyy-MM-dd")
-                    if deadline_date.isValid():
-                        formatted_deadline = deadline_date.toString("MMM dd, yyyy")
-                        is_overdue = deadline_date < QDate.currentDate() and p.get("status") != "Completed"
-                    else:
+                    if deadline_str == "In 2 Days":
                         formatted_deadline = deadline_str
-                else:
-                    formatted_deadline = "—"
+                        is_urgent = True
+                    else:
+                        deadline_date = QDate.fromString(deadline_str, "yyyy-MM-dd")
+                        if deadline_date.isValid():
+                            formatted_deadline = deadline_date.toString("MMM dd, yyyy")
+                            is_overdue = deadline_date < QDate.currentDate() and p.get("status") != "Completed"
+                            # Check if due in <= 2 days
+                            days_to = QDate.currentDate().daysTo(deadline_date)
+                            if 0 <= days_to <= 2 and p.get("status") != "Completed":
+                                is_urgent = True
+                        else:
+                            formatted_deadline = deadline_str
 
                 deadline_item = QTableWidgetItem(formatted_deadline)
-                deadline_item.setForeground(QColor("#e87c8a" if is_overdue else Colors.TEXT_SECONDARY))
+                if is_overdue or is_urgent:
+                    deadline_item.setForeground(QColor("#cc4444"))  # ACCENT_RED
+                    font = QFont()
+                    font.setBold(True)
+                    deadline_item.setFont(font)
+                else:
+                    deadline_item.setForeground(QColor(Colors.TEXT_SECONDARY))
                 deadline_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
                 deadline_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
                 self.table.setItem(i, 5, deadline_item)
@@ -689,13 +761,15 @@ class ProjectsPage(QWidget):
         container.setFrameShape(QFrame.NoFrame)
         container.setStyleSheet("background: transparent; border: none;")
         layout = QHBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(8, 0, 8, 0)
         layout.setSpacing(0)
         layout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         
         badge = QLabel(status)
         badge.setFont(QFont("Inter", 11, QFont.Bold))
         badge.setAlignment(Qt.AlignCenter)
+        badge.setFixedHeight(28)
+        badge.setMinimumWidth(85)
         
         # Status colors per design tokens
         status_styles = {
@@ -712,7 +786,7 @@ class ProjectsPage(QWidget):
         }
         
         style = status_styles.get(status, status_styles["Not Started"])
-        badge.setStyleSheet(f"{style} border-radius: 9999px; padding: 4px 12px;")
+        badge.setStyleSheet(f"{style} border-radius: 8px; padding: 2px 10px;")
         
         layout.addWidget(badge)
         return container
@@ -734,6 +808,7 @@ class ProjectsPage(QWidget):
         edit_btn.setToolTip("Edit Project")
         edit_btn.setIcon(QIcon(_load_svg_icon("edit", size=18, color="#6b6d85")))
         edit_btn.setIconSize(QSize(18, 18))
+        edit_btn.setFixedSize(32, 32)
         edit_btn.clicked.connect(lambda: self._edit_project_by_id(project_id))
 
         del_btn = QPushButton()
@@ -742,6 +817,7 @@ class ProjectsPage(QWidget):
         del_btn.setToolTip("Delete Project")
         del_btn.setIcon(QIcon(_load_svg_icon("delete", size=18, color="#6b6d85")))
         del_btn.setIconSize(QSize(18, 18))
+        del_btn.setFixedSize(32, 32)
         del_btn.clicked.connect(lambda: self._delete_project_by_id(project_id))
 
         layout.addWidget(edit_btn)
