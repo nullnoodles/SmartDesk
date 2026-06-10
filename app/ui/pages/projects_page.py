@@ -704,7 +704,7 @@ class ProjectsPage(QWidget):
             msg = "No projects match this filter." if self._active_filter != "All" else \
                   "No projects yet — click 'New Project' to get started"
             empty_label = QLabel(msg)
-            empty_label.setStyleSheet("color: #6B7280; font-size: 13px;")
+            empty_label.setStyleSheet("color: #6B7280; font-size: 13px; background: transparent; border: none;")
             empty_label.setAlignment(Qt.AlignCenter)
             self.table.setCellWidget(0, 0, empty_label)
         else:
@@ -1060,7 +1060,7 @@ class ProjectDialog(QDialog):
         # Title
         title = QLabel("Edit Project Details" if project else "Create New Project")
         title.setFont(QFont("Inter", 20, QFont.Bold))
-        title.setStyleSheet("color: #e2e4f0; font-size: 20px; font-weight: 700;")
+        title.setStyleSheet("color: #e2e4f0; font-size: 20px; font-weight: 700; background: transparent; border: none;")
         layout.addWidget(title)
 
         # Form
@@ -1127,7 +1127,7 @@ class ProjectDialog(QDialog):
 
         # Helper text
         helper = QLabel("* Required fields")
-        helper.setStyleSheet("color: #6b6d85; font-size: 11px; font-style: italic;")
+        helper.setStyleSheet("color: #6b6d85; font-size: 11px; font-style: italic; background: transparent; border: none;")
         layout.addWidget(helper)
 
         layout.addStretch()
