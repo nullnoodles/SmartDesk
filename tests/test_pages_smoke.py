@@ -145,6 +145,9 @@ class TestPagesSmoke:
         from app.ui.pages.projects_page import ProjectsPage
         page = ProjectsPage(db)
         page.refresh()
+        assert page.table.columnCount() == 8
+        assert page.table.verticalHeader().defaultSectionSize() == 48
+        assert not page.table.alternatingRowColors()
 
     def test_invoices_page(self, db, qapp):
         from app.ui.pages.invoices_page import InvoicesPage
