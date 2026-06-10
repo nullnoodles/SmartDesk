@@ -355,55 +355,36 @@ class ProjectsPage(QWidget):
             self.table.setRowHidden(row, not should_show)
 
     def _build_stats_row(self, parent_layout: QVBoxLayout) -> None:
-        """Build stats row: 4 stat cards matching Dashboard style."""
+        """Build stats row: 4 stat cards with hover animation matching Dashboard style."""
         stats_layout = QHBoxLayout()
         stats_layout.setSpacing(16)
         stats_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.card_total = StatCard(
+        # Create the 4 stat cards using DashboardStatCard with hover animation
+        from app.ui.pages.dashboard_page import DashboardStatCard
+        
+        self.card_total = DashboardStatCard(
             "Total Projects", "—",
             icon="task_alt",
             accent=Colors.ACCENT_PRIMARY_LIGHT,
         )
-        self.card_in_progress = StatCard(
+        self.card_in_progress = DashboardStatCard(
             "In Progress", "—",
             icon="pending_actions",
             accent=Colors.ACCENT_INFO,
         )
-        self.card_completed = StatCard(
+        self.card_completed = DashboardStatCard(
             "Completed", "—",
             icon="task_alt",
             accent=Colors.ACCENT_SUCCESS,
         )
-        self.card_pending_payment = StatCard(
-            "Pending Payment", "—",
-            icon="payments",
+        self.card_total_budget = DashboardStatCard(
+            "Total Budget", "—",
+            icon="account_balance_wallet",
             accent=Colors.ACCENT_WARNING,
         )
 
-        for card in (self.card_total, self.card_in_progress, self.card_completed, self.card_pending_payment):
-            card.setObjectName("statCard")
-            card.setStyleSheet("background-color: #222336; border-radius: 12px;")
-            card.setMinimumHeight(140)
-            card.setMaximumHeight(140)
-            card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-
-            title_label = card._label
-            value_label = card._value
-            subtitle_label = card._sub
-
-            title_label.setFont(QFont("Inter", 9))
-            title_label.setStyleSheet("color: #8B8FA8; background: transparent; border: none;")
-
-            value_label.setFont(QFont("Inter", 24, QFont.Bold))
-            value_label.setStyleSheet("color: #FFFFFF; background: transparent; border: none; font-size: 26px;")
-
-            subtitle_label.setFont(QFont("Inter", 8))
-            subtitle_label.setStyleSheet("color: #6B7280; background: transparent; border: none;")
-
-            card.layout().setContentsMargins(20, 16, 20, 16)
-            card.layout().setSpacing(6)
-
+        for card in (self.card_total, self.card_in_progress, self.card_completed, self.card_total_budget):
             stats_layout.addWidget(card, 1)
 
         parent_layout.addLayout(stats_layout)
@@ -647,48 +628,42 @@ class ProjectsPage(QWidget):
             sub, color = "—", "#9a9cb8"
         self.card_completed.set_sub_text(sub, color)
 
-        # 4. PENDING PAYMENT
+        # 4. TOTAL BUDGET
         try:
-            # SUM budget of completed projects with no paid invoice
-            res_pending = self.db.execute("""
+            # SUM budget of all projects
+            res_budget = self.db.execute("""
+                SELECT COALESCE(SUM(budget), 0) as total FROM projects
+            """)
+            total_budget = res_budget[0]["total"] if res_budget else 0.0
+            
+            # Calculate budget added this month vs last month
+            res_budget_this_month = self.db.execute("""
                 SELECT COALESCE(SUM(budget), 0) as total FROM projects 
-                WHERE status='Completed' 
-                AND id NOT IN (SELECT DISTINCT project_id FROM invoices WHERE status='Paid')
+                WHERE strftime('%m-%Y', created_date) = strftime('%m-%Y', 'now')
             """)
-            pending_amount = res_pending[0]["total"] if res_pending else 0.0
+            this_month_budget = res_budget_this_month[0]["total"] if res_budget_this_month else 0.0
             
-            # Fetch completed projects with no paid invoice for status detail
-            pending_projects = self.db.execute("""
-                SELECT p.id, p.deadline, i.status as invoice_status, i.due_date as invoice_due_date
-                FROM projects p
-                LEFT JOIN invoices i ON p.id = i.project_id
-                WHERE p.status='Completed'
-                AND p.id NOT IN (SELECT DISTINCT project_id FROM invoices WHERE status='Paid')
+            res_budget_last_month = self.db.execute("""
+                SELECT COALESCE(SUM(budget), 0) as total FROM projects 
+                WHERE strftime('%m-%Y', created_date) = strftime('%m-%Y', date('now','-1 month'))
             """)
+            last_month_budget = res_budget_last_month[0]["total"] if res_budget_last_month else 0.0
             
-            overdue_payments = 0
-            for row in pending_projects:
-                inv_status = row["invoice_status"]
-                inv_due = row["invoice_due_date"]
-                proj_dl = row["deadline"]
-                if inv_status == "Unpaid" and inv_due and inv_due < today_str:
-                    overdue_payments += 1
-                elif not inv_status and proj_dl and proj_dl < today_str:
-                    overdue_payments += 1
+            self.card_total_budget.set_value(_format_short_currency(total_budget))
             
-            self.card_pending_payment.set_value(_format_short_currency(pending_amount))
-            
-            if pending_amount == 0:
-                sub, color = "✓ Paid in full", "#7dd3a8"
-            elif overdue_payments > 0:
-                sub, color = f"✕ {overdue_payments} payment(s) overdue", "#e87c8a"
+            if this_month_budget > last_month_budget:
+                diff = this_month_budget - last_month_budget
+                sub, color = f"▲ +{_format_short_currency(diff)} from last month", "#7dd3a8"
+            elif this_month_budget == last_month_budget:
+                sub, color = "→ Same as last month", "#9a9cb8"
             else:
-                sub, color = f"⚠ {len(pending_projects)} awaiting payment", "#9a9cb8"
+                diff = last_month_budget - this_month_budget
+                sub, color = f"▼ -{_format_short_currency(diff)} from last month", "#e87c8a"
         except Exception as e:
-            print(f"Error calculating pending payment: {e}")
-            self.card_pending_payment.set_value("₹0")
+            print(f"Error calculating total budget: {e}")
+            self.card_total_budget.set_value("₹0")
             sub, color = "—", "#9a9cb8"
-        self.card_pending_payment.set_sub_text(sub, color)
+        self.card_total_budget.set_sub_text(sub, color)
 
         # Re-apply all filters to table
         self._apply_all_filters()
