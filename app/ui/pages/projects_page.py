@@ -201,12 +201,6 @@ class ProjectsPage(QWidget):
         # Load data
         self.refresh()
 
-        # Connect to auto refresh signal
-        from PySide6.QtWidgets import QApplication
-        app = QApplication.instance()
-        if app and hasattr(app, "data_changed"):
-            app.data_changed.signal.connect(self.refresh)
-
 
     def _build_page_header(self, parent_layout: QVBoxLayout) -> None:
         """Build page header: title + New Project button."""
@@ -323,14 +317,8 @@ class ProjectsPage(QWidget):
     def _build_projects_table(self, parent_layout: QVBoxLayout) -> None:
         """Build projects table with header and filter tabs."""
         table_card = QFrame()
-        table_card.setObjectName("table_card")
-        table_card.setStyleSheet("""
-            QFrame#table_card {
-                background-color: #1a1b26;
-                border: 1px solid rgba(69,70,82,0.30);
-                border-radius: 12px;
-            }
-        """)
+        table_card.setObjectName("dashboard_table_card")
+        table_card.setStyleSheet("QFrame#dashboard_table_card { background-color: #222336; border-radius: 12px; border: 1px solid #2d2e42; }")
         table_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         table_layout = QVBoxLayout(table_card)
@@ -387,76 +375,38 @@ class ProjectsPage(QWidget):
         self.table.setHorizontalHeaderLabels([
             "ID", "PROJECT", "CLIENT", "TYPE", "STATUS", "DEADLINE", "BUDGET", "ACTIONS"
         ])
+        self.table.setAlternatingRowColors(True)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setSelectionMode(QTableWidget.SingleSelection)
         self.table.verticalHeader().setVisible(False)
         self.table.setShowGrid(False)
         self.table.setFrameShape(QFrame.NoFrame)
         self.table.setFocusPolicy(Qt.NoFocus)
-        
-        # Row height: 52px (py-row-padding = 10px × 2 + content)
-        self.table.verticalHeader().setDefaultSectionSize(52)
-        
-        # Table styling per design tokens
-        self.table.setStyleSheet("""
-            QTableWidget {
-                background-color: transparent;
-                alternate-background-color: rgba(26,27,38,0.20);
-                gridline-color: transparent;
-                border: none;
-            }
-            QTableWidget::item {
-                border: none;
-                border-bottom: 1px solid rgba(69,70,82,0.20);
-                padding: 8px 12px;
-            }
-            QTableWidget::item:selected {
-                background-color: rgba(124,138,244,0.15);
-                color: #e2e4f0;
-            }
-            QTableWidget::item:hover {
-                background-color: #1a1b26;
-            }
-        """)
-        
-        # Header styling: 11px label-caps / 700 weight / 0.05em letter-spacing
-        self.table.horizontalHeader().setStyleSheet("""
-            QHeaderView::section {
-                background-color: rgba(26,27,38,0.50);
-                color: #e2e4f0;
-                border: none;
-                border-bottom: 1px solid rgba(69,70,82,0.20);
-                font-family: 'Inter';
-                font-size: 11px;
-                font-weight: 700;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-                padding: 12px 12px;
-                height: 48px;
-            }
-        """)
+        self.table.verticalHeader().setDefaultSectionSize(48)
 
-        # Column sizing
+        # Proportional column sizing
         header = self.table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.Interactive) # ID
-        header.setSectionResizeMode(1, QHeaderView.Stretch) # PROJECT
-        header.setSectionResizeMode(2, QHeaderView.Interactive) # CLIENT
-        header.setSectionResizeMode(3, QHeaderView.Interactive) # TYPE
-        header.setSectionResizeMode(4, QHeaderView.Interactive) # STATUS
-        header.setSectionResizeMode(5, QHeaderView.Interactive) # DEADLINE
-        header.setSectionResizeMode(6, QHeaderView.Interactive) # BUDGET
-        header.setSectionResizeMode(7, QHeaderView.Fixed) # ACTIONS
+        header.setStretchLastSection(False)
+        from PySide6.QtWidgets import QHeaderView
+        header.setSectionResizeMode(0, QHeaderView.Fixed)            # ID
+        header.setSectionResizeMode(1, QHeaderView.Stretch)          # PROJECT
+        header.setSectionResizeMode(2, QHeaderView.Stretch)          # CLIENT
+        header.setSectionResizeMode(3, QHeaderView.Fixed)            # TYPE
+        header.setSectionResizeMode(4, QHeaderView.Fixed)            # STATUS
+        header.setSectionResizeMode(5, QHeaderView.Fixed)            # DEADLINE
+        header.setSectionResizeMode(6, QHeaderView.Fixed)            # BUDGET
+        header.setSectionResizeMode(7, QHeaderView.Fixed)            # ACTIONS
 
-        self.table.setColumnWidth(0, 100)
-        self.table.setColumnWidth(2, 200)
-        self.table.setColumnWidth(3, 140)
-        self.table.setColumnWidth(4, 150)
-        self.table.setColumnWidth(5, 150)
-        self.table.setColumnWidth(6, 140)
-        self.table.setColumnWidth(7, 100)
+        self.table.setColumnWidth(0, 85)
+        self.table.setColumnWidth(3, 110)
+        self.table.setColumnWidth(4, 120)
+        self.table.setColumnWidth(5, 110)
+        self.table.setColumnWidth(6, 110)
+        self.table.setColumnWidth(7, 80)
 
-        self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         table_layout.addWidget(self.table)
         parent_layout.addWidget(table_card)
@@ -621,137 +571,130 @@ class ProjectsPage(QWidget):
 
     def _populate_table(self, projects: list) -> None:
         """Populate table with project data."""
-        # Properly clear contents and row count
-        self.table.clearContents()
         self.table.clearSpans()
-        self.table.setRowCount(0)
-
-        if not projects:
+        if len(projects) == 0:
             self.table.setRowCount(1)
+            self.table.setRowHeight(0, 120)
+            self.table.setSpan(0, 0, 1, 8)
             msg = "No projects match this filter." if self._active_filter != "All" else \
                   "No projects yet — click 'New Project' to get started"
-            empty_item = QTableWidgetItem(msg)
-            empty_item.setFlags(Qt.ItemIsEnabled)
-            empty_item.setForeground(QColor("#9a9cb8"))
-            empty_item.setTextAlignment(Qt.AlignCenter)
-            self.table.setItem(0, 0, empty_item)
-            self.table.setSpan(0, 0, 1, 8)
-            return
+            empty_label = QLabel(msg)
+            empty_label.setStyleSheet("color: #6B7280; font-size: 13px;")
+            empty_label.setAlignment(Qt.AlignCenter)
+            self.table.setCellWidget(0, 0, empty_label)
+        else:
+            self.table.setRowCount(len(projects))
+            self.table.verticalHeader().setDefaultSectionSize(48)
 
-        self.table.setRowCount(len(projects))
-        
-        for i, p in enumerate(projects):
-            # Set row to alternate background
-            if i % 2 == 1:
-                for col in range(8):
-                    item = QTableWidgetItem()
-                    item.setBackground(QColor(26, 27, 38, 51))  # rgba(26,27,38,0.20)
-                    self.table.setItem(i, col, item)
+            for i, p in enumerate(projects):
+                # ID column (e.g. SD-042)
+                id_str = f"SD-{p.get('id', 0):03d}"
+                id_item = QTableWidgetItem(id_str)
+                id_item.setForeground(QColor(Colors.TEXT_MUTED))
+                id_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+                id_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+                self.table.setItem(i, 0, id_item)
 
-            # ID column: 14px tabular-nums / 500 weight
-            id_item = QTableWidgetItem(f"SD-{p.get('id', 0):03d}")
-            id_item.setFont(QFont("Inter", 14, QFont.Medium))
-            id_item.setForeground(QColor("#9a9cb8"))
-            id_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-            self.table.setItem(i, 0, id_item)
+                # PROJECT column: show project name only (no subtitle description)
+                project_name = p.get("name", "Unnamed Project")
+                project_item = QTableWidgetItem(project_name)
+                project_item.setForeground(QColor(Colors.TEXT_PRIMARY))
+                project_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+                project_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+                self.table.setItem(i, 1, project_item)
 
-            # PROJECT column: show project name only (no subtitle description)
-            project_name = p.get("name", "Unnamed Project")
-            project_item = QTableWidgetItem(project_name)
-            project_item.setFont(QFont("Inter", 14, QFont.Medium))
-            project_item.setForeground(QColor("#e2e4f0"))
-            project_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-            self.table.setItem(i, 1, project_item)
+                # CLIENT column: avatar + name
+                client_widget = QFrame()
+                client_widget.setObjectName("table_client_container")
+                client_widget.setFrameShape(QFrame.NoFrame)
+                client_widget.setStyleSheet("background: transparent; border: none;")
+                client_layout = QHBoxLayout(client_widget)
+                client_layout.setContentsMargins(8, 0, 8, 0)
+                client_layout.setSpacing(8)
+                
+                client_name = p.get("client_name", "Unknown")
+                initials = "".join([word[0] for word in client_name.split()[:2]]).upper()
+                
+                # Determine avatar color based on client
+                avatar_colors = ["rgba(125,211,227,0.30)", "rgba(124,138,244,0.30)", "rgba(232,124,138,0.30)", "#908f9e"]
+                avatar_color = avatar_colors[hash(client_name) % len(avatar_colors)]
+                
+                avatar_label = QLabel()
+                avatar_pixmap = _create_avatar_pixmap(initials, avatar_color, size=28)
+                avatar_label.setPixmap(avatar_pixmap)
+                avatar_label.setStyleSheet("background: transparent; border: none;")
+                client_layout.addWidget(avatar_label)
+                
+                client_label = QLabel(client_name)
+                client_label.setObjectName("table_client_name")
+                client_label.setStyleSheet("color: #9a9cb8; background: transparent; border: none;")
+                client_layout.addWidget(client_label)
+                client_layout.addStretch()
+                
+                self.table.setCellWidget(i, 2, client_widget)
 
-            # CLIENT column: avatar + name
-            client_widget = QWidget()
-            client_widget.setStyleSheet("background: transparent; border: none;")
-            client_layout = QHBoxLayout(client_widget)
-            client_layout.setContentsMargins(0, 0, 0, 0)
-            client_layout.setSpacing(8)  # gap-2
-            
-            # Avatar: 24x24 with initials
-            client_name = p.get("client_name", "Unknown")
-            initials = "".join([word[0] for word in client_name.split()[:2]]).upper()
-            
-            # Determine avatar color based on client
-            avatar_colors = ["rgba(125,211,227,0.30)", "rgba(124,138,244,0.30)", "rgba(232,124,138,0.30)", "#908f9e"]
-            avatar_color = avatar_colors[hash(client_name) % len(avatar_colors)]
-            
-            avatar_label = QLabel()
-            avatar_pixmap = _create_avatar_pixmap(initials, avatar_color, size=24)
-            avatar_label.setPixmap(avatar_pixmap)
-            avatar_label.setStyleSheet("background: transparent; border: none;")
-            client_layout.addWidget(avatar_label)
-            
-            # Client name: 14px body-md
-            client_label = QLabel(client_name)
-            client_label.setFont(QFont("Inter", 14))
-            client_label.setStyleSheet("color: #9a9cb8; background: transparent; border: none;")
-            client_layout.addWidget(client_label)
-            client_layout.addStretch()
-            
-            self.table.setCellWidget(i, 2, client_widget)
+                # TYPE column
+                type_item = QTableWidgetItem(p.get("type", "General"))
+                type_item.setForeground(QColor(Colors.TEXT_SECONDARY))
+                type_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+                type_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+                self.table.setItem(i, 3, type_item)
 
-            # TYPE column: 13px body-sm
-            type_item = QTableWidgetItem(p.get("type", "General"))
-            type_item.setFont(QFont("Inter", 13))
-            type_item.setForeground(QColor("#9a9cb8"))
-            type_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-            self.table.setItem(i, 3, type_item)
+                # STATUS column: badge
+                status_widget = self._create_status_badge(p.get("status", "Not Started"))
+                self.table.setCellWidget(i, 4, status_widget)
 
-            # STATUS column: badge
-            status_widget = self._create_status_badge(p.get("status", "Not Started"))
-            self.table.setCellWidget(i, 4, status_widget)
-
-            # DEADLINE column: 14px tabular-nums / 500 weight
-            deadline_str = p.get("deadline", "")
-            if deadline_str:
-                deadline_date = QDate.fromString(deadline_str, "yyyy-MM-dd")
-                if deadline_date.isValid():
-                    formatted_deadline = deadline_date.toString("MMM dd, yyyy")
-                    # Check if overdue
-                    is_overdue = deadline_date < QDate.currentDate() and p.get("status") != "Completed"
-                else:
-                    formatted_deadline = deadline_str
-                    is_overdue = False
-            else:
-                formatted_deadline = "—"
+                # DEADLINE column
+                deadline_str = p.get("deadline", "")
                 is_overdue = False
+                if deadline_str:
+                    deadline_date = QDate.fromString(deadline_str, "yyyy-MM-dd")
+                    if deadline_date.isValid():
+                        formatted_deadline = deadline_date.toString("MMM dd, yyyy")
+                        is_overdue = deadline_date < QDate.currentDate() and p.get("status") != "Completed"
+                    else:
+                        formatted_deadline = deadline_str
+                else:
+                    formatted_deadline = "—"
 
-            deadline_item = QTableWidgetItem(formatted_deadline)
-            deadline_item.setFont(QFont("Inter", 14, QFont.Medium))
-            deadline_item.setForeground(QColor("#e87c8a" if is_overdue else "#9a9cb8"))
-            deadline_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-            self.table.setItem(i, 5, deadline_item)
+                deadline_item = QTableWidgetItem(formatted_deadline)
+                deadline_item.setForeground(QColor("#e87c8a" if is_overdue else Colors.TEXT_SECONDARY))
+                deadline_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+                deadline_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+                self.table.setItem(i, 5, deadline_item)
 
-            # BUDGET column: formatted with rupee symbol
-            budget = p.get("budget")
-            if budget is not None and budget > 0:
-                budget_str = f"₹{int(budget):,}"
-            else:
-                budget_str = "₹0"
-            budget_item = QTableWidgetItem(budget_str)
-            budget_item.setFont(QFont("Inter", 14, QFont.Medium))
-            budget_item.setForeground(QColor("#e2e4f0"))
-            budget_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-            self.table.setItem(i, 6, budget_item)
+                # BUDGET column
+                budget = p.get("budget")
+                if budget is not None and budget > 0:
+                    budget_str = f"₹{int(budget):,}"
+                else:
+                    budget_str = "₹0"
+                budget_item = QTableWidgetItem(budget_str)
+                budget_item.setForeground(QColor(Colors.TEXT_PRIMARY))
+                budget_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+                budget_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+                self.table.setItem(i, 6, budget_item)
 
-            # ACTIONS column: edit + delete buttons (hidden by default, shown on hover)
-            actions_widget = self._create_actions_cell(p.get("id", 0))
-            self.table.setCellWidget(i, 7, actions_widget)
+                # ACTIONS column
+                actions_widget = self._create_actions_cell(p.get("id", 0))
+                self.table.setCellWidget(i, 7, actions_widget)
+
+        self.table.updateGeometry()
 
 
     def _create_status_badge(self, status: str) -> QWidget:
         """Create status badge per design tokens."""
-        container = QWidget()
+        container = QFrame()
+        container.setObjectName("table_status_container")
+        container.setFrameShape(QFrame.NoFrame)
         container.setStyleSheet("background: transparent; border: none;")
         layout = QHBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        layout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         
-        # Badge: 12px / 700 weight / 9999px border-radius / 4px×12px padding
         badge = QLabel(status)
-        badge.setFont(QFont("Inter", 12, QFont.Bold))
+        badge.setFont(QFont("Inter", 11, QFont.Bold))
         badge.setAlignment(Qt.AlignCenter)
         
         # Status colors per design tokens
@@ -776,53 +719,33 @@ class ProjectsPage(QWidget):
 
     def _create_actions_cell(self, project_id: int) -> QWidget:
         """Create actions cell with edit and delete buttons."""
-        container = QWidget()
+        container = QFrame()
+        container.setObjectName("table_actions_container")
+        container.setFrameShape(QFrame.NoFrame)
         container.setStyleSheet("background: transparent; border: none;")
         layout = QHBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)  # gap-2
+        layout.setContentsMargins(0, 0, 16, 0)
+        layout.setSpacing(8)
         layout.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
-        # Edit button: 20px icon size / 8px padding
         edit_btn = QPushButton()
-        edit_btn.setIcon(QIcon(_load_svg_icon("edit_note", size=20, color="#9a9cb8")))
-        edit_btn.setIconSize(QSize(20, 20))
-        edit_btn.setFixedSize(36, 36)
+        edit_btn.setObjectName("table_action_icon_btn")
         edit_btn.setCursor(Qt.PointingHandCursor)
-        edit_btn.setStyleSheet("""
-            QPushButton {
-                background-color: transparent;
-                border: none;
-                border-radius: 8px;
-                padding: 8px;
-            }
-            QPushButton:hover {
-                background-color: #1e1f2a;
-            }
-        """)
+        edit_btn.setToolTip("Edit Project")
+        edit_btn.setIcon(QIcon(_load_svg_icon("edit", size=18, color="#6b6d85")))
+        edit_btn.setIconSize(QSize(18, 18))
         edit_btn.clicked.connect(lambda: self._edit_project_by_id(project_id))
+
+        del_btn = QPushButton()
+        del_btn.setObjectName("table_action_icon_btn")
+        del_btn.setCursor(Qt.PointingHandCursor)
+        del_btn.setToolTip("Delete Project")
+        del_btn.setIcon(QIcon(_load_svg_icon("delete", size=18, color="#6b6d85")))
+        del_btn.setIconSize(QSize(18, 18))
+        del_btn.clicked.connect(lambda: self._delete_project_by_id(project_id))
+
         layout.addWidget(edit_btn)
-
-        # Delete button
-        delete_btn = QPushButton()
-        delete_btn.setIcon(QIcon(_load_svg_icon("delete_outline", size=20, color="#9a9cb8")))
-        delete_btn.setIconSize(QSize(20, 20))
-        delete_btn.setFixedSize(36, 36)
-        delete_btn.setCursor(Qt.PointingHandCursor)
-        delete_btn.setStyleSheet("""
-            QPushButton {
-                background-color: transparent;
-                border: none;
-                border-radius: 8px;
-                padding: 8px;
-            }
-            QPushButton:hover {
-                background-color: #1e1f2a;
-            }
-        """)
-        delete_btn.clicked.connect(lambda: self._delete_project_by_id(project_id))
-        layout.addWidget(delete_btn)
-
+        layout.addWidget(del_btn)
         return container
 
 
