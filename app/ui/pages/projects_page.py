@@ -50,6 +50,19 @@ from app.data.repositories.client_repo import ClientRepository
 from app.data.repositories.project_repo import ProjectRepository
 from app.ui.styles.theme import Colors
 from app.core.signals import emit_data_changed
+from app.ui.widgets.stat_card import StatCard
+
+
+def _format_short_currency(val: float) -> str:
+    """Format large numbers in short format — ₹1,20,339 should show as ₹1.2L, ₹1,14,896 as ₹1.1L."""
+    if not val:
+        return "₹0"
+    if val >= 100000:
+        return f"₹{val/100000:.1f}L"
+    elif val >= 1000:
+        return f"₹{val/1000:.1f}K"
+    else:
+        return f"₹{val:,.0f}"
 
 _ICONS_DIR = ASSETS_DIR / "icons"
 
@@ -112,6 +125,10 @@ class ProjectsPage(QWidget):
         self.repo = ProjectRepository(db)
         self.client_repo = ClientRepository(db)
 
+        # Initialize filter state
+        self._active_filter = "All"
+        self._all_projects = []
+
         # Main page layout
         page_layout = QVBoxLayout(self)
         page_layout.setContentsMargins(0, 0, 0, 0)
@@ -173,19 +190,19 @@ class ProjectsPage(QWidget):
 
 
     def _build_page_header(self, parent_layout: QVBoxLayout) -> None:
-        """Build page header: title + badge, subtitle, New Project button."""
+        """Build page header: title + New Project button."""
         header_row = QHBoxLayout()
         header_row.setSpacing(0)
         header_row.setContentsMargins(0, 0, 0, 0)
 
-        # Left block: title row + subtitle
+        # Left block: title row
         left_block = QVBoxLayout()
-        left_block.setSpacing(4)  # mb-1 = 4px
+        left_block.setSpacing(0)
         left_block.setContentsMargins(0, 0, 0, 0)
 
-        # Title row: Projects + badge
+        # Title row: Projects
         title_row = QHBoxLayout()
-        title_row.setSpacing(12)  # gap-3 = 12px
+        title_row.setSpacing(0)
 
         # Title: 32px / 40px line-height / -0.02em / 700 weight
         title = QLabel("Projects")
@@ -193,29 +210,9 @@ class ProjectsPage(QWidget):
         title.setStyleSheet("color: #e2e4f0; background: transparent; border: none; letter-spacing: -0.6px;")
         title.setFixedHeight(40)
         title_row.addWidget(title)
-
-        # Badge: 14px tabular-nums / 500 weight
-        self.total_badge = QLabel("0 Total")
-        self.total_badge.setFont(QFont("Inter", 14, QFont.Medium))
-        self.total_badge.setStyleSheet("""
-            background: #282935;
-            border: 1px solid #454652;
-            border-radius: 9999px;
-            padding: 2px 10px;
-            color: #9a9cb8;
-        """)
-        self.total_badge.setFixedHeight(28)
-        title_row.addWidget(self.total_badge)
         title_row.addStretch()
 
         left_block.addLayout(title_row)
-
-        # Subtitle: 14px body-md / 400 weight / 20px line-height
-        subtitle = QLabel("Manage and track your active production pipeline.")
-        subtitle.setFont(QFont("Inter", 14))
-        subtitle.setStyleSheet("color: #9a9cb8; background: transparent; border: none; line-height: 20px;")
-        left_block.addWidget(subtitle)
-
         header_row.addLayout(left_block, 1)
 
         # New Project button: 40px height / 16px body-lg / 500 weight
@@ -250,171 +247,62 @@ class ProjectsPage(QWidget):
 
 
     def _build_stats_row(self, parent_layout: QVBoxLayout) -> None:
-        """Build stats row: 3 stat cards (col-span-8) + insight card (col-span-4)."""
-        stats_container = QHBoxLayout()
-        stats_container.setSpacing(24)  # card-gap from tokens
-        stats_container.setContentsMargins(0, 0, 0, 0)
+        """Build stats row: 4 stat cards matching Dashboard style."""
+        stats_layout = QHBoxLayout()
+        stats_layout.setSpacing(16)
+        stats_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Left: 3 stat cards in a row
-        stat_cards_layout = QHBoxLayout()
-        stat_cards_layout.setSpacing(24)
-
-        # Stat Card 1: Active Velocity
-        self.card_velocity = self._create_stat_card(
-            "ACTIVE VELOCITY",
-            "8 Current",
-            "rocket_launch",
-            "#7dd3e3",
-            "+12%",
-            "#82d8ac"
+        self.card_total = StatCard(
+            "Total Projects", "—",
+            icon="task_alt",
+            accent=Colors.ACCENT_PRIMARY_LIGHT,
         )
-        stat_cards_layout.addWidget(self.card_velocity, 1)
-
-        # Stat Card 2: Upcoming Deadlines
-        self.card_deadlines = self._create_stat_card(
-            "UPCOMING DEADLINES",
-            "48 Hours",
-            "hourglass_empty",
-            "#f0c878",
-            "2 Late",
-            "#e87c8a"
+        self.card_in_progress = StatCard(
+            "In Progress", "—",
+            icon="pending_actions",
+            accent=Colors.ACCENT_INFO,
         )
-        stat_cards_layout.addWidget(self.card_deadlines, 1)
-
-        # Stat Card 3: Pipeline Value
-        self.card_pipeline = self._create_stat_card(
-            "PIPELINE VALUE",
-            "$42,800",
-            "payments",
-            "#bcc2ff",
-            "$12.4k",
-            "#82d8ac"
+        self.card_completed = StatCard(
+            "Completed", "—",
+            icon="task_alt",
+            accent=Colors.ACCENT_SUCCESS,
         )
-        stat_cards_layout.addWidget(self.card_pipeline, 1)
+        self.card_pending_payment = StatCard(
+            "Pending Payment", "—",
+            icon="payments",
+            accent=Colors.ACCENT_WARNING,
+        )
 
-        # Add stat cards to left side (flex 8 = 66.67%)
-        stats_container.addLayout(stat_cards_layout, 8)
+        for card in (self.card_total, self.card_in_progress, self.card_completed, self.card_pending_payment):
+            card.setObjectName("statCard")
+            card.setStyleSheet("background-color: #222336; border-radius: 12px;")
+            card.setMinimumHeight(140)
+            card.setMaximumHeight(140)
+            card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
-        # Right: Insight card (flex 4 = 33.33%)
-        insight_card = self._create_insight_card()
-        stats_container.addWidget(insight_card, 4)
+            title_label = card._label
+            value_label = card._value
+            subtitle_label = card._sub
 
-        parent_layout.addLayout(stats_container)
+            title_label.setFont(QFont("Inter", 9))
+            title_label.setStyleSheet("color: #8B8FA8; background: transparent; border: none;")
 
-    def _create_stat_card(self, label: str, value: str, icon: str, icon_color: str, 
-                          badge_text: str, badge_color: str) -> QFrame:
-        """Create a stat card following design tokens."""
-        card = QFrame()
-        card.setObjectName("stat_card")
-        card.setStyleSheet("""
-            QFrame#stat_card {
-                background-color: #1a1b26;
-                border: 1px solid rgba(69,70,82,0.30);
-                border-radius: 12px;
-            }
-            QFrame#stat_card:hover {
-                background-color: #282935;
-            }
-        """)
-        card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+            value_label.setFont(QFont("Inter", 24, QFont.Bold))
+            value_label.setStyleSheet("color: #FFFFFF; background: transparent; border: none; font-size: 26px;")
 
-        layout = QVBoxLayout(card)
-        layout.setContentsMargins(24, 24, 24, 24)  # p-6 = 24px
-        layout.setSpacing(16)  # gap-4 = 16px
+            subtitle_label.setFont(QFont("Inter", 8))
+            subtitle_label.setStyleSheet("color: #6B7280; background: transparent; border: none;")
 
-        # Row 1: Icon box + Badge
-        row1 = QHBoxLayout()
-        row1.setSpacing(0)
+            card.layout().setContentsMargins(20, 16, 20, 16)
+            card.layout().setSpacing(6)
 
-        # Icon box: 40x40 / 8px border-radius
-        icon_box = QLabel()
-        icon_box.setFixedSize(40, 40)
-        icon_box.setAlignment(Qt.AlignCenter)
-        icon_color_rgba = icon_color.replace("#", "")
-        r, g, b = int(icon_color_rgba[0:2], 16), int(icon_color_rgba[2:4], 16), int(icon_color_rgba[4:6], 16)
-        icon_box.setStyleSheet(f"background-color: rgba({r},{g},{b},0.10); border-radius: 8px;")
-        icon_pixmap = _load_svg_icon(icon, size=24, color=icon_color)
-        icon_box.setPixmap(icon_pixmap)
-        row1.addWidget(icon_box)
+            stats_layout.addWidget(card, 1)
 
-        row1.addStretch()
-
-        # Badge: 14px body-sm / 500 weight
-        badge = QLabel(badge_text)
-        badge.setFont(QFont("Inter", 14, QFont.Medium))
-        badge.setStyleSheet(f"color: {badge_color}; background: transparent; border: none;")
-        row1.addWidget(badge)
-
-        layout.addLayout(row1)
-
-        # Label: 11px label-caps / 700 weight / 0.05em letter-spacing
-        label_widget = QLabel(label)
-        label_widget.setFont(QFont("Inter", 11, QFont.Bold))
-        label_widget.setStyleSheet("color: #9a9cb8; background: transparent; border: none; letter-spacing: 0.5px;")
-        layout.addWidget(label_widget)
-
-        # Value: 24px headline-lg / 700 weight / -0.01em letter-spacing
-        value_widget = QLabel(value)
-        value_widget.setFont(QFont("Inter", 24, QFont.Bold))
-        value_widget.setStyleSheet("color: #e2e4f0; background: transparent; border: none; letter-spacing: -0.2px;")
-        layout.addWidget(value_widget)
-
-        return card
-
-
-    def _create_insight_card(self) -> QFrame:
-        """Create the workspace insight card with decorative glow."""
-        card = QFrame()
-        card.setObjectName("insight_card")
-        card.setStyleSheet("""
-            QFrame#insight_card {
-                background-color: #1a1b26;
-                border: 1px solid rgba(69,70,82,0.30);
-                border-radius: 12px;
-            }
-        """)
-        card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-
-        layout = QVBoxLayout(card)
-        layout.setContentsMargins(24, 24, 24, 24)
-        layout.setSpacing(12)
-
-        # Title: 16px body-lg / 500 weight
-        title = QLabel("Workspace Insight")
-        title.setFont(QFont("Inter", 16, QFont.Medium))
-        title.setStyleSheet("color: #e2e4f0; background: transparent; border: none;")
-        layout.addWidget(title)
-
-        # Content: 13px body-sm / 400 weight / 18px line-height
-        content = QLabel("You're currently at 85% capacity. AI suggests shifting the <b>Apex Mobile</b> deadline to avoid burnout.")
-        content.setFont(QFont("Inter", 13))
-        content.setWordWrap(True)
-        content.setStyleSheet("color: #9a9cb8; background: transparent; border: none; line-height: 18px;")
-        layout.addWidget(content)
-
-        # CTA button: 11px label-caps / 700 weight / 0.05em letter-spacing
-        cta_layout = QHBoxLayout()
-        cta_layout.setSpacing(4)
-        cta = QLabel("OPTIMIZE SCHEDULE")
-        cta.setFont(QFont("Inter", 11, QFont.Bold))
-        cta.setStyleSheet("color: #bcc2ff; background: transparent; border: none; letter-spacing: 0.5px;")
-        cta.setCursor(Qt.PointingHandCursor)
-        cta_layout.addWidget(cta)
-        
-        arrow_icon = QLabel()
-        arrow_pixmap = _load_svg_icon("arrow_forward", size=16, color="#bcc2ff")
-        arrow_icon.setPixmap(arrow_pixmap)
-        arrow_icon.setStyleSheet("background: transparent; border: none;")
-        cta_layout.addWidget(arrow_icon)
-        cta_layout.addStretch()
-        
-        layout.addLayout(cta_layout)
-
-        return card
+        parent_layout.addLayout(stats_layout)
 
 
     def _build_projects_table(self, parent_layout: QVBoxLayout) -> None:
-        """Build projects table with header and footer."""
+        """Build projects table with header and filter tabs."""
         table_card = QFrame()
         table_card.setObjectName("table_card")
         table_card.setStyleSheet("""
@@ -430,11 +318,55 @@ class ProjectsPage(QWidget):
         table_layout.setContentsMargins(0, 0, 0, 0)
         table_layout.setSpacing(0)
 
+        # Filter tabs bar
+        filter_bar = QWidget()
+        filter_bar.setObjectName("table_filter_bar")
+        filter_bar_layout = QHBoxLayout(filter_bar)
+        filter_bar_layout.setContentsMargins(24, 16, 24, 16)
+        filter_bar_layout.setSpacing(4)
+
+        self._filter_tabs = []
+        filter_statuses = ["All", "Not Started", "In Progress", "Review", "On Hold", "Completed", "Cancelled"]
+
+        for fs in filter_statuses:
+            btn = QPushButton(fs)
+            btn.setObjectName("table_filter_tab")
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.setCheckable(True)
+            btn.setChecked(fs == "All")
+            btn.setStyleSheet("""
+                QPushButton#table_filter_tab {
+                    background: transparent;
+                    color: #6b6d85;
+                    border: 1px solid transparent;
+                    border-radius: 8px;
+                    padding: 4px 12px;
+                    font-size: 12px;
+                    font-weight: 500;
+                    min-height: 28px;
+                }
+                QPushButton#table_filter_tab:checked {
+                    background: transparent;
+                    color: #82d8ac;
+                    border-color: #82d8ac;
+                }
+                QPushButton#table_filter_tab:hover:!checked {
+                    background: rgba(200, 203, 223, 0.08);
+                    color: #ffffff;
+                }
+            """)
+            btn.clicked.connect(lambda checked, s=fs: self._apply_filter(s))
+            filter_bar_layout.addWidget(btn)
+            self._filter_tabs.append(btn)
+
+        filter_bar_layout.addStretch()
+        table_layout.addWidget(filter_bar)
+
         # Table widget
         self.table = QTableWidget()
-        self.table.setColumnCount(7)
+        self.table.setColumnCount(8)
         self.table.setHorizontalHeaderLabels([
-            "ID", "PROJECT", "CLIENT", "TYPE", "STATUS", "DEADLINE", "ACTIONS"
+            "ID", "PROJECT", "CLIENT", "TYPE", "STATUS", "DEADLINE", "BUDGET", "ACTIONS"
         ])
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setSelectionMode(QTableWidget.SingleSelection)
@@ -457,7 +389,7 @@ class ProjectsPage(QWidget):
             QTableWidget::item {
                 border: none;
                 border-bottom: 1px solid rgba(69,70,82,0.20);
-                padding: 10px 24px;
+                padding: 8px 12px;
             }
             QTableWidget::item:selected {
                 background-color: rgba(124,138,244,0.15);
@@ -480,146 +412,45 @@ class ProjectsPage(QWidget):
                 font-weight: 700;
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
-                padding: 16px 24px;
+                padding: 12px 12px;
                 height: 48px;
             }
         """)
 
-        # Column sizing per spec: ID(90), PROJECT(240), CLIENT(160), TYPE(120), STATUS(120), DEADLINE(130), ACTIONS(100)
+        # Column sizing
         header = self.table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.Fixed)
-        header.setSectionResizeMode(1, QHeaderView.Stretch)
-        header.setSectionResizeMode(2, QHeaderView.Interactive)
-        header.setSectionResizeMode(3, QHeaderView.Interactive)
-        header.setSectionResizeMode(4, QHeaderView.Interactive)
-        header.setSectionResizeMode(5, QHeaderView.Interactive)
-        header.setSectionResizeMode(6, QHeaderView.Fixed)
+        header.setSectionResizeMode(0, QHeaderView.Interactive) # ID
+        header.setSectionResizeMode(1, QHeaderView.Stretch) # PROJECT
+        header.setSectionResizeMode(2, QHeaderView.Interactive) # CLIENT
+        header.setSectionResizeMode(3, QHeaderView.Interactive) # TYPE
+        header.setSectionResizeMode(4, QHeaderView.Interactive) # STATUS
+        header.setSectionResizeMode(5, QHeaderView.Interactive) # DEADLINE
+        header.setSectionResizeMode(6, QHeaderView.Interactive) # BUDGET
+        header.setSectionResizeMode(7, QHeaderView.Fixed) # ACTIONS
 
-        self.table.setColumnWidth(0, 90)
-        self.table.setColumnWidth(2, 160)
-        self.table.setColumnWidth(3, 120)
-        self.table.setColumnWidth(4, 120)
-        self.table.setColumnWidth(5, 130)
-        self.table.setColumnWidth(6, 100)
+        self.table.setColumnWidth(0, 100)
+        self.table.setColumnWidth(2, 200)
+        self.table.setColumnWidth(3, 140)
+        self.table.setColumnWidth(4, 150)
+        self.table.setColumnWidth(5, 150)
+        self.table.setColumnWidth(6, 140)
+        self.table.setColumnWidth(7, 100)
 
         table_layout.addWidget(self.table)
-
-        # Table footer
-        self._build_table_footer(table_layout)
-
         parent_layout.addWidget(table_card)
 
+    def _apply_filter(self, status: str) -> None:
+        """Switch the active filter tab and re-render the table."""
+        self._active_filter = status
+        for tab in self._filter_tabs:
+            tab.setChecked(tab.text() == status)
 
-    def _build_table_footer(self, parent_layout: QVBoxLayout) -> None:
-        """Build table footer with batch actions and pagination."""
-        footer = QWidget()
-        footer.setStyleSheet("""
-            QWidget {
-                background-color: rgba(26,27,38,0.30);
-                border-top: 1px solid rgba(69,70,82,0.20);
-            }
-        """)
-        footer_layout = QHBoxLayout(footer)
-        footer_layout.setContentsMargins(24, 16, 24, 16)  # px-6 py-4
-        footer_layout.setSpacing(16)  # gap-4
-
-        # Left: Batch actions
-        actions_layout = QHBoxLayout()
-        actions_layout.setSpacing(16)
-
-        # Batch Edit button: 13px body-sm
-        batch_edit_btn = QPushButton(" Batch Edit")
-        batch_edit_btn.setIcon(QIcon(_load_svg_icon("edit", size=16, color="#9a9cb8")))
-        batch_edit_btn.setIconSize(QSize(16, 16))
-        batch_edit_btn.setCursor(Qt.PointingHandCursor)
-        batch_edit_btn.setStyleSheet("""
-            QPushButton {
-                background-color: transparent;
-                color: #9a9cb8;
-                border: 1px solid #454652;
-                border-radius: 8px;
-                padding: 8px 16px;
-                font-size: 13px;
-            }
-            QPushButton:hover {
-                background-color: #1e1f2a;
-            }
-        """)
-        actions_layout.addWidget(batch_edit_btn)
-
-        # Delete Selection button
-        delete_btn = QPushButton(" Delete Selection")
-        delete_btn.setIcon(QIcon(_load_svg_icon("delete", size=16, color="#9a9cb8")))
-        delete_btn.setIconSize(QSize(16, 16))
-        delete_btn.setCursor(Qt.PointingHandCursor)
-        delete_btn.setStyleSheet("""
-            QPushButton {
-                background-color: transparent;
-                color: #9a9cb8;
-                border: 1px solid #454652;
-                border-radius: 8px;
-                padding: 8px 16px;
-                font-size: 13px;
-            }
-            QPushButton:hover {
-                color: #e87c8a;
-                border-color: #e87c8a;
-            }
-        """)
-        delete_btn.clicked.connect(self._delete_project)
-        actions_layout.addWidget(delete_btn)
-
-        footer_layout.addLayout(actions_layout)
-        footer_layout.addStretch()
-
-        # Right: Pagination
-        page_info = QLabel("Page 1 of 1")
-        page_info.setFont(QFont("Inter", 13))
-        page_info.setStyleSheet("color: #9a9cb8; background: transparent; border: none;")
-        footer_layout.addWidget(page_info)
-
-        # Pagination buttons
-        pagination_layout = QHBoxLayout()
-        pagination_layout.setSpacing(4)  # gap-1
-
-        # Previous button: 40x40
-        prev_btn = QPushButton()
-        prev_btn.setIcon(QIcon(_load_svg_icon("chevron_left", size=24, color="#9a9cb8")))
-        prev_btn.setIconSize(QSize(24, 24))
-        prev_btn.setFixedSize(40, 40)
-        prev_btn.setEnabled(False)
-        prev_btn.setStyleSheet("""
-            QPushButton {
-                background-color: transparent;
-                border: 1px solid #454652;
-                border-radius: 8px;
-            }
-            QPushButton:disabled {
-                opacity: 0.3;
-            }
-        """)
-        pagination_layout.addWidget(prev_btn)
-
-        # Next button
-        next_btn = QPushButton()
-        next_btn.setIcon(QIcon(_load_svg_icon("chevron_right", size=24, color="#9a9cb8")))
-        next_btn.setIconSize(QSize(24, 24))
-        next_btn.setFixedSize(40, 40)
-        next_btn.setCursor(Qt.PointingHandCursor)
-        next_btn.setStyleSheet("""
-            QPushButton {
-                background-color: transparent;
-                border: 1px solid #454652;
-                border-radius: 8px;
-            }
-            QPushButton:hover {
-                background-color: #1e1f2a;
-            }
-        """)
-        pagination_layout.addWidget(next_btn)
-
-        footer_layout.addLayout(pagination_layout)
-        parent_layout.addWidget(footer)
+        if status == "All":
+            filtered = self._all_projects
+        else:
+            filtered = [p for p in self._all_projects if p.get("status") == status]
+        
+        self._populate_table(filtered)
 
 
     def refresh(self) -> None:
@@ -632,50 +463,165 @@ class ProjectsPage(QWidget):
             QMessageBox.warning(self, "Error", f"Could not load projects: {e}")
             projects = []
 
-        # Update total badge
-        self.total_badge.setText(f"{len(projects)} Total")
+        # Store all projects for client-side filtering
+        self._all_projects = projects
 
-        # Calculate dynamic stats
-        active_count = sum(1 for p in projects if p.get("status") in ("In Progress", "Review"))
-        completed_count = sum(1 for p in projects if p.get("status") == "Completed")
+        # 1. TOTAL PROJECTS
+        total_count = len(projects)
+        self.card_total.set_value(str(total_count))
         
-        # Calculate overdue projects
+        # Calculate projects added this month vs last month
+        try:
+            res_total_this_month = self.db.execute("""
+                SELECT COUNT(*) as cnt FROM projects 
+                WHERE strftime('%m-%Y', created_date) = strftime('%m-%Y', 'now')
+            """)
+            this_month_total = res_total_this_month[0]["cnt"] if res_total_this_month else 0
+            
+            res_total_last_month = self.db.execute("""
+                SELECT COUNT(*) as cnt FROM projects 
+                WHERE strftime('%m-%Y', created_date) = strftime('%m-%Y', date('now','-1 month'))
+            """)
+            last_month_total = res_total_last_month[0]["cnt"] if res_total_last_month else 0
+            
+            if this_month_total > last_month_total:
+                sub, color = f"▲ +{this_month_total - last_month_total} from last month", "#7dd3a8"
+            elif this_month_total == last_month_total:
+                sub, color = "→ Same as last month", "#9a9cb8"
+            else:
+                sub, color = f"▼ -{last_month_total - this_month_total} from last month", "#e87c8a"
+        except Exception:
+            sub, color = "—", "#9a9cb8"
+        self.card_total.set_sub_text(sub, color)
+
+        # 2. IN PROGRESS
+        in_progress_count = sum(1 for p in projects if p.get("status") == "In Progress")
+        self.card_in_progress.set_value(str(in_progress_count))
+        
+        # Overdue & at risk calculations
+        today_str = date.today().isoformat()
+        week_later_str = (date.today() + timedelta(days=7)).isoformat()
+        
         overdue_count = 0
-        today = date.today().isoformat()
+        at_risk_count = 0
         for p in projects:
-            deadline = p.get("deadline")
-            if deadline and deadline < today and p.get("status") != "Completed":
-                overdue_count += 1
+            if p.get("status") == "In Progress":
+                dl = p.get("deadline")
+                if dl:
+                    if dl < today_str:
+                        overdue_count += 1
+                    elif today_str <= dl <= week_later_str:
+                        at_risk_count += 1
+        
+        if overdue_count > 0:
+            sub, color = f"✕ {overdue_count} project(s) overdue", "#e87c8a"
+        elif at_risk_count > 0:
+            sub, color = f"⚠ {at_risk_count} due this week", "#9a9cb8"
+        else:
+            sub, color = "✓ All projects on track", "#7dd3a8"
+        self.card_in_progress.set_sub_text(sub, color)
 
-        # Calculate pipeline value (sum of all project budgets)
-        pipeline_value = sum(p.get("budget", 0) or 0 for p in projects)
+        # 3. COMPLETED
+        completed_count = sum(1 for p in projects if p.get("status") == "Completed")
+        self.card_completed.set_value(str(completed_count))
+        
+        # Calculate completed projects this month vs last month
+        try:
+            res_comp_this_month = self.db.execute("""
+                SELECT COUNT(*) as cnt FROM projects 
+                WHERE status='Completed'
+                AND strftime('%m-%Y', created_date) = strftime('%m-%Y', 'now')
+            """)
+            this_month_comp = res_comp_this_month[0]["cnt"] if res_comp_this_month else 0
+            
+            res_comp_last_month = self.db.execute("""
+                SELECT COUNT(*) as cnt FROM projects 
+                WHERE status='Completed'
+                AND strftime('%m-%Y', created_date) = strftime('%m-%Y', date('now','-1 month'))
+            """)
+            last_month_comp = res_comp_last_month[0]["cnt"] if res_comp_last_month else 0
+            
+            if this_month_comp > last_month_comp:
+                sub, color = f"▲ +{this_month_comp - last_month_comp} from last month", "#7dd3a8"
+            elif this_month_comp == last_month_comp:
+                sub, color = "→ Same as last month", "#9a9cb8"
+            else:
+                sub, color = f"▼ -{last_month_comp - this_month_comp} from last month", "#e87c8a"
+        except Exception:
+            sub, color = "—", "#9a9cb8"
+        self.card_completed.set_sub_text(sub, color)
 
-        # Update stat cards (keeping static values for now as per design)
-        # In production, these would be calculated from real data
-        # For now, keeping design values - you can update with real calculations
+        # 4. PENDING PAYMENT
+        try:
+            # SUM budget of completed projects with no paid invoice
+            res_pending = self.db.execute("""
+                SELECT COALESCE(SUM(budget), 0) as total FROM projects 
+                WHERE status='Completed' 
+                AND id NOT IN (SELECT DISTINCT project_id FROM invoices WHERE status='Paid')
+            """)
+            pending_amount = res_pending[0]["total"] if res_pending else 0.0
+            
+            # Fetch completed projects with no paid invoice for status detail
+            pending_projects = self.db.execute("""
+                SELECT p.id, p.deadline, i.status as invoice_status, i.due_date as invoice_due_date
+                FROM projects p
+                LEFT JOIN invoices i ON p.id = i.project_id
+                WHERE p.status='Completed'
+                AND p.id NOT IN (SELECT DISTINCT project_id FROM invoices WHERE status='Paid')
+            """)
+            
+            overdue_payments = 0
+            for row in pending_projects:
+                inv_status = row["invoice_status"]
+                inv_due = row["invoice_due_date"]
+                proj_dl = row["deadline"]
+                if inv_status == "Unpaid" and inv_due and inv_due < today_str:
+                    overdue_payments += 1
+                elif not inv_status and proj_dl and proj_dl < today_str:
+                    overdue_payments += 1
+            
+            self.card_pending_payment.set_value(_format_short_currency(pending_amount))
+            
+            if pending_amount == 0:
+                sub, color = "✓ Paid in full", "#7dd3a8"
+            elif overdue_payments > 0:
+                sub, color = f"✕ {overdue_payments} payment(s) overdue", "#e87c8a"
+            else:
+                sub, color = f"⚠ {len(pending_projects)} awaiting payment", "#9a9cb8"
+        except Exception as e:
+            print(f"Error calculating pending payment: {e}")
+            self.card_pending_payment.set_value("₹0")
+            sub, color = "—", "#9a9cb8"
+        self.card_pending_payment.set_sub_text(sub, color)
 
-        # Populate table
-        self._populate_table(projects)
+        # Re-apply filter to table
+        self._apply_filter(self._active_filter)
 
     def _populate_table(self, projects: list) -> None:
         """Populate table with project data."""
+        # Properly clear contents and row count
+        self.table.clearContents()
+        self.table.clearSpans()
+        self.table.setRowCount(0)
+
         if not projects:
             self.table.setRowCount(1)
-            empty_item = QTableWidgetItem("No projects yet — click 'New Project' to get started")
+            msg = "No projects match this filter." if self._active_filter != "All" else \
+                  "No projects yet — click 'New Project' to get started"
+            empty_item = QTableWidgetItem(msg)
             empty_item.setFlags(Qt.ItemIsEnabled)
             empty_item.setForeground(QColor("#9a9cb8"))
             empty_item.setTextAlignment(Qt.AlignCenter)
             self.table.setItem(0, 0, empty_item)
-            self.table.setSpan(0, 0, 1, 7)
+            self.table.setSpan(0, 0, 1, 8)
             return
 
-        self.table.clearSpans()
         self.table.setRowCount(len(projects))
         
         for i, p in enumerate(projects):
             # Set row to alternate background
             if i % 2 == 1:
-                for col in range(7):
+                for col in range(8):
                     item = QTableWidgetItem()
                     item.setBackground(QColor(26, 27, 38, 51))  # rgba(26,27,38,0.20)
                     self.table.setItem(i, col, item)
@@ -687,30 +633,13 @@ class ProjectsPage(QWidget):
             id_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
             self.table.setItem(i, 0, id_item)
 
-            # PROJECT column: two-line layout
-            project_widget = QWidget()
-            project_layout = QVBoxLayout(project_widget)
-            project_layout.setContentsMargins(0, 0, 0, 0)
-            project_layout.setSpacing(2)
-            
-            # Project name: 14px body-md / 400 weight
-            project_name = QLabel(p.get("name", "Unnamed Project"))
-            project_name.setFont(QFont("Inter", 14))
-            project_name.setStyleSheet("color: #e2e4f0; background: transparent; border: none;")
-            project_layout.addWidget(project_name)
-            
-            # Project subtitle: 11px
-            description = p.get("description", "")
-            if description:
-                subtitle = description[:30] + "..." if len(description) > 30 else description
-            else:
-                subtitle = p.get("type", "General Project")
-            project_subtitle = QLabel(subtitle)
-            project_subtitle.setFont(QFont("Inter", 11))
-            project_subtitle.setStyleSheet("color: #9a9cb8; background: transparent; border: none;")
-            project_layout.addWidget(project_subtitle)
-            
-            self.table.setCellWidget(i, 1, project_widget)
+            # PROJECT column: show project name only (no subtitle description)
+            project_name = p.get("name", "Unnamed Project")
+            project_item = QTableWidgetItem(project_name)
+            project_item.setFont(QFont("Inter", 14, QFont.Medium))
+            project_item.setForeground(QColor("#e2e4f0"))
+            project_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+            self.table.setItem(i, 1, project_item)
 
             # CLIENT column: avatar + name
             client_widget = QWidget()
@@ -773,9 +702,21 @@ class ProjectsPage(QWidget):
             deadline_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
             self.table.setItem(i, 5, deadline_item)
 
+            # BUDGET column: formatted with rupee symbol
+            budget = p.get("budget")
+            if budget is not None and budget > 0:
+                budget_str = f"₹{int(budget):,}"
+            else:
+                budget_str = "₹0"
+            budget_item = QTableWidgetItem(budget_str)
+            budget_item.setFont(QFont("Inter", 14, QFont.Medium))
+            budget_item.setForeground(QColor("#e2e4f0"))
+            budget_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+            self.table.setItem(i, 6, budget_item)
+
             # ACTIONS column: edit + delete buttons (hidden by default, shown on hover)
             actions_widget = self._create_actions_cell(p.get("id", 0))
-            self.table.setCellWidget(i, 6, actions_widget)
+            self.table.setCellWidget(i, 7, actions_widget)
 
 
     def _create_status_badge(self, status: str) -> QWidget:
