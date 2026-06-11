@@ -79,7 +79,7 @@ def _load_svg_icon(name: str, size: int = 16, color: str = "#bcc2ff") -> QPixmap
     return pixmap
 
 
-def _create_avatar_pixmap(initials: str, bg_color: str, size: int = 24) -> QPixmap:
+def _create_avatar_pixmap(initials: str, bg_color: str, size: int = 28) -> QPixmap:
     """Create a circular avatar with initials."""
     pixmap = QPixmap(size, size)
     pixmap.fill(Qt.transparent)
@@ -94,8 +94,7 @@ def _create_avatar_pixmap(initials: str, bg_color: str, size: int = 24) -> QPixm
 
     # Initials text (contrast text)
     painter.setPen(QColor("#12131d"))
-    font = QFont("Inter", 9)
-    font.setBold(True)
+    font = QFont("Inter", 10, QFont.Bold)
     painter.setFont(font)
     painter.drawText(pixmap.rect(), Qt.AlignCenter, initials)
 
@@ -232,6 +231,11 @@ class InvoicesPage(QWidget):
         self._search_text = ""
         self.current_filter = "All"
         self._all_invoices_raw = []
+        self._filtered_invoices = []
+
+        # Pagination state
+        self.current_page = 0
+        self.page_size = 10
 
         # Main page layout with scroll area
         page_layout = QVBoxLayout(self)
@@ -356,37 +360,37 @@ class InvoicesPage(QWidget):
 
         # Search field with icon
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Search invoices or clients...")
-        self.search_input.setFixedWidth(400)
+        self.search_input.setPlaceholderText("Search by invoice number, client, or project...")
+        self.search_input.setFixedWidth(420)
         self.search_input.setStyleSheet("""
             QLineEdit {
                 background-color: #1a1b26;
                 border: 1px solid rgba(69, 70, 82, 0.3);
                 border-radius: 8px;
-                padding: 10px 14px 10px 32px;
+                padding: 10px 14px 10px 38px;
                 color: #e2e1f1;
                 font-family: 'Inter';
-                font-size: 13px;
+                font-size: 14px;
             }
             QLineEdit:focus {
                 border: 1px solid #7c8af4;
                 outline: none;
             }
             QLineEdit::placeholder {
-                color: #9a9cb8;
+                color: #6b6d85;
             }
         """)
         self.search_input.textChanged.connect(self._on_search)
 
         search_icon = QLabel()
-        search_icon.setPixmap(_load_svg_icon("search", size=16, color="#6b6d85"))
-        search_icon.setStyleSheet("background: transparent; border: none; padding-left: 8px;")
+        search_icon.setPixmap(_load_svg_icon("search", size=18, color="#6b6d85"))
+        search_icon.setStyleSheet("background: transparent; border: none; padding-left: 10px;")
 
         search_layout = QHBoxLayout(self.search_input)
         search_layout.addWidget(search_icon, 0, Qt.AlignLeft | Qt.AlignVCenter)
         search_layout.addStretch()
         search_layout.setContentsMargins(0, 0, 0, 0)
-        self.search_input.setTextMargins(28, 0, 0, 0)
+        self.search_input.setTextMargins(32, 0, 0, 0)
         row.addWidget(self.search_input)
 
         # Filter tabs
@@ -395,8 +399,8 @@ class InvoicesPage(QWidget):
         
         filter_bar_widget = QWidget()
         filter_bar_layout = QHBoxLayout(filter_bar_widget)
-        filter_bar_layout.setContentsMargins(12, 0, 0, 0)
-        filter_bar_layout.setSpacing(8)
+        filter_bar_layout.setContentsMargins(16, 0, 0, 0)
+        filter_bar_layout.setSpacing(12)
 
         for fs in filter_statuses:
             btn = QPushButton(fs)
@@ -410,18 +414,18 @@ class InvoicesPage(QWidget):
                     color: #9a9cb8;
                     border: 1px solid transparent;
                     border-radius: 6px;
-                    padding: 4px 12px;
+                    padding: 6px 14px;
                     font-size: 13px;
                     font-weight: 500;
-                    min-height: 28px;
+                    min-height: 32px;
                 }
                 QPushButton#invoice_filter_tab:checked {
-                    background: #333440;
+                    background: #282935;
                     color: #e2e1f1;
-                    border: 1px solid transparent;
+                    border: 1px solid rgba(124, 138, 244, 0.3);
                 }
                 QPushButton#invoice_filter_tab:hover:!checked {
-                    background: #1e1f2a;
+                    background: rgba(255, 255, 255, 0.04);
                     color: #e2e4f0;
                 }
             """)
@@ -446,9 +450,13 @@ class InvoicesPage(QWidget):
                 font-weight: 700;
                 font-size: 14px;
                 border: none;
+                min-width: 140px;
             }
             QPushButton#create_invoice_btn:hover {
-                opacity: 0.9;
+                background-color: #8a96f5;
+            }
+            QPushButton#create_invoice_btn:pressed {
+                background-color: #6b7ae3;
             }
         """)
         add_btn.clicked.connect(self._create_invoice)
@@ -479,7 +487,7 @@ class InvoicesPage(QWidget):
         self.table.horizontalHeader().setVisible(True)
         self.table.setShowGrid(False)
         self.table.setFocusPolicy(Qt.NoFocus)
-        self.table.verticalHeader().setDefaultSectionSize(48)
+        self.table.verticalHeader().setDefaultSectionSize(52)
         self.table.setFrameShape(QFrame.NoFrame)
 
         self.table.setStyleSheet("""
@@ -492,28 +500,28 @@ class InvoicesPage(QWidget):
             }
             QTableWidget::item {
                 border: none;
-                padding: 16px 24px;
-                border-bottom: 1px solid rgba(69, 70, 82, 0.1);
+                padding: 14px 20px;
+                border-bottom: 1px solid rgba(69, 70, 82, 0.15);
             }
             QTableWidget::item:selected {
-                background-color: rgba(124, 138, 244, 0.12);
+                background-color: rgba(124, 138, 244, 0.10);
                 border: none;
-                color: white;
+                color: #e2e1f1;
             }
             QTableWidget::item:hover {
-                background-color: rgba(124, 138, 244, 0.04);
+                background-color: rgba(124, 138, 244, 0.06);
                 border: none;
             }
             QHeaderView::section {
                 background-color: transparent;
-                color: #e2e1f1;
-                padding: 16px 24px;
+                color: #9a9cb8;
+                padding: 14px 20px;
                 border: none;
-                border-bottom: 1px solid rgba(69, 70, 82, 0.3);
+                border-bottom: 1px solid rgba(69, 70, 82, 0.35);
                 font-size: 11px;
                 font-weight: 700;
                 text-transform: uppercase;
-                letter-spacing: 0.05em;
+                letter-spacing: 0.08em;
             }
         """)
 
@@ -525,19 +533,138 @@ class InvoicesPage(QWidget):
         for col in range(8):
             header.setSectionResizeMode(col, QHeaderView.Fixed)
             
-        self.table.setColumnWidth(0, 60)   # # (ID)
+        self.table.setColumnWidth(0, 70)   # # (ID)
         self.table.setColumnWidth(1, 140)  # INVOICE NO.
         self.table.setColumnWidth(2, 200)  # CLIENT
         self.table.setColumnWidth(3, 200)  # PROJECT
-        self.table.setColumnWidth(4, 120)  # TOTAL
+        self.table.setColumnWidth(4, 130)  # TOTAL
         self.table.setColumnWidth(5, 120)  # DUE DATE
         self.table.setColumnWidth(6, 120)  # STATUS
-        self.table.setColumnWidth(7, 80)   # ACTIONS
+        self.table.setColumnWidth(7, 90)   # ACTIONS
 
         header.setSectionResizeMode(2, QHeaderView.Stretch)
         header.setSectionResizeMode(3, QHeaderView.Stretch)
 
         table_layout.addWidget(self.table)
+
+        # ─── Pagination Footer ─────────────────────────────────────────────
+        self.footer_widget = QWidget()
+        self.footer_widget.setObjectName("table_footer")
+        self.footer_widget.setStyleSheet("""
+            QWidget#table_footer {
+                background-color: transparent;
+                border-top: 1px solid rgba(69, 70, 82, 0.15);
+            }
+        """)
+        footer_layout = QHBoxLayout(self.footer_widget)
+        footer_layout.setContentsMargins(24, 16, 24, 16)
+        footer_layout.setSpacing(16)
+
+        # Left: info text
+        self.info_label = QLabel()
+        self.info_label.setObjectName("table_footer_info")
+        self.info_label.setStyleSheet("color: #9a9cb8; font-size: 13px; font-weight: 400; background: transparent; border: none;")
+        footer_layout.addWidget(self.info_label, 0, Qt.AlignLeft | Qt.AlignVCenter)
+
+        # Center spacer
+        footer_layout.addStretch()
+
+        # Center pagination controls
+        self.controls_widget = QWidget()
+        self.controls_widget.setStyleSheet("background: transparent; border: none;")
+        self.controls_layout = QHBoxLayout(self.controls_widget)
+        self.controls_layout.setContentsMargins(0, 0, 0, 0)
+        self.controls_layout.setSpacing(6)
+
+        # Previous button
+        self.prev_btn = QPushButton()
+        self.prev_btn.setObjectName("prev_page_btn")
+        self.prev_btn.setCursor(Qt.PointingHandCursor)
+        self.prev_btn.setFixedSize(32, 32)
+        self.prev_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                border: 1px solid #2d2e42;
+                border-radius: 6px;
+                padding: 0;
+            }
+            QPushButton:hover {
+                background-color: rgba(124, 138, 244, 0.05);
+                border: 1px solid #454652;
+            }
+            QPushButton:disabled {
+                background-color: transparent;
+                border: 1px solid #1e1f2a;
+            }
+        """)
+        prev_icon = _load_svg_icon("chevron_left", size=16, color="#e2e4f0")
+        self.prev_btn.setIcon(QIcon(prev_icon))
+        self.prev_btn.setIconSize(QSize(16, 16))
+        self.prev_btn.clicked.connect(self._prev_page)
+        self.controls_layout.addWidget(self.prev_btn)
+
+        # Dynamic Page buttons layout
+        self.page_buttons_widget = QWidget()
+        self.page_buttons_widget.setStyleSheet("background: transparent; border: none;")
+        self.page_buttons_layout = QHBoxLayout(self.page_buttons_widget)
+        self.page_buttons_layout.setContentsMargins(0, 0, 0, 0)
+        self.page_buttons_layout.setSpacing(6)
+        self.controls_layout.addWidget(self.page_buttons_widget)
+
+        # Next button
+        self.next_btn = QPushButton()
+        self.next_btn.setObjectName("next_page_btn")
+        self.next_btn.setCursor(Qt.PointingHandCursor)
+        self.next_btn.setFixedSize(32, 32)
+        self.next_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                border: 1px solid #2d2e42;
+                border-radius: 6px;
+                padding: 0;
+            }
+            QPushButton:hover {
+                background-color: rgba(124, 138, 244, 0.05);
+                border: 1px solid #454652;
+            }
+            QPushButton:disabled {
+                background-color: transparent;
+                border: 1px solid #1e1f2a;
+            }
+        """)
+        next_icon = _load_svg_icon("chevron_right", size=16, color="#e2e4f0")
+        self.next_btn.setIcon(QIcon(next_icon))
+        self.next_btn.setIconSize(QSize(16, 16))
+        self.next_btn.clicked.connect(self._next_page)
+        self.controls_layout.addWidget(self.next_btn)
+
+        footer_layout.addWidget(self.controls_widget, 0, Qt.AlignCenter | Qt.AlignVCenter)
+
+        # Right spacer
+        footer_layout.addStretch()
+
+        # Right: Page size dropdown
+        self.page_size_combo = QComboBox()
+        self.page_size_combo.setObjectName("page_size_combo")
+        self.page_size_combo.addItems(["10 per page"])
+        self.page_size_combo.setCurrentText("10 per page")
+        self.page_size_combo.setFixedWidth(120)
+        self.page_size_combo.setStyleSheet("""
+            QComboBox {
+                background-color: #1e1f2a;
+                border: 1px solid #2d2e42;
+                border-radius: 6px;
+                padding: 4px 10px;
+                color: #9a9cb8;
+                font-size: 13px;
+            }
+            QComboBox:hover {
+                border: 1px solid #7c8af4;
+            }
+        """)
+        footer_layout.addWidget(self.page_size_combo, 0, Qt.AlignRight | Qt.AlignVCenter)
+
+        table_layout.addWidget(self.footer_widget)
         parent_layout.addWidget(table_card)
 
     def _on_search(self, text: str) -> None:
@@ -585,7 +712,100 @@ class InvoicesPage(QWidget):
 
             filtered.append(inv)
 
-        self._populate_table(filtered)
+        self._filtered_invoices = filtered
+        # Clamp current page to valid range
+        total_items = len(self._filtered_invoices)
+        total_pages = max(1, (total_items + self.page_size - 1) // self.page_size)
+        if self.current_page >= total_pages:
+            self.current_page = max(0, total_pages - 1)
+        self._populate_table_current_page()
+
+    def _populate_table_current_page(self) -> None:
+        start_idx = self.current_page * self.page_size
+        end_idx = start_idx + self.page_size
+        page_invoices = self._filtered_invoices[start_idx:end_idx]
+        
+        self._populate_table(page_invoices)
+        self._update_pagination_ui()
+
+    def _update_pagination_ui(self) -> None:
+        total_items = len(self._filtered_invoices)
+        total_pages = max(1, (total_items + self.page_size - 1) // self.page_size)
+        
+        if self.current_page >= total_pages:
+            self.current_page = max(0, total_pages - 1)
+            
+        start_idx = self.current_page * self.page_size
+        end_idx = min(start_idx + self.page_size, total_items)
+        
+        if total_items == 0:
+            self.info_label.setText("Showing 0 to 0 of 0 invoices")
+        else:
+            self.info_label.setText(f"Showing {start_idx + 1} to {end_idx} of {total_items} invoices")
+            
+        self.prev_btn.setEnabled(self.current_page > 0)
+        self.next_btn.setEnabled(self.current_page < total_pages - 1)
+        
+        prev_color = "#e2e4f0" if self.current_page > 0 else "#454652"
+        next_color = "#e2e4f0" if self.current_page < total_pages - 1 else "#454652"
+        self.prev_btn.setIcon(QIcon(_load_svg_icon("chevron_left", size=16, color=prev_color)))
+        self.next_btn.setIcon(QIcon(_load_svg_icon("chevron_right", size=16, color=next_color)))
+        
+        while self.page_buttons_layout.count():
+            item = self.page_buttons_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+                
+        for page in range(total_pages):
+            btn = QPushButton(str(page + 1))
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.setFixedSize(32, 32)
+            
+            if page == self.current_page:
+                btn.setProperty("active", True)
+                btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #7c8af4;
+                        color: #0f208b;
+                        border: none;
+                        border-radius: 6px;
+                        font-weight: 700;
+                        font-size: 13px;
+                    }
+                """)
+            else:
+                btn.setProperty("active", False)
+                btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: transparent;
+                        border: 1px solid #2d2e42;
+                        border-radius: 6px;
+                        color: #9a9cb8;
+                        font-weight: 600;
+                        font-size: 13px;
+                    }
+                    QPushButton:hover {
+                        background-color: rgba(124, 138, 244, 0.05);
+                        border: 1px solid #454652;
+                        color: #e2e4f0;
+                    }
+                """)
+            btn.clicked.connect(lambda _, p=page: self._go_to_page(p))
+            self.page_buttons_layout.addWidget(btn)
+
+    def _go_to_page(self, page_index: int) -> None:
+        self.current_page = page_index
+        self._populate_table_current_page()
+
+    def _prev_page(self) -> None:
+        if self.current_page > 0:
+            self._go_to_page(self.current_page - 1)
+
+    def _next_page(self) -> None:
+        total_items = len(self._filtered_invoices)
+        total_pages = max(1, (total_items + self.page_size - 1) // self.page_size)
+        if self.current_page < total_pages - 1:
+            self._go_to_page(self.current_page + 1)
 
     def _populate_table(self, invoices: list) -> None:
         self.table.clearSpans()
@@ -625,21 +845,21 @@ class InvoicesPage(QWidget):
             client_widget = QWidget()
             client_widget.setStyleSheet("background: transparent; border: none;")
             client_layout = QHBoxLayout(client_widget)
-            client_layout.setContentsMargins(6, 0, 6, 0)
-            client_layout.setSpacing(8)
+            client_layout.setContentsMargins(4, 0, 4, 0)
+            client_layout.setSpacing(10)
 
             initials = "".join([word[0] for word in client_name.split()[:2]]).upper()
             avatar_colors = ["rgba(125,211,227,0.30)", "rgba(124,138,244,0.30)", "rgba(232,124,138,0.30)", "#908f9e"]
             avatar_color = avatar_colors[hash(client_name) % len(avatar_colors)]
 
             avatar_label = QLabel()
-            avatar_pixmap = _create_avatar_pixmap(initials, avatar_color, size=24)
+            avatar_pixmap = _create_avatar_pixmap(initials, avatar_color, size=28)
             avatar_label.setPixmap(avatar_pixmap)
-            avatar_label.setFixedSize(24, 24)
+            avatar_label.setFixedSize(28, 28)
             client_layout.addWidget(avatar_label)
 
             client_label = QLabel(client_name)
-            client_label.setStyleSheet("color: #e2e1f1; font-size: 14px; font-weight: 400; background: transparent; border: none;")
+            client_label.setStyleSheet("color: #e2e1f1; font-size: 14px; font-weight: 500; background: transparent; border: none;")
             client_layout.addWidget(client_label)
             client_layout.addStretch()
             self.table.setCellWidget(i, 2, client_widget)
@@ -699,17 +919,20 @@ class InvoicesPage(QWidget):
         edit_btn = QPushButton()
         edit_btn.setCursor(Qt.PointingHandCursor)
         edit_btn.setToolTip("Edit Invoice")
-        edit_btn.setIcon(QIcon(_load_svg_icon("edit", size=16, color="#6b6d85")))
+        edit_btn.setIcon(QIcon(_load_svg_icon("edit", size=16, color="#7c8af4")))
         edit_btn.setIconSize(QSize(16, 16))
-        edit_btn.setFixedSize(28, 28)
+        edit_btn.setFixedSize(32, 32)
         edit_btn.setStyleSheet("""
             QPushButton {
                 background: transparent;
                 border: none;
-                border-radius: 4px;
+                border-radius: 6px;
             }
             QPushButton:hover {
-                background: rgba(255, 255, 255, 0.08);
+                background: rgba(124, 138, 244, 0.15);
+            }
+            QPushButton:pressed {
+                background: rgba(124, 138, 244, 0.25);
             }
         """)
         edit_btn.clicked.connect(lambda: self._edit_invoice_by_id(invoice_id))
@@ -717,23 +940,27 @@ class InvoicesPage(QWidget):
         del_btn = QPushButton()
         del_btn.setCursor(Qt.PointingHandCursor)
         del_btn.setToolTip("Delete Invoice")
-        del_btn.setIcon(QIcon(_load_svg_icon("delete", size=16, color="#6b6d85")))
+        del_btn.setIcon(QIcon(_load_svg_icon("delete", size=16, color="#e87c8a")))
         del_btn.setIconSize(QSize(16, 16))
-        del_btn.setFixedSize(28, 28)
+        del_btn.setFixedSize(32, 32)
         del_btn.setStyleSheet("""
             QPushButton {
                 background: transparent;
                 border: none;
-                border-radius: 4px;
+                border-radius: 6px;
             }
             QPushButton:hover {
-                background: rgba(232, 124, 138, 0.15);
+                background: rgba(232, 124, 138, 0.20);
+            }
+            QPushButton:pressed {
+                background: rgba(232, 124, 138, 0.30);
             }
         """)
         del_btn.clicked.connect(lambda: self._delete_invoice_by_id(invoice_id))
 
         layout.addWidget(edit_btn)
         layout.addWidget(del_btn)
+        layout.addStretch()
         return container
 
     def refresh(self) -> None:
