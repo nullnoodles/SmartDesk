@@ -250,7 +250,7 @@ class InvoicesPage(QWidget):
         scroll.setStyleSheet("""
             QScrollBar:vertical {
                 width: 6px;
-                background: #12131a;
+                background: #12131d;
                 border-radius: 10px;
             }
             QScrollBar::handle:vertical {
@@ -287,6 +287,43 @@ class InvoicesPage(QWidget):
         stat_row = QHBoxLayout()
         stat_row.setSpacing(16)
         for c in (self.card_earned, self.card_pending, self.card_overdue, self.card_total):
+            # Apply design token styling
+            c.setStyleSheet("""
+                QFrame#dashboard_stat_card {
+                    background-color: #1a1b26;
+                    border: 1px solid rgba(69, 70, 82, 0.3);
+                    border-radius: 8px;
+                }
+                QFrame#dashboard_stat_card:hover {
+                    background-color: #282935;
+                }
+                QLabel#stat_card_label {
+                    color: #9a9cb8;
+                    font-size: 11px;
+                    font-weight: 700;
+                    letter-spacing: 0.05em;
+                    background: transparent;
+                    border: none;
+                }
+                QLabel#stat_card_value {
+                    color: #e2e1f1;
+                    font-size: 24px;
+                    font-weight: 700;
+                    background: transparent;
+                    border: none;
+                }
+                QLabel#stat_card_subtext {
+                    color: #9a9cb8;
+                    font-size: 13px;
+                    font-weight: 400;
+                    background: transparent;
+                    border: none;
+                }
+                QLabel#stat_card_icon_bubble {
+                    background: transparent;
+                    border: none;
+                }
+            """)
             stat_row.addWidget(c, 1)
         layout.addLayout(stat_row)
 
@@ -296,21 +333,22 @@ class InvoicesPage(QWidget):
         chart_card.setStyleSheet("""
             QFrame#monthly_revenue_chart_card {
                 background-color: #1a1b26;
-                border: 1px solid #2d2e42;
-                border-radius: 12px;
-                padding: 20px;
+                border: 1px solid rgba(69, 70, 82, 0.3);
+                border-radius: 8px;
+                padding: 24px;
             }
         """)
         chart_layout = QVBoxLayout(chart_card)
         chart_layout.setContentsMargins(0, 0, 0, 0)
         chart_layout.setSpacing(12)
 
-        chart_title = QLabel("Monthly Revenue")
+        chart_title = QLabel("Monthly Revenue — Last 6 Months")
         chart_title.setStyleSheet("""
-            color: #e2e4f0;
+            color: #e2e1f1;
             font-size: 16px;
-            font-weight: 700;
+            font-weight: 500;
             background: transparent;
+            border: none;
         """)
         chart_layout.addWidget(chart_title)
 
@@ -336,21 +374,25 @@ class InvoicesPage(QWidget):
 
         # Search field with icon
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Search invoices...")
+        self.search_input.setPlaceholderText("Search invoices or clients...")
         self.search_input.setFixedWidth(400)
-        self.search_input.setStyleSheet(f"""
-            QLineEdit {{
-                background-color: {Colors.BG_DARK};
-                border: 1px solid {Colors.BORDER_DEFAULT};
-                border-radius: 10px;
+        self.search_input.setStyleSheet("""
+            QLineEdit {
+                background-color: #1a1b26;
+                border: 1px solid rgba(69, 70, 82, 0.3);
+                border-radius: 8px;
                 padding: 10px 14px 10px 32px;
-                color: {Colors.TEXT_PRIMARY};
+                color: #e2e1f1;
                 font-family: 'Inter';
                 font-size: 13px;
-            }}
-            QLineEdit:focus {{
-                border: 1px solid {Colors.ACCENT_PRIMARY_LIGHT};
-            }}
+            }
+            QLineEdit:focus {
+                border: 1px solid #7c8af4;
+                outline: none;
+            }
+            QLineEdit::placeholder {
+                color: #9a9cb8;
+            }
         """)
         self.search_input.textChanged.connect(self._on_search)
 
@@ -392,12 +434,12 @@ class InvoicesPage(QWidget):
                     min-height: 28px;
                 }
                 QPushButton#invoice_filter_tab:checked {
-                    background: transparent;
-                    color: #7c8af4;
-                    border: 1px solid #7c8af4;
+                    background: #333440;
+                    color: #e2e1f1;
+                    border: 1px solid transparent;
                 }
                 QPushButton#invoice_filter_tab:hover:!checked {
-                    background: #1a1b26;
+                    background: #1e1f2a;
                     color: #e2e4f0;
                 }
             """)
@@ -412,23 +454,20 @@ class InvoicesPage(QWidget):
         add_btn = QPushButton("+ Create Invoice")
         add_btn.setObjectName("create_invoice_btn")
         add_btn.setCursor(Qt.PointingHandCursor)
-        add_btn.setFixedHeight(36)
-        add_btn.setStyleSheet(f"""
-            QPushButton#create_invoice_btn {{
-                background-color: {Colors.ACCENT_PRIMARY};
-                color: #ffffff;
+        add_btn.setFixedHeight(40)
+        add_btn.setStyleSheet("""
+            QPushButton#create_invoice_btn {
+                background-color: #7c8af4;
+                color: #12131d;
                 border-radius: 8px;
-                padding: 8px 16px;
-                font-weight: 600;
-                font-size: 13px;
+                padding: 10px 24px;
+                font-weight: 700;
+                font-size: 14px;
                 border: none;
-            }}
-            QPushButton#create_invoice_btn:hover {{
-                background-color: {Colors.ACCENT_PRIMARY_HOVER};
-            }}
-            QPushButton#create_invoice_btn:pressed {{
-                background-color: {Colors.ACCENT_PRIMARY_PRESSED};
-            }}
+            }
+            QPushButton#create_invoice_btn:hover {
+                opacity: 0.9;
+            }
         """)
         add_btn.clicked.connect(self._create_invoice)
         row.addWidget(add_btn)
@@ -438,7 +477,7 @@ class InvoicesPage(QWidget):
     def _build_invoices_table(self, parent_layout: QVBoxLayout) -> None:
         table_card = QFrame()
         table_card.setObjectName("invoices_table_card")
-        table_card.setStyleSheet("QFrame#invoices_table_card { background-color: #222336; border-radius: 12px; border: 1px solid #2d2e42; }")
+        table_card.setStyleSheet("QFrame#invoices_table_card { background-color: #1a1b26; border-radius: 8px; border: 1px solid rgba(69, 70, 82, 0.3); }")
         table_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         table_layout = QVBoxLayout(table_card)
@@ -455,6 +494,7 @@ class InvoicesPage(QWidget):
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setSelectionMode(QTableWidget.SingleSelection)
         self.table.verticalHeader().setVisible(False)
+        self.table.horizontalHeader().setVisible(True)
         self.table.setShowGrid(False)
         self.table.setFocusPolicy(Qt.NoFocus)
         self.table.verticalHeader().setDefaultSectionSize(48)
@@ -464,14 +504,14 @@ class InvoicesPage(QWidget):
             QTableWidget {
                 background-color: transparent;
                 border: none;
-                color: #e2e4f0;
-                font-size: 13px;
+                color: #e2e1f1;
+                font-size: 14px;
                 outline: none;
             }
             QTableWidget::item {
                 border: none;
-                padding: 8px 12px;
-                border-bottom: 1px solid #2d2e42;
+                padding: 16px 24px;
+                border-bottom: 1px solid rgba(69, 70, 82, 0.1);
             }
             QTableWidget::item:selected {
                 background-color: rgba(124, 138, 244, 0.12);
@@ -479,8 +519,19 @@ class InvoicesPage(QWidget):
                 color: white;
             }
             QTableWidget::item:hover {
-                background-color: rgba(255, 255, 255, 0.04);
+                background-color: rgba(124, 138, 244, 0.04);
                 border: none;
+            }
+            QHeaderView::section {
+                background-color: transparent;
+                color: #e2e1f1;
+                padding: 16px 24px;
+                border: none;
+                border-bottom: 1px solid rgba(69, 70, 82, 0.3);
+                font-size: 11px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
             }
         """)
 
@@ -566,7 +617,7 @@ class InvoicesPage(QWidget):
                   "No invoices yet — click Create Invoice to add one"
             empty_item = QLabel(msg)
             empty_item.setAlignment(Qt.AlignCenter)
-            empty_item.setStyleSheet("color: #6b6d85; font-size: 13px; background: transparent; border: none;")
+            empty_item.setStyleSheet("color: #6b6d85; font-size: 14px; background: transparent; border: none;")
             self.table.setCellWidget(0, 0, empty_item)
             return
 
@@ -606,7 +657,7 @@ class InvoicesPage(QWidget):
             client_layout.addWidget(avatar_label)
 
             client_label = QLabel(client_name)
-            client_label.setStyleSheet(f"color: {Colors.TEXT_SECONDARY}; font-size: 13px; font-weight: 500; background: transparent;")
+            client_label.setStyleSheet("color: #e2e1f1; font-size: 14px; font-weight: 400; background: transparent; border: none;")
             client_layout.addWidget(client_label)
             client_layout.addStretch()
             self.table.setCellWidget(i, 2, client_widget)
