@@ -262,13 +262,15 @@ class RevenueLineChart(QWidget):
         self._animation.start()
     
     def _format_currency(self, val: float) -> str:
-        """Format currency for Y-axis labels."""
+        """Format currency for Y-axis labels - clean rounded values only."""
         if val >= 100000:
-            return f"₹{val/100000:.1f}L"
+            return f"₹{val/100000:.0f}L"
         elif val >= 1000:
             return f"₹{val/1000:.0f}K"
+        elif val == 0:
+            return "₹0"
         else:
-            return f"₹{val:.0f}"
+            return f"₹{int(val)}"
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -287,8 +289,12 @@ class RevenueLineChart(QWidget):
             painter.end()
             return
         
-        # Calculate max value for Y-axis
-        max_raw_value = max(self._raw_data) if self._raw_data and max(self._raw_data) > 0 else 1.0
+        # Calculate max value for Y-axis with 30% padding, or default scale if no data
+        max_raw_value = max(self._raw_data) if self._raw_data else 0.0
+        if max_raw_value == 0:
+            max_raw_value = 100000  # default scale ₹0 to ₹1L when no data
+        else:
+            max_raw_value = max_raw_value * 1.3  # 30% padding above highest point
             
         # Special handling for single data point - show as a point with base line
         if len(self._data) == 1:
