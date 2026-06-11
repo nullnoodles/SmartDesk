@@ -51,7 +51,6 @@ from app.data.repositories.project_repo import ProjectRepository
 from app.data.repositories.client_repo import ClientRepository
 from app.ui.styles.theme import Colors
 from app.ui.widgets.page_header import PageHeader
-from app.ui.widgets.stat_card import StatCard
 from app.ui.widgets.status_pill import StatusPill
 from app.core.signals import emit_data_changed
 from app.core.email_service import EmailService
@@ -279,51 +278,34 @@ class InvoicesPage(QWidget):
         layout.addWidget(self.header)
 
         # ─── Stat cards row ────────────────────────────────────────────────
-        self.card_earned = StatCard("Total Earned", "₹0", icon="payments", accent=Colors.ACCENT_SUCCESS)
-        self.card_pending = StatCard("Pending", "₹0", icon="pending_actions", accent=Colors.ACCENT_WARNING)
-        self.card_overdue = StatCard("Overdue", "₹0", icon="error", accent=Colors.ACCENT_DANGER)
-        self.card_total = StatCard("Total Invoices", "0", icon="description", accent=Colors.ACCENT_PRIMARY_LIGHT)
+        # Using DashboardStatCard from dashboard_page.py for consistency
+        from app.ui.pages.dashboard_page import DashboardStatCard
+        
+        self.card_earned = DashboardStatCard(
+            "Total Earned", "₹0",
+            icon="payments",
+            accent=Colors.ACCENT_SUCCESS,
+        )
+        self.card_pending = DashboardStatCard(
+            "Pending", "₹0",
+            icon="pending_actions",
+            accent=Colors.ACCENT_WARNING,
+        )
+        self.card_overdue = DashboardStatCard(
+            "Overdue", "₹0",
+            icon="error",
+            accent=Colors.ACCENT_DANGER,
+        )
+        self.card_total = DashboardStatCard(
+            "Total Invoices", "0",
+            icon="description",
+            accent=Colors.ACCENT_PRIMARY_LIGHT,
+        )
 
         stat_row = QHBoxLayout()
         stat_row.setSpacing(16)
+        stat_row.setContentsMargins(0, 0, 0, 0)
         for c in (self.card_earned, self.card_pending, self.card_overdue, self.card_total):
-            # Apply design token styling
-            c.setStyleSheet("""
-                QFrame#dashboard_stat_card {
-                    background-color: #1a1b26;
-                    border: 1px solid rgba(69, 70, 82, 0.3);
-                    border-radius: 8px;
-                }
-                QFrame#dashboard_stat_card:hover {
-                    background-color: #282935;
-                }
-                QLabel#stat_card_label {
-                    color: #9a9cb8;
-                    font-size: 11px;
-                    font-weight: 700;
-                    letter-spacing: 0.05em;
-                    background: transparent;
-                    border: none;
-                }
-                QLabel#stat_card_value {
-                    color: #e2e1f1;
-                    font-size: 24px;
-                    font-weight: 700;
-                    background: transparent;
-                    border: none;
-                }
-                QLabel#stat_card_subtext {
-                    color: #9a9cb8;
-                    font-size: 13px;
-                    font-weight: 400;
-                    background: transparent;
-                    border: none;
-                }
-                QLabel#stat_card_icon_bubble {
-                    background: transparent;
-                    border: none;
-                }
-            """)
             stat_row.addWidget(c, 1)
         layout.addLayout(stat_row)
 
