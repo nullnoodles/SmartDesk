@@ -462,6 +462,31 @@ QPushButton[accent="info"], .info_button {
     color: #bcc2ff;
 }
 
+/* Button Focus Indicators for Keyboard Navigability */
+QPushButton:focus {
+    border: 1px solid #7c8af4;
+}
+QPushButton[accent="primary"]:focus, .primary_button:focus {
+    border: 1.5px solid #bcc2ff;
+}
+QPushButton[accent="ghost"]:focus, .ghost_button:focus {
+    border: 1px solid #7c8af4;
+    background-color: rgba(124, 138, 244, 0.05);
+}
+QPushButton[accent="secondary"]:focus, .secondary_button:focus {
+    border: 1.5px solid #9ae3be;
+}
+QPushButton[accent="danger"]:focus, .danger_button:focus {
+    border: 1.5px solid #f09aa5;
+}
+QPushButton[accent="warning"]:focus, .warning_button:focus {
+    border: 1.5px solid #f5d898;
+}
+QPushButton[accent="info"]:focus, .info_button:focus {
+    border: 1.5px solid #8dd4e0;
+}
+
+
 /* ============================================================================
    INPUTS
    ============================================================================ */

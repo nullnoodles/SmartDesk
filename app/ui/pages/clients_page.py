@@ -47,6 +47,7 @@ from app.ui.styles.theme import Colors
 from app.ui.widgets.stat_card import StatCard
 from app.ui.widgets.animated import GradientBar
 from app.core.signals import emit_data_changed
+from app.ui.pages.dashboard_page import is_reduced_motion
 
 _ICONS_DIR = ASSETS_DIR / "icons"
 
@@ -292,8 +293,10 @@ class ClientsPage(QWidget):
             
             # Create animation for blur radius
             shadow_animation = QPropertyAnimation(card_shadow, b"blurRadius")
-            shadow_animation.setDuration(200)  # 200ms animation
+            shadow_animation.setDuration(200 if not is_reduced_motion() else 0)  # 200ms animation
             shadow_animation.setEasingCurve(QEasingCurve.OutCubic)
+
+
             
             # Store references for later use
             card._shadow = card_shadow
@@ -331,19 +334,9 @@ class ClientsPage(QWidget):
                 card._icon_bubble.setPixmap(icon_pixmap)
             card._icon_bubble.setStyleSheet(f"background-color: {rgba_color}; border-radius: 4px; border: none; min-width: 24px; max-width: 24px; min-height: 24px; max-height: 24px;")
             
-            # 4. Typography styling
-            title_label = card._label
-            value_label = card._value
-            subtitle_label = card._sub
+            # Let the StatCard's natural QSS class styling govern the typography
+            pass
 
-            title_label.setFont(QFont("Inter", 9))
-            title_label.setStyleSheet("color: #8B8FA8; background: transparent; border: none;")
-
-            value_label.setFont(QFont("Inter", 24, QFont.Bold))
-            value_label.setStyleSheet("color: #FFFFFF; background: transparent; border: none; font-size: 28px;")
-
-            subtitle_label.setFont(QFont("Inter", 8))
-            subtitle_label.setStyleSheet("color: #6B7280; background: transparent; border: none;")
             
             # Install event filter for hover events
             card.installEventFilter(self)
@@ -439,8 +432,9 @@ class ClientsPage(QWidget):
         
         # Create shadow animation
         self._filter_btn_shadow_animation = QPropertyAnimation(filter_btn_shadow, b"blurRadius")
-        self._filter_btn_shadow_animation.setDuration(200)
+        self._filter_btn_shadow_animation.setDuration(200 if not is_reduced_motion() else 0)
         self._filter_btn_shadow_animation.setEasingCurve(QEasingCurve.OutCubic)
+
         
         self.filter_btn.installEventFilter(self)
         
@@ -680,6 +674,7 @@ class ClientsPage(QWidget):
         """Handle hover events for stat cards to trigger shadow animation."""
         from PySide6.QtCore import QEvent
         # Check if the object is one of our stat cards
+
         if obj in (self.card_new, self.card_avg, self.card_retention):
             if hasattr(obj, '_shadow') and hasattr(obj, '_shadow_animation'):
                 event_type = event.type()
@@ -687,7 +682,7 @@ class ClientsPage(QWidget):
                     # Mouse entered - animate shadow in and lighten background
                     obj._shadow_animation.stop()
                     obj._shadow_animation.setStartValue(obj._shadow.blurRadius())
-                    obj._shadow_animation.setEndValue(20)
+                    obj._shadow_animation.setEndValue(20 if not is_reduced_motion() else 0)
                     obj._shadow_animation.start()
                     if hasattr(obj, '_hover_stylesheet'):
                         obj.setStyleSheet(obj._hover_stylesheet)
@@ -706,7 +701,7 @@ class ClientsPage(QWidget):
                 if event_type == QEvent.Enter:
                     self._filter_btn_shadow_animation.stop()
                     self._filter_btn_shadow_animation.setStartValue(shadow.blurRadius())
-                    self._filter_btn_shadow_animation.setEndValue(15)  # 15px glow radius
+                    self._filter_btn_shadow_animation.setEndValue(15 if not is_reduced_motion() else 0)  # 15px glow radius
                     self._filter_btn_shadow_animation.start()
                 elif event_type == QEvent.Leave:
                     self._filter_btn_shadow_animation.stop()
@@ -714,6 +709,7 @@ class ClientsPage(QWidget):
                     self._filter_btn_shadow_animation.setEndValue(0)
                     self._filter_btn_shadow_animation.start()
         return super().eventFilter(obj, event)
+
 
     def refresh(self) -> None:
         try:

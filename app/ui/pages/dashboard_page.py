@@ -3,6 +3,21 @@ from __future__ import annotations
 import math
 from pathlib import Path
 import sys
+import ctypes
+
+def is_reduced_motion() -> bool:
+    """Check if the user has requested reduced motion at the OS level (Windows)."""
+    if sys.platform != "win32":
+        return False
+    try:
+        enabled = ctypes.c_bool()
+        # SPI_GETCLIENTAREAANIMATION = 0x1042
+        if ctypes.windll.user32.SystemParametersInfoW(0x1042, 0, ctypes.byref(enabled), 0):
+            return not enabled.value
+    except Exception:
+        pass
+    return False
+
 
 # Add project root to sys.path if run directly to support executing the file directly
 _project_root = Path(__file__).resolve().parents[3]
@@ -104,7 +119,7 @@ class DashboardStatCard(QFrame):
         
         # Create animation for blur radius
         self._shadow_animation = QPropertyAnimation(self._shadow, b"blurRadius")
-        self._shadow_animation.setDuration(200)  # 200ms animation
+        self._shadow_animation.setDuration(200 if not is_reduced_motion() else 0)  # 200ms animation
         self._shadow_animation.setEasingCurve(QEasingCurve.OutCubic)
 
         layout = QVBoxLayout(self)
@@ -142,6 +157,7 @@ class DashboardStatCard(QFrame):
 
         # Label text
         label_title = QLabel(label.upper())
+        label_title.setObjectName("stat_card_label")
         label_title.setFont(QFont("Inter", 11))
         label_title.setStyleSheet("color: #8B8FA8; background: transparent; border: none;")
         row1.addWidget(label_title, 1)
@@ -151,6 +167,7 @@ class DashboardStatCard(QFrame):
 
         # Row 2: large value text
         label_value = QLabel(value)
+        label_value.setObjectName("stat_card_value")
         label_value.setFont(QFont("Inter", 24, QFont.Bold))
         label_value.setStyleSheet("color: #FFFFFF; background: transparent; border: none;")
         layout.addWidget(label_value)
@@ -158,8 +175,9 @@ class DashboardStatCard(QFrame):
 
         # Row 3: subtitle text
         label_subtitle = QLabel(sub_text)
-        label_subtitle.setFont(QFont("Inter", 8))
+        label_subtitle.setObjectName("stat_card_subtext")
         label_subtitle.setMaximumHeight(16)
+        label_subtitle.setFont(QFont("Inter", 8))
         label_subtitle.setStyleSheet("color: #6B7280; background: transparent; border: none;")
         if sub_color:
             label_subtitle.setStyleSheet(f"color: {sub_color}; background: transparent; border: none;")
@@ -172,7 +190,7 @@ class DashboardStatCard(QFrame):
         super().enterEvent(event)
         # Animate shadow blur from 0 to 20
         self._shadow_animation.setStartValue(self._shadow.blurRadius())
-        self._shadow_animation.setEndValue(20)
+        self._shadow_animation.setEndValue(20 if not is_reduced_motion() else 0)
         self._shadow_animation.start()
         # Lighten background slightly
         self.setStyleSheet("background-color: #2a2c3e; border-radius: 12px;")
@@ -198,6 +216,10 @@ class DashboardStatCard(QFrame):
         label_subtitle.setStyleSheet("color: #6B7280; background: transparent; border: none;")
         if color:
             label_subtitle.setStyleSheet(f"color: {color}; background: transparent; border: none;")
+        else:
+            label_subtitle.setStyleSheet("background: transparent; border: none;")
+
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -221,10 +243,11 @@ class RevenueLineChart(QWidget):
         
         # Create animation
         self._animation = QPropertyAnimation(self, b"animationProgress")
-        self._animation.setDuration(600)  # 600ms for a snappier and smoother animation
+        self._animation.setDuration(300 if not is_reduced_motion() else 0)  # Snappy 300ms animation
         self._animation.setEasingCurve(QEasingCurve.OutCubic)
         self._animation.setStartValue(0.0)
         self._animation.setEndValue(1.0)
+
 
         # Cached drawing resources to avoid dynamic allocations during paint events
         self._grid_pen = QPen(QColor("#333440"), 1, Qt.DotLine)
@@ -447,8 +470,9 @@ class DonutChart(QWidget):
         
         # Create rotation animation
         self._rotation_animation = QPropertyAnimation(self, b"rotationAngle")
-        self._rotation_animation.setDuration(1500)  # 1.5 seconds
+        self._rotation_animation.setDuration(400 if not is_reduced_motion() else 0)  # Snappy 400ms spin
         self._rotation_animation.setEasingCurve(QEasingCurve.InOutCubic)
+
         
         # Initial segments: Paid (green), Unpaid (yellow), Overdue (red)
         # Matches reference proportions: Paid (45%), Unpaid (25%), Overdue (30%)
@@ -624,7 +648,7 @@ class DashboardPage(QWidget):
             sub_text="Loading...",
             sub_color=Colors.ACCENT_SUCCESS,
         )
-        self.card_revenue.setObjectName("card_revenue")
+        self.card_revenue.setObjectName("statCard")
 
         self.card_projects = DashboardStatCard(
             "Active Projects", "—",
@@ -632,7 +656,7 @@ class DashboardPage(QWidget):
             accent=Colors.ACCENT_INFO,
             sub_text="Loading...",
         )
-        self.card_projects.setObjectName("card_projects")
+        self.card_projects.setObjectName("statCard")
 
         self.card_pending = DashboardStatCard(
             "Pending Invoices", "—",
@@ -640,7 +664,7 @@ class DashboardPage(QWidget):
             accent=Colors.ACCENT_WARNING,
             sub_text="Loading...",
         )
-        self.card_pending.setObjectName("card_pending")
+        self.card_pending.setObjectName("statCard")
 
         self.card_hours = DashboardStatCard(
             "Hours Tracked", "—",
@@ -648,33 +672,12 @@ class DashboardPage(QWidget):
             accent=Colors.ACCENT_SUCCESS,
             sub_text="Loading...",
         )
-        self.card_hours.setObjectName("card_hours")
+        self.card_hours.setObjectName("statCard")
 
         for card in (self.card_revenue, self.card_projects, self.card_pending, self.card_hours):
-            card.setObjectName("statCard")
-            card.setStyleSheet("background-color: #222336; border-radius: 12px;")
-            card.setMinimumHeight(140)
-            card.setMaximumHeight(140)
-            card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-
-            title_label = card._label
-            value_label = card._value
-            subtitle_label = card._sub
-
-            title_label.setFont(QFont("Inter", 9))
-            title_label.setStyleSheet("color: #8B8FA8; background: transparent; border: none;")
-
-            value_label.setFont(QFont("Inter", 24, QFont.Bold))
-            value_label.setStyleSheet("color: #FFFFFF; background: transparent; border: none; font-size: 26px;")
-
-            subtitle_label.setFont(QFont("Inter", 8))
-            subtitle_label.setStyleSheet("color: #6B7280; background: transparent; border: none;")
-
-            card.layout().setContentsMargins(20, 16, 20, 16)
-            card.layout().setSpacing(6)
-
             stats_layout.addWidget(card, 1)
         layout.addLayout(stats_layout)
+
 
         # ═══════════════════════════════════════════════════════════════════
         # CHARTS ROW — Revenue Overview (2:1) + Project Status (1:1)
