@@ -214,6 +214,7 @@ class RevenueLineChart(QWidget):
         # Stitch data points (normalized 0-1, inverted for screen coords)
         self._data = [0.20, 0.47, 0.60, 0.53, 0.73, 0.87]
         self._months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
+        self._raw_data = [0.0] * 6  # Store actual revenue values for Y-axis labels
         
         # Animation progress (0.0 to 1.0)
         self._animation_progress = 0.0
@@ -233,6 +234,8 @@ class RevenueLineChart(QWidget):
         
         self._label_font = QFont("Inter", 9)
         self._label_font.setWeight(QFont.Bold)
+        
+        self._y_axis_font = QFont("Inter", 8)
     
     def get_animation_progress(self):
         return self._animation_progress
@@ -245,6 +248,7 @@ class RevenueLineChart(QWidget):
     animationProgress = Property(float, get_animation_progress, set_animation_progress)
 
     def set_chart_data(self, data: list[float], months: list[str]) -> None:
+        self._raw_data = data.copy() if data else [0.0]  # Store raw values for Y-axis
         max_val = max(data) if data else 0
         if max_val > 0:
             self._data = [float(val) / max_val for val in data]
@@ -256,6 +260,15 @@ class RevenueLineChart(QWidget):
         self._animation.stop()
         self._animation_progress = 0.0
         self._animation.start()
+    
+    def _format_currency(self, val: float) -> str:
+        """Format currency for Y-axis labels."""
+        if val >= 100000:
+            return f"₹{val/100000:.1f}L"
+        elif val >= 1000:
+            return f"₹{val/1000:.0f}K"
+        else:
+            return f"₹{val:.0f}"
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -265,17 +278,29 @@ class RevenueLineChart(QWidget):
         h = self.height()
         margin_top = 20     # Added top margin for better vertical padding
         margin_bottom = 45  # Increased bottom margin to prevent overlapping labels
-        margin_left = 36   # Increased from 24 to 36 for better horizontal padding
-        margin_right = 36  # Increased from 24 to 36 for better horizontal padding
+        margin_left = 60    # Increased from 36 to 60 to make room for Y-axis labels
+        margin_right = 36   # Increased from 24 to 36 for better horizontal padding
         chart_h = h - (margin_top + margin_bottom)  # Account for both top and bottom margins
         chart_w = w - (margin_left + margin_right)
 
         if len(self._data) < 1:
             painter.end()
             return
+        
+        # Calculate max value for Y-axis
+        max_raw_value = max(self._raw_data) if self._raw_data and max(self._raw_data) > 0 else 1.0
             
         # Special handling for single data point - show as a point with base line
         if len(self._data) == 1:
+            # Draw Y-axis labels
+            painter.setFont(self._y_axis_font)
+            painter.setPen(QColor("#6b6d85"))
+            for i in range(4):
+                y = margin_top + int(chart_h * i / 3)
+                value = max_raw_value * (1.0 - i / 3.0)
+                label = self._format_currency(value)
+                painter.drawText(5, y + 4, label)
+            
             # Draw a single point at the center (with animation)
             x = margin_left + chart_w // 2
             y = margin_top + int(chart_h * (1.0 - self._data[0]))
@@ -295,6 +320,15 @@ class RevenueLineChart(QWidget):
             
             painter.end()
             return
+
+        # Draw Y-axis labels (4 levels: 0%, 33%, 66%, 100%)
+        painter.setFont(self._y_axis_font)
+        painter.setPen(QColor("#6b6d85"))
+        for i in range(4):
+            y = margin_top + int(chart_h * i / 3)
+            value = max_raw_value * (1.0 - i / 3.0)
+            label = self._format_currency(value)
+            painter.drawText(5, y + 4, label)
 
         # Draw subtle horizontal grid lines
         painter.setPen(self._grid_pen)
@@ -691,10 +725,15 @@ class DashboardPage(QWidget):
                 padding: 5px 18px 5px 12px;
                 font-size: 12px;
                 min-width: 50px;
+                outline: none;
             }
             QComboBox:hover {
-                border-color: #7c8af4;
+                border-color: rgba(124, 138, 244, 0.5);
                 background-color: #2a2c3e;
+            }
+            QComboBox:focus {
+                border: 1px solid rgba(124, 138, 244, 0.5);
+                outline: none;
             }
             QComboBox::drop-down {
                 border: none;
