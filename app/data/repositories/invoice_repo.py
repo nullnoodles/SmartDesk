@@ -8,11 +8,11 @@ class InvoiceRepository:
     def __init__(self, db: Database):
         self.db = db
 
-    def add(self, project_id: int, invoice_number: str, amount: float, tax: float, total: float, due_date: str, notes: str = "") -> int:
+    def add(self, project_id: int, invoice_number: str, amount: float, tax: float, total: float, due_date: str, status: str = "Unpaid", notes: str = "") -> int:
         return self.db.execute_returning_id(
-            """INSERT INTO invoices (project_id, invoice_number, amount, tax, total, due_date, notes)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (project_id, invoice_number, amount, tax, total, due_date, notes),
+            """INSERT INTO invoices (project_id, invoice_number, amount, tax, total, due_date, status, notes)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (project_id, invoice_number, amount, tax, total, due_date, status, notes),
         )
 
     def get_all(self) -> list:
@@ -54,6 +54,17 @@ class InvoiceRepository:
 
     def update_status(self, invoice_id: int, status: str) -> None:
         self.db.execute("UPDATE invoices SET status=? WHERE id=?", (status, invoice_id))
+
+    def update(self, invoice_id: int, project_id: int, invoice_number: str, amount: float, tax: float, total: float, due_date: str, status: str, notes: str = "") -> None:
+        self.db.execute(
+            """UPDATE invoices 
+               SET project_id=?, invoice_number=?, amount=?, tax=?, total=?, due_date=?, status=?, notes=? 
+               WHERE id=?""",
+            (project_id, invoice_number, amount, tax, total, due_date, status, notes, invoice_id),
+        )
+
+    def delete(self, invoice_id: int) -> None:
+        self.db.execute("DELETE FROM invoices WHERE id=?", (invoice_id,))
 
     def next_invoice_number(self) -> str:
         """Generate next invoice number using current year, scoped per-year."""
