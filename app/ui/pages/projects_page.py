@@ -129,7 +129,7 @@ def _format_indian(n: int) -> str:
 
 
 class CustomProjectsTableWidget(QTableWidget):
-    """QTableWidget subclass that dynamically sizes its height to fit its contents and calculates column widths by percentage."""
+    """QTableWidget subclass that dynamically sizes its height to fit its contents."""
 
     def sizeHint(self) -> QSize:
         sh = super().sizeHint()
@@ -144,23 +144,6 @@ class CustomProjectsTableWidget(QTableWidget):
 
     def minimumSizeHint(self) -> QSize:
         return self.sizeHint()
-
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        width = self.viewport().width()
-        # ID: 8%, PROJECT: 22%, CLIENT: 18%, TYPE: 10%, STATUS: 12%, DEADLINE: 12%, BUDGET: 10%, ACTIONS: remaining (8%)
-        self.setColumnWidth(0, int(width * 0.08))
-        self.setColumnWidth(1, int(width * 0.22))
-        self.setColumnWidth(2, int(width * 0.18))
-        self.setColumnWidth(3, int(width * 0.10))
-        self.setColumnWidth(4, int(width * 0.12))
-        self.setColumnWidth(5, int(width * 0.12))
-        self.setColumnWidth(6, int(width * 0.10))
-        self.setColumnWidth(7, width - (
-            self.columnWidth(0) + self.columnWidth(1) + self.columnWidth(2) +
-            self.columnWidth(3) + self.columnWidth(4) + self.columnWidth(5) +
-            self.columnWidth(6)
-        ))
 
 
 
@@ -305,22 +288,6 @@ class ProjectsPage(QWidget):
         row.addWidget(add_btn)
 
         parent_layout.addLayout(row)
-
-    def _on_search(self, text: str) -> None:
-        """Filter table rows based on search text."""
-        text = text.lower()
-        for row in range(self.table.rowCount()):
-            should_show = False
-            if not text:
-                should_show = True
-            else:
-                # Search in ID, Project name, Client, Type
-                for col in [0, 1, 2, 3]:
-                    item = self.table.item(row, col)
-                    if item and text in item.text().lower():
-                        should_show = True
-                        break
-            self.table.setRowHidden(row, not should_show)
 
     def _build_filter_tabs(self, parent_layout: QVBoxLayout) -> None:
         """Build filter tabs matching Dashboard style."""
@@ -487,13 +454,28 @@ class ProjectsPage(QWidget):
             }
         """)
 
-        # Set default alignment and make column widths fixed so resizeEvent percentage logic triggers
+        # Set fixed column widths to prevent collapse during filtering
         header = self.table.horizontalHeader()
         header.setStretchLastSection(False)
         header.setDefaultAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         from PySide6.QtWidgets import QHeaderView
+        
+        # Set all columns to Fixed mode first
         for col in range(8):
             header.setSectionResizeMode(col, QHeaderView.Fixed)
+        
+        # Set fixed column widths
+        self.table.setColumnWidth(0, 90)   # ID
+        self.table.setColumnWidth(1, 220)  # PROJECT
+        self.table.setColumnWidth(2, 160)  # CLIENT
+        self.table.setColumnWidth(3, 110)  # TYPE
+        self.table.setColumnWidth(4, 120)  # STATUS
+        self.table.setColumnWidth(5, 130)  # DEADLINE
+        self.table.setColumnWidth(6, 110)  # BUDGET
+        self.table.setColumnWidth(7, 80)   # ACTIONS
+        
+        # Make PROJECT column stretch to fill remaining space
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
 
         self.table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
