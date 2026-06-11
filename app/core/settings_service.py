@@ -20,6 +20,8 @@ KEY_UPI_NAME = "upi_name"
 KEY_DEFAULT_CURRENCY = "default_currency"
 KEY_DEFAULT_GST_RATE = "default_gst_rate"
 KEY_DEFAULT_DUE_DAYS = "default_due_days"
+KEY_USER_ROLE = "user_role"
+KEY_USER_BIO = "user_bio"
 
 
 @dataclass
@@ -34,6 +36,8 @@ class BusinessProfile:
     logo_path: str = ""
     upi_id: str = ""
     upi_name: str = ""
+    role: str = "Freelance Designer"
+    bio: str = "I specialize in high-end UI/UX design for tech startups."
 
     @property
     def is_configured(self) -> bool:
@@ -64,6 +68,8 @@ class SettingsService:
             logo_path=self.repo.get(KEY_BUSINESS_LOGO_PATH, "") or "",
             upi_id=self.repo.get(KEY_UPI_ID, "") or "",
             upi_name=self.repo.get(KEY_UPI_NAME, "") or "",
+            role=self.repo.get(KEY_USER_ROLE, "Freelance Designer") or "Freelance Designer",
+            bio=self.repo.get(KEY_USER_BIO, "I specialize in high-end UI/UX design for tech startups.") or "I specialize in high-end UI/UX design for tech startups.",
         )
 
     def save_business(self, profile: BusinessProfile) -> None:
@@ -76,6 +82,8 @@ class SettingsService:
             KEY_BUSINESS_LOGO_PATH: profile.logo_path,
             KEY_UPI_ID: profile.upi_id,
             KEY_UPI_NAME: profile.upi_name,
+            KEY_USER_ROLE: profile.role,
+            KEY_USER_BIO: profile.bio,
         }
         for key, value in mapping.items():
             self.repo.set(key, value or "")
