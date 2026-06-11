@@ -214,6 +214,11 @@ class TimePage(QWidget):
         self.time_repo = TimeLogRepository(db)
         self.tracker = TimeTracker(db)
 
+        # Pagination state
+        self.current_page = 0
+        self.page_size = 10
+        self.all_logs = []
+
         # Main page layout with scroll area
         page_layout = QVBoxLayout(self)
         page_layout.setContentsMargins(0, 0, 0, 0)
@@ -708,6 +713,125 @@ class TimePage(QWidget):
         self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         table_layout.addWidget(self.table)
+
+        # ─── Pagination Footer (matching clients_page) ──────────────────────
+        self.footer_widget = QWidget()
+        self.footer_widget.setObjectName("table_footer")
+        self.footer_widget.setStyleSheet("""
+            QWidget#table_footer {
+                background-color: transparent;
+                border-top: 1px solid #2d2e42;
+            }
+        """)
+        footer_layout = QHBoxLayout(self.footer_widget)
+        footer_layout.setContentsMargins(24, 16, 24, 16)
+        footer_layout.setSpacing(16)
+
+        # Left: info text
+        self.info_label = QLabel()
+        self.info_label.setObjectName("table_footer_info")
+        self.info_label.setStyleSheet("color: #9a9cb8; font-size: 13px; font-weight: 400; background: transparent; border: none;")
+        footer_layout.addWidget(self.info_label, 0, Qt.AlignLeft | Qt.AlignVCenter)
+
+        # Center spacer
+        footer_layout.addStretch()
+
+        # Center pagination controls
+        self.controls_widget = QWidget()
+        self.controls_widget.setStyleSheet("background: transparent; border: none;")
+        self.controls_layout = QHBoxLayout(self.controls_widget)
+        self.controls_layout.setContentsMargins(0, 0, 0, 0)
+        self.controls_layout.setSpacing(6)
+
+        # Previous button
+        self.prev_btn = QPushButton()
+        self.prev_btn.setObjectName("prev_page_btn")
+        self.prev_btn.setCursor(Qt.PointingHandCursor)
+        self.prev_btn.setFixedSize(32, 32)
+        self.prev_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                border: 1px solid #2d2e42;
+                border-radius: 6px;
+                padding: 0;
+            }
+            QPushButton:hover {
+                background-color: rgba(124, 138, 244, 0.05);
+                border: 1px solid #454652;
+            }
+            QPushButton:disabled {
+                background-color: transparent;
+                border: 1px solid #1e1f2a;
+            }
+        """)
+        prev_icon = _load_svg_icon("chevron_left", size=16, color="#e2e4f0")
+        self.prev_btn.setIcon(QIcon(prev_icon))
+        self.prev_btn.setIconSize(QSize(16, 16))
+        self.prev_btn.clicked.connect(self._prev_page)
+        self.controls_layout.addWidget(self.prev_btn)
+
+        # Dynamic Page buttons layout
+        self.page_buttons_widget = QWidget()
+        self.page_buttons_widget.setStyleSheet("background: transparent; border: none;")
+        self.page_buttons_layout = QHBoxLayout(self.page_buttons_widget)
+        self.page_buttons_layout.setContentsMargins(0, 0, 0, 0)
+        self.page_buttons_layout.setSpacing(6)
+        self.controls_layout.addWidget(self.page_buttons_widget)
+
+        # Next button
+        self.next_btn = QPushButton()
+        self.next_btn.setObjectName("next_page_btn")
+        self.next_btn.setCursor(Qt.PointingHandCursor)
+        self.next_btn.setFixedSize(32, 32)
+        self.next_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                border: 1px solid #2d2e42;
+                border-radius: 6px;
+                padding: 0;
+            }
+            QPushButton:hover {
+                background-color: rgba(124, 138, 244, 0.05);
+                border: 1px solid #454652;
+            }
+            QPushButton:disabled {
+                background-color: transparent;
+                border: 1px solid #1e1f2a;
+            }
+        """)
+        next_icon = _load_svg_icon("chevron_right", size=16, color="#e2e4f0")
+        self.next_btn.setIcon(QIcon(next_icon))
+        self.next_btn.setIconSize(QSize(16, 16))
+        self.next_btn.clicked.connect(self._next_page)
+        self.controls_layout.addWidget(self.next_btn)
+
+        footer_layout.addWidget(self.controls_widget, 0, Qt.AlignCenter | Qt.AlignVCenter)
+
+        # Right spacer
+        footer_layout.addStretch()
+
+        # Right: Page size dropdown
+        self.page_size_combo = QComboBox()
+        self.page_size_combo.setObjectName("page_size_combo")
+        self.page_size_combo.addItems(["10 per page"])
+        self.page_size_combo.setCurrentText("10 per page")
+        self.page_size_combo.setFixedWidth(120)
+        self.page_size_combo.setStyleSheet("""
+            QComboBox {
+                background-color: #1e1f2a;
+                border: 1px solid #2d2e42;
+                border-radius: 6px;
+                padding: 4px 10px;
+                color: #9a9cb8;
+                font-size: 13px;
+            }
+            QComboBox:hover {
+                border: 1px solid #7c8af4;
+            }
+        """)
+        footer_layout.addWidget(self.page_size_combo, 0, Qt.AlignRight | Qt.AlignVCenter)
+
+        table_layout.addWidget(self.footer_widget)
         parent_layout.addWidget(self.table_card)
 
     def eventFilter(self, obj, event):
@@ -796,7 +920,13 @@ class TimePage(QWidget):
         self._populate_chart()
 
         # 5. Populate Table
-        self._populate_table(logs)
+        self.all_logs = logs
+        # Clamp current page to valid range
+        total_items = len(self.all_logs)
+        total_pages = max(1, (total_items + self.page_size - 1) // self.page_size)
+        if self.current_page >= total_pages:
+            self.current_page = max(0, total_pages - 1)
+        self._populate_table_current_page()
 
     def _populate_chart(self) -> None:
         # Clear existing bars
@@ -890,7 +1020,7 @@ class TimePage(QWidget):
 
     def _populate_table(self, logs: list) -> None:
         self.table.clearSpans()
-        self.table_count_lbl.setText(f"{len(logs)} Total Records")
+        self.table_count_lbl.setText(f"{len(self.all_logs)} Total Records")
 
         if not logs:
             self.table.setRowCount(1)
@@ -942,6 +1072,93 @@ class TimePage(QWidget):
             self.table.setCellWidget(i, 4, self._create_actions_cell(log["id"]))
 
         self.table.updateGeometry()
+
+    def _populate_table_current_page(self) -> None:
+        start_idx = self.current_page * self.page_size
+        end_idx = start_idx + self.page_size
+        page_logs = self.all_logs[start_idx:end_idx]
+        
+        self._populate_table(page_logs)
+        self._update_pagination_ui()
+
+    def _update_pagination_ui(self) -> None:
+        total_items = len(self.all_logs)
+        total_pages = max(1, (total_items + self.page_size - 1) // self.page_size)
+        
+        if self.current_page >= total_pages:
+            self.current_page = max(0, total_pages - 1)
+            
+        start_idx = self.current_page * self.page_size
+        end_idx = min(start_idx + self.page_size, total_items)
+        
+        if total_items == 0:
+            self.info_label.setText("Showing 0 to 0 of 0 entries")
+        else:
+            self.info_label.setText(f"Showing {start_idx + 1} to {end_idx} of {total_items} entries")
+            
+        self.prev_btn.setEnabled(self.current_page > 0)
+        self.next_btn.setEnabled(self.current_page < total_pages - 1)
+        
+        prev_color = "#e2e4f0" if self.current_page > 0 else "#454652"
+        next_color = "#e2e4f0" if self.current_page < total_pages - 1 else "#454652"
+        self.prev_btn.setIcon(QIcon(_load_svg_icon("chevron_left", size=16, color=prev_color)))
+        self.next_btn.setIcon(QIcon(_load_svg_icon("chevron_right", size=16, color=next_color)))
+        
+        while self.page_buttons_layout.count():
+            item = self.page_buttons_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+                
+        for page in range(total_pages):
+            btn = QPushButton(str(page + 1))
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.setFixedSize(32, 32)
+            
+            if page == self.current_page:
+                btn.setProperty("active", True)
+                btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #7c8af4;
+                        color: #0f208b;
+                        border: none;
+                        border-radius: 6px;
+                        font-weight: 700;
+                        font-size: 13px;
+                    }
+                """)
+            else:
+                btn.setProperty("active", False)
+                btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: transparent;
+                        border: 1px solid #2d2e42;
+                        border-radius: 6px;
+                        color: #9a9cb8;
+                        font-weight: 600;
+                        font-size: 13px;
+                    }
+                    QPushButton:hover {
+                        background-color: rgba(124, 138, 244, 0.05);
+                        border: 1px solid #454652;
+                        color: #e2e4f0;
+                    }
+                """)
+            btn.clicked.connect(lambda _, p=page: self._go_to_page(p))
+            self.page_buttons_layout.addWidget(btn)
+
+    def _go_to_page(self, page_index: int) -> None:
+        self.current_page = page_index
+        self._populate_table_current_page()
+
+    def _prev_page(self) -> None:
+        if self.current_page > 0:
+            self._go_to_page(self.current_page - 1)
+
+    def _next_page(self) -> None:
+        total_items = len(self.all_logs)
+        total_pages = max(1, (total_items + self.page_size - 1) // self.page_size)
+        if self.current_page < total_pages - 1:
+            self._go_to_page(self.current_page + 1)
 
     def _create_actions_cell(self, log_id: int) -> QWidget:
         container = QWidget()
