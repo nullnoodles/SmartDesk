@@ -231,6 +231,7 @@ class ProjectsPage(QWidget):
         # Build UI sections
         self._build_stats_row(layout)
         self._build_search_and_action_row(layout)
+        self._build_filter_tabs(layout)
         self._build_projects_table(layout)
 
         scroll.setWidget(content_widget)
@@ -353,6 +354,80 @@ class ProjectsPage(QWidget):
                         should_show = True
                         break
             self.table.setRowHidden(row, not should_show)
+
+    def _build_filter_tabs(self, parent_layout: QVBoxLayout) -> None:
+        """Build filter tabs matching Dashboard style."""
+        filter_bar = QWidget()
+        filter_bar.setObjectName("projects_filter_bar")
+        filter_bar.setStyleSheet("background: transparent;")
+        filter_bar_layout = QHBoxLayout(filter_bar)
+        filter_bar_layout.setContentsMargins(0, 0, 0, 0)
+        filter_bar_layout.setSpacing(8)
+
+        self._filter_tabs: list[QPushButton] = []
+        self.current_filter = "All"
+        filter_statuses = ["All", "Not Started", "In Progress", "Review", "On Hold", "Completed", "Cancelled"]
+
+        for fs in filter_statuses:
+            btn = QPushButton(fs)
+            btn.setObjectName("project_filter_tab")
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.setCheckable(True)
+            btn.setChecked(fs == "All")
+            btn.setStyleSheet("""
+                QPushButton#project_filter_tab {
+                    background: transparent;
+                    color: #9a9cb8;
+                    border: 1px solid transparent;
+                    border-radius: 6px;
+                    padding: 4px 12px;
+                    font-size: 13px;
+                    font-weight: 500;
+                    min-height: 28px;
+                }
+                QPushButton#project_filter_tab:checked {
+                    background: transparent;
+                    color: #7c8af4;
+                    border: 1px solid #7c8af4;
+                }
+                QPushButton#project_filter_tab:hover:!checked {
+                    background: #1a1b26;
+                    color: #e2e4f0;
+                }
+            """)
+            btn.clicked.connect(lambda checked, s=fs: self.filter_by_status(s))
+            filter_bar_layout.addWidget(btn)
+            self._filter_tabs.append(btn)
+
+        filter_bar_layout.addStretch()
+        parent_layout.addWidget(filter_bar)
+
+    def filter_by_status(self, status: str) -> None:
+        """Filter table rows by status."""
+        self.current_filter = status
+        
+        # Update tab checked states
+        for tab in self._filter_tabs:
+            tab.setChecked(tab.text() == status)
+        
+        # Filter table rows
+        for row in range(self.table.rowCount()):
+            if status == "All":
+                self.table.setRowHidden(row, False)
+            else:
+                # STATUS column uses a widget (badge), need to get the widget
+                status_widget = self.table.cellWidget(row, 4)
+                if status_widget:
+                    # Find QLabel inside the widget (the badge label)
+                    badge_label = status_widget.findChild(QLabel)
+                    if badge_label:
+                        row_status = badge_label.text()
+                        hidden = row_status != status
+                        self.table.setRowHidden(row, hidden)
+                    else:
+                        self.table.setRowHidden(row, True)
+                else:
+                    self.table.setRowHidden(row, True)
 
     def _build_stats_row(self, parent_layout: QVBoxLayout) -> None:
         """Build stats row: 4 stat cards with hover animation matching Dashboard style."""
