@@ -246,9 +246,6 @@ class ProjectsPage(QWidget):
         row = QHBoxLayout()
         row.setSpacing(16)
 
-        left_side = QHBoxLayout()
-        left_side.setSpacing(12)
-
         # Search field with embedded icon
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Search projects...")
@@ -279,37 +276,8 @@ class ProjectsPage(QWidget):
         search_layout.setContentsMargins(0, 0, 0, 0)
         self.search_input.setTextMargins(28, 0, 0, 0)
 
-        left_side.addWidget(self.search_input)
-
-        # Filter button
-        self.filter_btn = QPushButton("  Filter")
-        self.filter_btn.setObjectName("filter_btn")
-        self.filter_btn.setCursor(Qt.PointingHandCursor)
-        self.filter_btn.setFixedHeight(36)
-        filter_icon = _load_svg_icon("filter_list", size=16, color=Colors.TEXT_PRIMARY)
-        self.filter_btn.setIcon(QIcon(filter_icon))
-        self.filter_btn.setStyleSheet(f"""
-            QPushButton#filter_btn {{
-                background-color: transparent;
-                color: {Colors.TEXT_SECONDARY};
-                border: 1px solid {Colors.BORDER_DEFAULT};
-                border-radius: 8px;
-                padding: 6px 16px;
-                font-size: 13px;
-            }}
-            QPushButton#filter_btn:hover {{
-                border-color: {Colors.ACCENT_PRIMARY};
-                color: #FFFFFF;
-            }}
-        """)
-        left_side.addWidget(self.filter_btn)
-
-        row.addLayout(left_side)
+        row.addWidget(self.search_input)
         row.addStretch()
-
-        right_side = QHBoxLayout()
-        right_side.setSpacing(8)
-        right_side.setContentsMargins(0, 0, 0, 0)
 
         # New Project button
         add_btn = QPushButton("+ New Project")
@@ -334,9 +302,8 @@ class ProjectsPage(QWidget):
             }}
         """)
         add_btn.clicked.connect(self._add_project)
-        right_side.addWidget(add_btn)
+        row.addWidget(add_btn)
 
-        row.addLayout(right_side)
         parent_layout.addLayout(row)
 
     def _on_search(self, text: str) -> None:
