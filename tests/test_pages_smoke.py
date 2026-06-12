@@ -163,6 +163,14 @@ class TestPagesSmoke:
         assert page.project_combo is not None
         page.refresh()
 
+        # Test background color is set correctly
+        assert "background-color: #12131d" in page.styleSheet()
+
+        # Test stat cards have new colors
+        for card in (page.card_total, page.card_avg, page.card_critical):
+            assert card.objectName() == "statCard"
+            assert "background-color: #1a1b26" in card.styleSheet()
+
     def test_dashboard_page(self, db, qapp):
         from app.ui.pages.dashboard_page import DashboardPage, _format_short_currency
         from PySide6.QtWidgets import QSizePolicy, QWidget
@@ -181,7 +189,7 @@ class TestPagesSmoke:
         # Test each card's layout, spacing, and styling constraints
         for card in (page.card_revenue, page.card_projects, page.card_pending, page.card_hours):
             assert card.objectName() == "statCard"
-            assert "background-color: #1E2139" in card.styleSheet()
+            assert "background-color: #1a1b26" in card.styleSheet()
             assert "border-radius: 12px" in card.styleSheet()
             assert card.minimumHeight() == 140
             assert card.maximumHeight() == 140

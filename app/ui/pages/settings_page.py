@@ -125,6 +125,7 @@ class SettingsPage(QWidget):
     def __init__(self, db: Database):
         super().__init__()
         self.setObjectName("settings_page")
+        self.setStyleSheet("QWidget#settings_page { background-color: #12131d; }")
         self.db = db
         self.settings = SettingsService(db)
         self.backup = BackupService(db)
@@ -199,6 +200,7 @@ class SettingsPage(QWidget):
         scroll.setFrameShape(QFrame.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll.setStyleSheet("QScrollArea { background-color: #12131d; border: none; }")
         scroll.setWidget(widget)
         return scroll
 
@@ -272,9 +274,10 @@ class SettingsPage(QWidget):
                         color: {Colors.ACCENT_DANGER};
                     }}
                     QPushButton:checked {{
-                        background-color: rgba(232, 124, 138, 0.12);
+                        background-color: rgba(232, 124, 138, 0.15);
                         color: {Colors.ACCENT_DANGER};
-                        border: 1px solid rgba(232, 124, 138, 0.25);
+                        border-left: 3px solid {Colors.ACCENT_DANGER};
+                        padding-left: 9px;
                     }}
                 """)
             else:
@@ -294,9 +297,10 @@ class SettingsPage(QWidget):
                         color: {Colors.TEXT_PRIMARY};
                     }}
                     QPushButton:checked {{
-                        background-color: rgba(124, 138, 244, 0.1);
-                        color: {Colors.ACCENT_PRIMARY_LIGHT};
-                        border: 1px solid {Colors.BORDER_SUBTLE};
+                        background-color: rgba(124, 138, 244, 0.15);
+                        color: {Colors.ACCENT_PRIMARY};
+                        border-left: 3px solid {Colors.ACCENT_PRIMARY};
+                        padding-left: 9px;
                     }}
                 """)
 
@@ -316,6 +320,8 @@ class SettingsPage(QWidget):
     # ─── Panel 1: Profile & Account ─────────────────────────────────────────
     def _build_profile_panel(self) -> QWidget:
         widget = QWidget()
+        widget.setObjectName("settings_panel")
+        widget.setStyleSheet("QWidget#settings_panel { background-color: #12131d; }")
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(24)
@@ -410,6 +416,8 @@ class SettingsPage(QWidget):
     # ─── Panel 2: Workspace Panel ───────────────────────────────────────────
     def _build_workspace_panel(self) -> QWidget:
         widget = QWidget()
+        widget.setObjectName("settings_panel")
+        widget.setStyleSheet("QWidget#settings_panel { background-color: #12131d; }")
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(24)
@@ -578,6 +586,8 @@ class SettingsPage(QWidget):
     # ─── Panel 3: Notifications Panel ───────────────────────────────────────
     def _build_notifications_panel(self) -> QWidget:
         widget = QWidget()
+        widget.setObjectName("settings_panel")
+        widget.setStyleSheet("QWidget#settings_panel { background-color: #12131d; }")
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(24)
@@ -684,6 +694,8 @@ class SettingsPage(QWidget):
     # ─── Panel 4: Billing & Plan Panel ───────────────────────────────────────
     def _build_billing_panel(self) -> QWidget:
         widget = QWidget()
+        widget.setObjectName("settings_panel")
+        widget.setStyleSheet("QWidget#settings_panel { background-color: #12131d; }")
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(24)
@@ -808,6 +820,8 @@ class SettingsPage(QWidget):
     # ─── Panel 5: Integrations Panel ─────────────────────────────────────────
     def _build_integrations_panel(self) -> QWidget:
         widget = QWidget()
+        widget.setObjectName("settings_panel")
+        widget.setStyleSheet("QWidget#settings_panel { background-color: #12131d; }")
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(24)
@@ -934,6 +948,8 @@ class SettingsPage(QWidget):
     # ─── Panel 6: Danger Zone Panel ──────────────────────────────────────────
     def _build_danger_panel(self) -> QWidget:
         widget = QWidget()
+        widget.setObjectName("settings_panel")
+        widget.setStyleSheet("QWidget#settings_panel { background-color: #12131d; }")
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(24)
