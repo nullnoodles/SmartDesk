@@ -184,6 +184,7 @@ class ClientsPage(QWidget):
     def __init__(self, db: Database):
         super().__init__()
         self.setObjectName("clients_page")
+        self.setStyleSheet("QWidget#clients_page { background-color: #12131d; }")
         self.db = db
         self.repo = ClientRepository(db)
 
@@ -203,10 +204,12 @@ class ClientsPage(QWidget):
         scroll.setFrameShape(QFrame.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll.setStyleSheet("QScrollArea { background-color: #12131d; border: none; }")
 
         content_widget = QWidget()
         content_widget.setObjectName("clients_content")
         content_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        content_widget.setStyleSheet("QWidget#clients_content { background-color: #12131d; }")
 
         layout = QVBoxLayout(content_widget)
         layout.setContentsMargins(32, 32, 32, 32)
@@ -268,9 +271,9 @@ class ClientsPage(QWidget):
 
         tints = {
             Colors.ACCENT_PRIMARY_LIGHT: "rgba(188, 194, 255, 0.10)",
-            Colors.ACCENT_INFO: "rgba(125, 211, 227, 0.10)",
+            Colors.ACCENT_INFO: "rgba(110, 197, 212, 0.10)",
             Colors.ACCENT_WARNING: "rgba(240, 200, 120, 0.10)",
-            Colors.ACCENT_SUCCESS: "rgba(130, 216, 172, 0.10)",
+            Colors.ACCENT_SUCCESS: "rgba(125, 211, 168, 0.10)",
         }
 
         card_configs = [
@@ -302,8 +305,8 @@ class ClientsPage(QWidget):
             card._shadow = card_shadow
             card._shadow_animation = shadow_animation
             card.setObjectName("statCard")
-            card._original_stylesheet = "QFrame#statCard { background-color: #1E2139; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }"
-            card._hover_stylesheet = "QFrame#statCard { background-color: #2D304E; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; }"
+            card._original_stylesheet = "QFrame#statCard { background-color: #1a1b26; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }"
+            card._hover_stylesheet = "QFrame#statCard { background-color: #383844; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; }"
             
             # 1. Height and size policy constraints
             # Add extra margins to accommodate the shadow without causing layout shift
@@ -349,6 +352,7 @@ class ClientsPage(QWidget):
     def _build_top_clients_chart(self, parent_layout: QVBoxLayout) -> None:
         self.chart_card = QFrame()
         self.chart_card.setObjectName("card")
+        self.chart_card.setStyleSheet("QFrame#card { background-color: #1a1b26; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }")
         self.chart_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         chart_layout = QVBoxLayout(self.chart_card)
@@ -405,20 +409,19 @@ class ClientsPage(QWidget):
         
         self.filter_btn.setStyleSheet(f"""
             QPushButton#filter_btn {{
-                background-color: #222336;
-                border: 1px solid rgba(255, 255, 255, 0.08);
+                background-color: transparent;
+                color: #8B8FA8;
+                border: 1px solid #3D3F55;
                 border-radius: 8px;
                 padding: 0px 16px;
-                color: {Colors.TEXT_PRIMARY};
                 font-size: 13px;
-                font-weight: 600;
             }}
             QPushButton#filter_btn:hover {{
-                background-color: #2a2c3e;
-                border-color: rgba(124, 138, 244, 0.3);
+                border-color: #7C8AF4;
+                color: #FFFFFF;
             }}
             QPushButton#filter_btn:pressed {{
-                background-color: #1e1f2f;
+                background-color: rgba(124, 138, 244, 0.10);
             }}
         """)
         
@@ -453,15 +456,15 @@ class ClientsPage(QWidget):
         self.clear_btn.setFixedHeight(36)
         self.clear_btn.setStyleSheet("""
             QPushButton {
-                background-color: #E53E5A;
-                color: white;
+                background-color: #e87c8a;
+                color: #e2e4f0;
                 border-radius: 8px;
                 padding: 0px 16px;
                 font-size: 13px;
                 font-weight: 600;
             }
             QPushButton:hover {
-                background-color: #FF4D6A;
+                background-color: #383844;
             }
         """)
         self.clear_btn.clicked.connect(self._clear_all_clients)
@@ -473,8 +476,8 @@ class ClientsPage(QWidget):
         self.add_btn.setCursor(Qt.PointingHandCursor)
         self.add_btn.setStyleSheet(f"""
             QPushButton#add_client_btn {{
-                background-color: {Colors.ACCENT_PRIMARY};
-                color: #ffffff;
+                background-color: #7c8af4;
+                color: #e2e4f0;
                 border-radius: 8px;
                 padding: 8px 16px;
                 font-weight: 600;
@@ -482,10 +485,11 @@ class ClientsPage(QWidget):
                 border: none;
             }}
             QPushButton#add_client_btn:hover {{
-                background-color: {Colors.ACCENT_PRIMARY_HOVER};
+                background-color: #383844;
+                color: #e2e4f0;
             }}
             QPushButton#add_client_btn:pressed {{
-                background-color: {Colors.ACCENT_PRIMARY_PRESSED};
+                background-color: #252840;
             }}
         """)
         add_icon = _load_svg_icon("add", size=16, color="#ffffff")
@@ -499,6 +503,7 @@ class ClientsPage(QWidget):
     def _build_table(self, parent_layout: QVBoxLayout) -> None:
         self.table_card = QFrame()
         self.table_card.setObjectName("card")
+        self.table_card.setStyleSheet("QFrame#card { background-color: #1a1b26; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }")
         self.table_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         table_layout = QVBoxLayout(self.table_card)
@@ -519,6 +524,29 @@ class ClientsPage(QWidget):
         self.table.setFocusPolicy(Qt.NoFocus)
         self.table.verticalHeader().setDefaultSectionSize(48)
         self.table.setFrameShape(QFrame.NoFrame)
+        self.table.setStyleSheet("""
+            QTableWidget {
+                background-color: #1a1b26;
+            }
+            QTableWidget::item {
+                border: none;
+                padding: 8px 12px;
+            }
+            QTableWidget::item:selected {
+                background-color: rgba(124, 138, 244, 0.12);
+                border: none;
+                color: white;
+            }
+            QTableWidget::item:hover {
+                background-color: rgba(255, 255, 255, 0.04);
+                border: none;
+            }
+            QHeaderView::section {
+                background-color: #1a1b26;
+                padding-left: 12px;
+                padding-right: 12px;
+            }
+        """)
 
         # Proportional column sizing
         header = self.table.horizontalHeader()
@@ -759,7 +787,7 @@ class ClientsPage(QWidget):
 
         # Update KPI Cards
         self.card_new.set_value(str(new_count))
-        self.card_new.set_sub_text('<span style="color: #82d8ac;">▲ this month</span>')
+        self.card_new.set_sub_text('<span style="color: #7dd3a8;">▲ this month</span>')
         self.card_avg.set_value(_format_lakhs(avg_revenue))
         self.card_avg.set_sub_text("per active client")
         self.card_retention.set_value(f"{retention_rate:.0f}%")
@@ -969,8 +997,8 @@ class ClientsPage(QWidget):
         # Map client statuses to colors
         status_colors: dict[str, tuple[str, str]] = {
             # (border-color, text-color)
-            "Active":   ("#82d8ac", "#82d8ac"),      # Green
-            "Inactive": ("#555770", "#8B8FA8"),      # Grey
+            "Active":   ("#6ec5d4", "#6ec5d4"),      # Teal/Info
+            "Inactive": ("#9a9cb8", "#9a9cb8"),      # Grey
             "Pending":  ("#f0c878", "#f0c878"),      # Yellow
         }
         border, fg = status_colors.get(status, ("#555770", "#8B8FA8"))

@@ -43,21 +43,38 @@ class AnimatedButton(QPushButton):
         self._opacity_anim.setEasingCurve(QEasingCurve.OutCubic)
 
         if accent:
-            self.setStyleSheet(f"""
-                QPushButton {{
-                    background-color: {accent};
-                    color: {Colors.TEXT_INVERSE};
-                    border: none;
-                    border-radius: 10px;
-                    padding: 10px 22px;
-                    font-size: 13px;
-                    font-weight: 700;
-                }}
-                QPushButton:hover {{
-                    background-color: {accent};
-                    opacity: 0.94;
-                }}
-            """)
+            if accent in (Colors.ACCENT_PRIMARY, "#7c8af4"):
+                self.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {accent};
+                        color: #e2e4f0;
+                        border: none;
+                        border-radius: 8px;
+                        padding: 10px 22px;
+                        font-size: 13px;
+                        font-weight: 700;
+                    }}
+                    QPushButton:hover {{
+                        background-color: #383844;
+                        color: #e2e4f0;
+                    }}
+                """)
+            else:
+                self.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {accent};
+                        color: {Colors.TEXT_INVERSE};
+                        border: none;
+                        border-radius: 10px;
+                        padding: 10px 22px;
+                        font-size: 13px;
+                        font-weight: 700;
+                    }}
+                    QPushButton:hover {{
+                        background-color: {accent};
+                        opacity: 0.94;
+                    }}
+                """)
 
     def get_button_scale(self) -> float:
         return self._scale
@@ -131,19 +148,19 @@ class AnimatedCard(QFrame):
         if hovered:
             self.setStyleSheet(f"""
                 .AnimatedCard {{
-                    background-color: {Colors.BG_CARD};
-                    border: 1px solid {Colors.ACCENT_PRIMARY};
-                    border-radius: 14px;
-                    padding: 24px;  /* Fix: Increased padding (min 12px) */
+                    background-color: #383844;
+                    border: 1px solid rgba(255,255,255,0.12);
+                    border-radius: 12px;
+                    padding: 24px;
                 }}
             """)
         else:
             self.setStyleSheet(f"""
                 .AnimatedCard {{
-                    background-color: {Colors.BG_CARD};
-                    border: 1px solid {Colors.BORDER_SUBTLE};
-                    border-radius: 14px;
-                    padding: 24px;  /* Fix: Increased padding (min 12px) */
+                    background-color: #1a1b26;
+                    border: 1px solid rgba(255,255,255,0.06);
+                    border-radius: 12px;
+                    padding: 24px;
                 }}
             """)
 

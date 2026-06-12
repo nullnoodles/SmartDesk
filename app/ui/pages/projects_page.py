@@ -269,8 +269,8 @@ class ProjectsPage(QWidget):
         add_btn.setFixedHeight(36)
         add_btn.setStyleSheet(f"""
             QPushButton#add_project_btn {{
-                background-color: {Colors.ACCENT_PRIMARY};
-                color: {Colors.TEXT_ON_PRIMARY};
+                background-color: #7c8af4;
+                color: #e2e4f0;
                 border-radius: 8px;
                 padding: 8px 16px;
                 font-weight: 600;
@@ -278,10 +278,11 @@ class ProjectsPage(QWidget):
                 border: none;
             }}
             QPushButton#add_project_btn:hover {{
-                background-color: {Colors.ACCENT_PRIMARY_HOVER};
+                background-color: #383844;
+                color: #e2e4f0;
             }}
             QPushButton#add_project_btn:pressed {{
-                background-color: {Colors.ACCENT_PRIMARY_PRESSED};
+                background-color: #252840;
             }}
         """)
         add_btn.clicked.connect(self._add_project)
@@ -403,7 +404,7 @@ class ProjectsPage(QWidget):
         """Build projects table card."""
         table_card = QFrame()
         table_card.setObjectName("dashboard_table_card")
-        table_card.setStyleSheet("QFrame#dashboard_table_card { background-color: #222336; border-radius: 12px; border: 1px solid #2d2e42; }")
+        table_card.setStyleSheet("QFrame#dashboard_table_card { background-color: #1a1b26; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); }")
         table_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         table_layout = QVBoxLayout(table_card)
@@ -432,7 +433,7 @@ class ProjectsPage(QWidget):
         # Apply custom style sheet matching dashboard_page.py
         self.table.setStyleSheet("""
             QTableWidget {
-                background-color: transparent;
+                background-color: #1a1b26;
                 border: none;
                 color: #e2e4f0;
                 font-size: 13px;
@@ -441,7 +442,7 @@ class ProjectsPage(QWidget):
             QTableWidget::item {
                 border: none;
                 padding: 8px 12px;
-                border-bottom: 1px solid #2d2e42;
+                border-bottom: 1px solid rgba(255,255,255,0.06);
             }
             QTableWidget::item:selected {
                 background-color: rgba(124, 138, 244, 0.12);
@@ -825,13 +826,13 @@ class ProjectsPage(QWidget):
         """Styled pill badge matching the Stitch design with outline and proper spacing."""
         border_colors: dict[str, tuple[str, str]] = {
             # (border-color, text-color)
-            "Completed":   ("#82d8ac", "#82d8ac"),
-            "In Progress": ("#7c8af4", "#bcc2ff"),
-            "Active":      ("#7c8af4", "#bcc2ff"),
-            "Not Started": ("#555770", "#8B8FA8"),
+            "Completed":   ("#7dd3a8", "#7dd3a8"),
+            "In Progress": ("#6ec5d4", "#6ec5d4"),
+            "Active":      ("#6ec5d4", "#6ec5d4"),
+            "Not Started": ("#9a9cb8", "#9a9cb8"),
             "On Hold":     ("#f0c878", "#f0c878"),
-            "Review":      ("#7dd3e3", "#7dd3e3"),
-            "Revision":    ("#7dd3e3", "#7dd3e3"),
+            "Review":      ("#6ec5d4", "#6ec5d4"),
+            "Revision":    ("#6ec5d4", "#6ec5d4"),
             "Delayed":     ("#e87c8a", "#e87c8a"),
             "Cancelled":   ("#e87c8a", "#e87c8a"),
         }

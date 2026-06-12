@@ -43,3 +43,5 @@ docs/
 
 # UI design references (kept locally, not in repo)
 UI Reference/
+
+echo ".agent/SKILL/agent-skills/" >> .gitignore

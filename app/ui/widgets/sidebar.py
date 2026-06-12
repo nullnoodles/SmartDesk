@@ -66,6 +66,34 @@ class Sidebar(QWidget):
         super().__init__(parent)
         self.setObjectName("sidebar")
         self.setFixedWidth(240)  # Stitch spec: 240px
+        self.setStyleSheet(f"""
+            QWidget#sidebar {{
+                background-color: #12131d;
+                border-radius: 14px;
+            }}
+            QPushButton {{
+                background-color: transparent;
+                color: #9a9cb8;
+                border: none;
+                border-radius: 8px;
+                padding: 4px 12px;
+                margin: 1px 12px;
+                text-align: left;
+                font-size: 14px;
+                font-weight: 500;
+                min-height: 30px;
+            }}
+            QPushButton:hover {{
+                background-color: #383844;
+                color: #e2e4f0;
+            }}
+            QPushButton:checked {{
+                background-color: rgba(124, 138, 244, 0.15);
+                color: #7c8af4;
+                border-left: 3px solid #7c8af4;
+                padding-left: 9px;
+            }}
+        """)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 24)

@@ -251,7 +251,7 @@ class ContractDeleteConfirmDialog(QDialog):
 
         self.setStyleSheet("""
             QDialog#delete_confirm_dialog {
-                background-color: #252840;
+                background-color: #1a1b26;
                 border: none;
                 border-radius: 12px;
             }
@@ -291,14 +291,14 @@ class ContractDeleteConfirmDialog(QDialog):
         self.no_btn.setFixedSize(110, 36)
         self.no_btn.setStyleSheet("""
             QPushButton {
-                background-color: #2D2F45;
-                color: #FFFFFF;
-                border: none;
+                background-color: #2d2e42;
+                color: #e2e4f0;
+                border: 1px solid #454652;
                 border-radius: 8px;
                 font-weight: 600;
             }
             QPushButton:hover {
-                background-color: #3d405c;
+                background-color: #383844;
             }
         """)
         self.no_btn.clicked.connect(self.reject)
@@ -308,14 +308,14 @@ class ContractDeleteConfirmDialog(QDialog):
         self.yes_btn.setFixedSize(110, 36)
         self.yes_btn.setStyleSheet("""
             QPushButton {
-                background-color: #E53E5A;
-                color: #FFFFFF;
+                background-color: #e87c8a;
+                color: #e2e4f0;
                 border: none;
                 border-radius: 8px;
                 font-weight: 600;
             }
             QPushButton:hover {
-                background-color: #f0546f;
+                background-color: #383844;
             }
         """)
         self.yes_btn.clicked.connect(self.accept)
@@ -349,6 +349,7 @@ class ContractsPage(QWidget):
     def __init__(self, db: Database):
         super().__init__()
         self.setObjectName("contracts_page")
+        self.setStyleSheet("QWidget#contracts_page { background-color: #12131d; }")
         self.db = db
         self.project_repo = ProjectRepository(db)
         self.contract_repo = ContractRepository(db)
@@ -393,9 +394,12 @@ class ContractsPage(QWidget):
         scroll.setFrameShape(QFrame.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll.setStyleSheet("QScrollArea { background-color: #12131d; border: none; }")
 
         content_widget = QWidget()
+        content_widget.setObjectName("contracts_content")
         content_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        content_widget.setStyleSheet("QWidget#contracts_content { background-color: #12131d; }")
 
         layout = QVBoxLayout(content_widget)
         layout.setContentsMargins(32, 32, 32, 32)
@@ -464,7 +468,7 @@ class ContractsPage(QWidget):
 
         tints = {
             Colors.ACCENT_PRIMARY_LIGHT: "rgba(188, 194, 255, 0.10)",
-            Colors.ACCENT_INFO: "rgba(125, 211, 227, 0.10)",
+            Colors.ACCENT_INFO: "rgba(110, 197, 212, 0.10)",
             Colors.ACCENT_DANGER: "rgba(232, 124, 138, 0.10)",
         }
         card_configs = [
@@ -490,8 +494,8 @@ class ContractsPage(QWidget):
             card._shadow = card_shadow
             card._shadow_animation = shadow_animation
             card.setObjectName("statCard")
-            card._original_stylesheet = "QFrame#statCard { background-color: #1E2139; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }"
-            card._hover_stylesheet = "QFrame#statCard { background-color: #2D304E; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; }"
+            card._original_stylesheet = "QFrame#statCard { background-color: #1a1b26; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }"
+            card._hover_stylesheet = "QFrame#statCard { background-color: #383844; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; }"
 
             card.setMinimumHeight(140)
             card.setMaximumHeight(140)
@@ -558,17 +562,19 @@ class ContractsPage(QWidget):
 
         self.filter_btn.setStyleSheet(f"""
             QPushButton#filter_btn {{
-                background-color: #222336;
-                border: 1px solid rgba(255, 255, 255, 0.08);
+                background-color: transparent;
+                color: #8B8FA8;
+                border: 1px solid #3D3F55;
                 border-radius: 8px;
                 padding: 0px 16px;
-                color: {Colors.TEXT_PRIMARY};
                 font-size: 13px;
-                font-weight: 600;
             }}
             QPushButton#filter_btn:hover {{
-                background-color: #2a2c3e;
-                border-color: rgba(124, 138, 244, 0.3);
+                border-color: #7C8AF4;
+                color: #FFFFFF;
+            }}
+            QPushButton#filter_btn:pressed {{
+                background-color: rgba(124, 138, 244, 0.10);
             }}
         """)
         self.filter_btn.setAttribute(Qt.WA_Hover, True)
@@ -597,15 +603,15 @@ class ContractsPage(QWidget):
         self.clear_btn.setFixedHeight(36)
         self.clear_btn.setStyleSheet("""
             QPushButton {
-                background-color: #E53E5A;
-                color: white;
+                background-color: #e87c8a;
+                color: #e2e4f0;
                 border-radius: 8px;
                 padding: 0px 16px;
                 font-size: 13px;
                 font-weight: 600;
             }
             QPushButton:hover {
-                background-color: #FF4D6A;
+                background-color: #383844;
             }
         """)
         self.clear_btn.clicked.connect(self._clear_all_analyses)
@@ -619,14 +625,16 @@ class ContractsPage(QWidget):
         self.add_btn.setStyleSheet(f"""
             QPushButton#analyze_new_btn {{
                 background-color: {Colors.ACCENT_PRIMARY};
-                color: #ffffff;
+                color: #e2e4f0;
                 border-radius: 8px;
                 padding: 8px 16px;
                 font-weight: 600;
                 font-size: 13px;
+                border: none;
             }}
             QPushButton#analyze_new_btn:hover {{
-                background-color: {Colors.ACCENT_PRIMARY_HOVER};
+                background-color: #383844;
+                color: #e2e4f0;
             }}
         """)
         add_icon = _load_svg_icon("add", size=16, color="#ffffff")
@@ -640,6 +648,7 @@ class ContractsPage(QWidget):
         # Table Card QFrame
         self.table_card = QFrame()
         self.table_card.setObjectName("card")
+        self.table_card.setStyleSheet("QFrame#card { background-color: #1a1b26; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }")
         table_card_layout = QVBoxLayout(self.table_card)
         table_card_layout.setContentsMargins(0, 0, 0, 0)
         table_card_layout.setSpacing(0)
@@ -658,6 +667,29 @@ class ContractsPage(QWidget):
         self.table.setFocusPolicy(Qt.NoFocus)
         self.table.verticalHeader().setDefaultSectionSize(48)
         self.table.setFrameShape(QFrame.NoFrame)
+        self.table.setStyleSheet("""
+            QTableWidget {
+                background-color: #1a1b26;
+            }
+            QTableWidget::item {
+                border: none;
+                padding: 8px 12px;
+            }
+            QTableWidget::item:selected {
+                background-color: rgba(124, 138, 244, 0.12);
+                border: none;
+                color: white;
+            }
+            QTableWidget::item:hover {
+                background-color: rgba(255, 255, 255, 0.04);
+                border: none;
+            }
+            QHeaderView::section {
+                background-color: #1a1b26;
+                padding-left: 12px;
+                padding-right: 12px;
+            }
+        """)
 
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Stretch)
@@ -1065,9 +1097,27 @@ class ContractsPage(QWidget):
         self.findings_table.setMinimumHeight(200)
         self.findings_table.setStyleSheet("""
             QTableWidget {
-                background-color: #222336;
-                border: 1px solid #2d2e42;
+                background-color: #1a1b26;
+                border: 1px solid rgba(255, 255, 255, 0.06);
                 border-radius: 10px;
+            }
+            QTableWidget::item {
+                border: none;
+                padding: 8px 12px;
+            }
+            QTableWidget::item:selected {
+                background-color: rgba(124, 138, 244, 0.12);
+                border: none;
+                color: white;
+            }
+            QTableWidget::item:hover {
+                background-color: rgba(255, 255, 255, 0.04);
+                border: none;
+            }
+            QHeaderView::section {
+                background-color: #1a1b26;
+                padding-left: 12px;
+                padding-right: 12px;
             }
         """)
         results_layout.addWidget(self.findings_table)

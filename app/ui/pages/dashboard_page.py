@@ -104,7 +104,7 @@ class DashboardStatCard(QFrame):
         self.setMinimumHeight(140)
         self.setMaximumHeight(140)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.setStyleSheet("QFrame#statCard { background-color: #1E2139; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }")
+        self.setStyleSheet("QFrame#statCard { background-color: #1a1b26; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }")
         
         # Enable mouse tracking for hover effects
         self.setAttribute(Qt.WA_Hover, True)
@@ -141,11 +141,11 @@ class DashboardStatCard(QFrame):
         if accent == Colors.ACCENT_PRIMARY_LIGHT:
             rgba_color = "rgba(188, 194, 255, 0.10)"
         elif accent == Colors.ACCENT_INFO:
-            rgba_color = "rgba(125, 211, 227, 0.10)"
+            rgba_color = "rgba(110, 197, 212, 0.10)"
         elif accent == Colors.ACCENT_WARNING:
             rgba_color = "rgba(240, 200, 120, 0.10)"
         elif accent == Colors.ACCENT_SUCCESS:
-            rgba_color = "rgba(130, 216, 172, 0.10)"
+            rgba_color = "rgba(125, 211, 168, 0.10)"
         self._icon_bubble.setStyleSheet(f"background-color: {rgba_color}; border-radius: 4px;")
         
         if icon and (_ICONS_DIR / f"{icon}.svg").exists():
@@ -193,7 +193,7 @@ class DashboardStatCard(QFrame):
         self._shadow_animation.setEndValue(20 if not is_reduced_motion() else 0)
         self._shadow_animation.start()
         # Lighten background slightly
-        self.setStyleSheet("QFrame#statCard { background-color: #2D304E; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; }")
+        self.setStyleSheet("QFrame#statCard { background-color: #383844; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; }")
     
     def leaveEvent(self, event):
         """Mouse leave - animate shadow out and restore background."""
@@ -203,7 +203,7 @@ class DashboardStatCard(QFrame):
         self._shadow_animation.setEndValue(0)
         self._shadow_animation.start()
         # Restore original background
-        self.setStyleSheet("QFrame#statCard { background-color: #1E2139; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }")
+        self.setStyleSheet("QFrame#statCard { background-color: #1a1b26; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }")
 
     def set_value(self, value: str) -> None:
         self._value.setText(value)
@@ -511,7 +511,7 @@ class DonutChart(QWidget):
         chart_rect = rect.adjusted(margin, margin, -margin, -margin)
         
         sizes = [self._paid, self._unpaid, self._overdue]
-        colors = [QColor('#82d8ac'), QColor('#f0c878'), QColor('#e87c8a')]
+        colors = [QColor('#7dd3a8'), QColor('#f0c878'), QColor('#e87c8a')]
         
         total = sum(sizes)
         if total <= 0:
@@ -558,8 +558,10 @@ class CustomTableWidget(QTableWidget):
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.setSelectionMode(QAbstractItemView.SingleSelection)
         
-        # Apply scoped stylesheet for hover and selection effects
         self.setStyleSheet("""
+            QTableWidget {
+                background-color: #1a1b26;
+            }
             QTableWidget::item {
                 border: none;
                 padding: 8px 12px;
@@ -574,6 +576,7 @@ class CustomTableWidget(QTableWidget):
                 border: none;
             }
             QHeaderView::section {
+                background-color: #1a1b26;
                 padding-left: 12px;
                 padding-right: 12px;
             }
@@ -603,6 +606,7 @@ class DashboardPage(QWidget):
     def __init__(self, db: Database):
         super().__init__()
         self.setObjectName("dashboard_page")
+        self.setStyleSheet("QWidget#dashboard_page { background-color: #12131d; }")
         self.db = db
         self.invoice_repo = InvoiceRepository(db)
         self.project_repo = ProjectRepository(db)
@@ -623,11 +627,13 @@ class DashboardPage(QWidget):
         scroll.setFrameShape(QFrame.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll.setStyleSheet("QScrollArea { background-color: #12131d; border: none; }")
 
         # Content widget inside scroll
         content_widget = QWidget()
         content_widget.setObjectName("dashboard_content")
         content_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        content_widget.setStyleSheet("QWidget#dashboard_content { background-color: #12131d; }")
 
         layout = QVBoxLayout(content_widget)
         layout.setContentsMargins(32, 32, 32, 32)  # Stitch: p-8 = 32px
@@ -688,6 +694,7 @@ class DashboardPage(QWidget):
         # ─── Revenue Overview Card ────────────────────────────────────────
         revenue_card = QFrame()
         revenue_card.setObjectName("card")
+        revenue_card.setStyleSheet("QFrame#card { background-color: #1a1b26; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }")
         revenue_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         revenue_card.setMinimumHeight(400)
         revenue_card.setMinimumWidth(400)
@@ -822,6 +829,7 @@ class DashboardPage(QWidget):
         # ─── Invoice Status Card (Donut Chart) ───────────────────────────
         status_card = QFrame()
         status_card.setObjectName("card")
+        status_card.setStyleSheet("QFrame#card { background-color: #1a1b26; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }")
         status_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         status_card.setMinimumHeight(400)
         status_card.setMinimumWidth(280)
@@ -918,6 +926,7 @@ class DashboardPage(QWidget):
         # ═══════════════════════════════════════════════════════════════════
         table_card = QFrame()
         table_card.setObjectName("card")
+        table_card.setStyleSheet("QFrame#card { background-color: #1a1b26; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }")
         table_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         table_card.setMinimumHeight(420)
         table_card.setMaximumHeight(620)
@@ -1187,11 +1196,11 @@ class DashboardPage(QWidget):
         """Styled pill badge matching the Stitch design with outline and proper spacing."""
         border_colors: dict[str, tuple[str, str]] = {
             # (border-color, text-color)
-            "Completed":   ("#82d8ac", "#82d8ac"),
-            "In Progress": ("#7c8af4", "#bcc2ff"),
-            "Not Started": ("#555770", "#8B8FA8"),
+            "Completed":   ("#7dd3a8", "#7dd3a8"),
+            "In Progress": ("#6ec5d4", "#6ec5d4"),
+            "Not Started": ("#9a9cb8", "#9a9cb8"),
             "On Hold":     ("#f0c878", "#f0c878"),
-            "Review":      ("#7dd3e3", "#7dd3e3"),
+            "Review":      ("#6ec5d4", "#6ec5d4"),
             "Cancelled":   ("#e87c8a", "#e87c8a"),
         }
         border, fg = border_colors.get(status, ("#555770", "#8B8FA8"))
@@ -1316,12 +1325,12 @@ class DashboardPage(QWidget):
             # Set revenue subtitle with comparison
             if current_revenue > last_month_revenue and last_month_revenue > 0:
                 pct_change = ((current_revenue - last_month_revenue) / last_month_revenue * 100)
-                subtitle, color = f"▲ +{pct_change:.1f}% from last month", "#4ADE80"
+                subtitle, color = f"▲ +{pct_change:.1f}% from last month", "#7dd3a8"
             elif current_revenue == last_month_revenue or last_month_revenue == 0:
-                subtitle, color = "→ Same as last month", "#8B8FA8"
+                subtitle, color = "→ Same as last month", "#9a9cb8"
             else:
                 pct_change = abs((current_revenue - last_month_revenue) / last_month_revenue * 100) if last_month_revenue > 0 else 0
-                subtitle, color = f"▼ {pct_change:.1f}% from last month", "#E53E5A"
+                subtitle, color = f"▼ {pct_change:.1f}% from last month", "#e87c8a"
             
             self.card_revenue.set_sub_text(subtitle, color)
             
@@ -1350,11 +1359,11 @@ class DashboardPage(QWidget):
             
             # Set projects subtitle based on risk
             if overdue_projects > 0:
-                subtitle, color = f"✕ {overdue_projects} project(s) overdue", "#E53E5A"
+                subtitle, color = f"✕ {overdue_projects} project(s) overdue", "#e87c8a"
             elif at_risk_projects > 0:
-                subtitle, color = f"⚠ {at_risk_projects} due this week", "#8B8FA8"
+                subtitle, color = f"⚠ {at_risk_projects} due this week", "#9a9cb8"
             else:
-                subtitle, color = "✓ All projects on track", "#4ADE80"
+                subtitle, color = "✓ All projects on track", "#7dd3a8"
             
             self.card_projects.set_sub_text(subtitle, color)
             
@@ -1380,11 +1389,11 @@ class DashboardPage(QWidget):
             
             # Set pending invoices subtitle
             if overdue_invoices > 0:
-                subtitle, color = f"✕ {overdue_invoices} overdue invoice(s)", "#E53E5A"
+                subtitle, color = f"✕ {overdue_invoices} overdue invoice(s)", "#e87c8a"
             elif pending_count > 0:
-                subtitle, color = f"⚠ {pending_count} awaiting payment", "#8B8FA8"
+                subtitle, color = f"⚠ {pending_count} awaiting payment", "#9a9cb8"
             else:
-                subtitle, color = "✓ No pending invoices", "#4ADE80"
+                subtitle, color = "✓ No pending invoices", "#7dd3a8"
             
             self.card_pending.set_sub_text(subtitle, color)
             
@@ -1409,11 +1418,11 @@ class DashboardPage(QWidget):
             
             # Set hours subtitle with weekly comparison
             if this_week_hours > last_week_hours:
-                subtitle, color = f"▲ {this_week_hours:.1f}h this week", "#4ADE80"
+                subtitle, color = f"▲ {this_week_hours:.1f}h this week", "#7dd3a8"
             elif this_week_hours == last_week_hours or last_week_hours == 0:
-                subtitle, color = f"→ {this_week_hours:.1f}h this week", "#8B8FA8"
+                subtitle, color = f"→ {this_week_hours:.1f}h this week", "#9a9cb8"
             else:
-                subtitle, color = f"▼ {this_week_hours:.1f}h this week", "#E53E5A"
+                subtitle, color = f"▼ {this_week_hours:.1f}h this week", "#e87c8a"
             
             self.card_hours.set_sub_text(subtitle, color)
 

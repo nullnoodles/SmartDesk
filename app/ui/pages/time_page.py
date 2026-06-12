@@ -83,13 +83,13 @@ class HoursPill(QWidget):
         # Color coding based on duration
         if hours >= 4.0:
             color = Colors.ACCENT_SUCCESS      # Mint
-            bg_color = "rgba(130, 216, 172, 0.15)"
+            bg_color = "rgba(125, 211, 168, 0.15)"
         elif hours >= 2.0:
             color = Colors.ACCENT_PRIMARY_LIGHT # Lavender-blue
             bg_color = "rgba(188, 194, 255, 0.15)"
         else:
             color = Colors.ACCENT_INFO         # Teal
-            bg_color = "rgba(125, 211, 227, 0.15)"
+            bg_color = "rgba(110, 197, 212, 0.15)"
             
         self.setStyleSheet(
             f"background-color: {bg_color}; border-radius: 999px;"
@@ -223,16 +223,19 @@ class TimePage(QWidget):
         page_layout = QVBoxLayout(self)
         page_layout.setContentsMargins(0, 0, 0, 0)
         page_layout.setSpacing(0)
+        self.setStyleSheet("QWidget#time_page { background-color: #12131d; }")
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll.setStyleSheet("QScrollArea { background-color: #12131d; border: none; }")
 
         content_widget = QWidget()
         content_widget.setObjectName("time_content")
         content_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        content_widget.setStyleSheet("QWidget#time_content { background-color: #12131d; }")
 
         layout = QVBoxLayout(content_widget)
         layout.setContentsMargins(32, 32, 32, 32)
@@ -300,8 +303,8 @@ class TimePage(QWidget):
 
         tints = {
             Colors.ACCENT_PRIMARY_LIGHT: "rgba(188, 194, 255, 0.10)",
-            Colors.ACCENT_SUCCESS: "rgba(130, 216, 172, 0.10)",
-            Colors.ACCENT_INFO: "rgba(125, 211, 227, 0.10)",
+            Colors.ACCENT_SUCCESS: "rgba(125, 211, 168, 0.10)",
+            Colors.ACCENT_INFO: "rgba(110, 197, 212, 0.10)",
         }
 
         card_configs = [
@@ -327,8 +330,8 @@ class TimePage(QWidget):
             card._shadow = card_shadow
             card._shadow_animation = shadow_animation
             card.setObjectName("statCard")
-            card._original_stylesheet = "QFrame#statCard { background-color: #1E2139; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }"
-            card._hover_stylesheet = "QFrame#statCard { background-color: #2D304E; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; }"
+            card._original_stylesheet = "QFrame#statCard { background-color: #1a1b26; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }"
+            card._hover_stylesheet = "QFrame#statCard { background-color: #383844; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; }"
 
             card.setMinimumHeight(140)
             card.setMaximumHeight(140)
@@ -365,6 +368,7 @@ class TimePage(QWidget):
         # ─── Live Timer Card ──────────────────────────────────────────────
         timer_card = QFrame()
         timer_card.setObjectName("card")
+        timer_card.setStyleSheet("QFrame#card { background-color: #1a1b26; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }")
         timer_card_layout = QVBoxLayout(timer_card)
         timer_card_layout.setContentsMargins(24, 24, 24, 24)
         timer_card_layout.setSpacing(16)
@@ -440,6 +444,7 @@ class TimePage(QWidget):
         # ─── Manual Entry Card ────────────────────────────────────────────
         manual_card = QFrame()
         manual_card.setObjectName("card")
+        manual_card.setStyleSheet("QFrame#card { background-color: #1a1b26; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }")
         manual_card_layout = QVBoxLayout(manual_card)
         manual_card_layout.setContentsMargins(24, 24, 24, 24)
         manual_card_layout.setSpacing(16)
@@ -520,17 +525,18 @@ class TimePage(QWidget):
         self.manual_add_btn.setStyleSheet("""
             QPushButton {
                 background-color: #7c8af4;
-                color: #0f208b;
+                color: #e2e4f0;
                 border: none;
                 border-radius: 8px;
                 font-weight: 700;
                 font-size: 14px;
             }
             QPushButton:hover {
-                background-color: #8a96f6;
+                background-color: #383844;
+                color: #e2e4f0;
             }
             QPushButton:pressed {
-                background-color: #6d7be2;
+                background-color: #252840;
             }
         """)
         self.manual_add_btn.clicked.connect(self._add_manual)
@@ -546,17 +552,18 @@ class TimePage(QWidget):
             self.timer_btn.setStyleSheet("""
                 QPushButton {
                     background-color: #e87c8a;
-                    color: #3d0a12;
+                    color: #12131d;
                     border: none;
                     border-radius: 20px;
                     font-size: 14px;
                     font-weight: 700;
                 }
                 QPushButton:hover {
-                    background-color: #ec8c98;
+                    background-color: #383844;
+                    color: #e2e4f0;
                 }
                 QPushButton:pressed {
-                    background-color: #df6d7c;
+                    background-color: #252840;
                 }
             """)
             self.timer_lbl.setStyleSheet("""
@@ -570,18 +577,19 @@ class TimePage(QWidget):
             self.timer_btn.setText("Start")
             self.timer_btn.setStyleSheet("""
                 QPushButton {
-                    background-color: #82d8ac;
-                    color: #0a3d28;
+                    background-color: #7dd3a8;
+                    color: #12131d;
                     border: none;
                     border-radius: 20px;
                     font-size: 14px;
                     font-weight: 700;
                 }
                 QPushButton:hover {
-                    background-color: #91dcb6;
+                    background-color: #383844;
+                    color: #e2e4f0;
                 }
                 QPushButton:pressed {
-                    background-color: #73d4a2;
+                    background-color: #252840;
                 }
             """)
             self.timer_lbl.setStyleSheet("""
@@ -595,6 +603,7 @@ class TimePage(QWidget):
     def _build_chart(self, parent_layout: QVBoxLayout) -> None:
         self.chart_card = QFrame()
         self.chart_card.setObjectName("card")
+        self.chart_card.setStyleSheet("QFrame#card { background-color: #1a1b26; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }")
         self.chart_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         chart_layout = QVBoxLayout(self.chart_card)
@@ -619,6 +628,7 @@ class TimePage(QWidget):
     def _build_table(self, parent_layout: QVBoxLayout) -> None:
         self.table_card = QFrame()
         self.table_card.setObjectName("card")
+        self.table_card.setStyleSheet("QFrame#card { background-color: #1a1b26; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }")
         self.table_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         table_layout = QVBoxLayout(self.table_card)
@@ -657,7 +667,7 @@ class TimePage(QWidget):
 
         self.table.setStyleSheet("""
             QTableWidget {
-                background-color: transparent;
+                background-color: #1a1b26;
                 border: none;
                 color: #e2e1f1;
                 font-size: 14px;
@@ -666,7 +676,7 @@ class TimePage(QWidget):
             QTableWidget::item {
                 border: none;
                 padding: 10px 20px;
-                border-bottom: 1px solid rgba(69, 70, 82, 0.15);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.06);
             }
             QTableWidget::item:selected {
                 background-color: rgba(124, 138, 244, 0.10);
@@ -678,11 +688,11 @@ class TimePage(QWidget):
                 border: none;
             }
             QHeaderView::section {
-                background-color: transparent;
+                background-color: #1a1b26;
                 color: #9a9cb8;
                 padding: 10px 20px;
                 border: none;
-                border-bottom: 1px solid rgba(69, 70, 82, 0.35);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.06);
                 font-size: 11px;
                 font-weight: 700;
                 text-transform: uppercase;

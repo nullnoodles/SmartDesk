@@ -30,11 +30,11 @@ class Colors:
     All *structural* styling lives in style.qss.
     """
 
-    BG_DARKEST = "#12131a"       # Sidebar — anchored / deepest layer
-    BG_DARK = "#1a1b26"          # Main canvas
-    BG_CARD = "#222336"           # Card surfaces (Level 2)
+    BG_DARKEST = "#12131d"       # Sidebar — anchored / deepest layer
+    BG_DARK = "#12131d"          # Main canvas
+    BG_CARD = "#1a1b26"          # Card surfaces (Level 2)
     BG_ELEVATED = "#1e1f2a"      # Inputs / table headers (Level 1.5)
-    BG_HOVER = "#282935"         # Hover overlays
+    BG_HOVER = "#383844"         # Hover overlays
     BG_DEEPEST = "#0c0d18"       # Sub-card / contextual deep
 
     # Borders
@@ -56,21 +56,21 @@ class Colors:
     ACCENT_PRIMARY_LIGHT = "#bcc2ff"     # primary — for active text/icons
 
     # Accent — semantic statuses
-    ACCENT_SUCCESS = "#82d8ac"           # secondary — mint
+    ACCENT_SUCCESS = "#7dd3a8"           # secondary — mint
     ACCENT_SUCCESS_HOVER = "#9ae3be"
     ACCENT_WARNING = "#f0c878"           # status-warning — amber
     ACCENT_WARNING_HOVER = "#f5d898"
     ACCENT_DANGER = "#e87c8a"            # status-danger — rose
     ACCENT_DANGER_HOVER = "#f09aa5"
-    ACCENT_INFO = "#7dd3e3"              # tertiary — teal
+    ACCENT_INFO = "#6ec5d4"              # tertiary — teal
     ACCENT_INFO_HOVER = "#8dd4e0"
 
     # Chart colors (harmonious soft palette)
     CHART_1 = "#7c8af4"     # Lavender
-    CHART_2 = "#82d8ac"     # Mint
+    CHART_2 = "#7dd3a8"     # Mint
     CHART_3 = "#f0c878"     # Amber
     CHART_4 = "#e87c8a"     # Rose
-    CHART_5 = "#7dd3e3"     # Teal
+    CHART_5 = "#6ec5d4"     # Teal
     CHART_6 = "#bcc2ff"     # Light lavender
     CHART_7 = "#f4a87c"     # Soft coral
 

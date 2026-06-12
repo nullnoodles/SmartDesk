@@ -241,6 +241,7 @@ class InvoicesPage(QWidget):
         page_layout = QVBoxLayout(self)
         page_layout.setContentsMargins(0, 0, 0, 0)
         page_layout.setSpacing(0)
+        self.setStyleSheet("QWidget#invoices_page { background-color: #12131d; }")
 
         # Create scroll area
         scroll = QScrollArea()
@@ -248,9 +249,10 @@ class InvoicesPage(QWidget):
         scroll.setFrameShape(QFrame.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll.setStyleSheet("QScrollArea { background-color: #12131d; border: none; }")
         
         # Scrollbar styling
-        scroll.setStyleSheet("""
+        scroll.setStyleSheet(scroll.styleSheet() + """
             QScrollBar:vertical {
                 width: 6px;
                 background: #12131d;
@@ -270,7 +272,9 @@ class InvoicesPage(QWidget):
 
         # Create content widget
         content_widget = QWidget()
+        content_widget.setObjectName("invoices_content")
         content_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        content_widget.setStyleSheet("QWidget#invoices_content { background-color: #12131d; }")
         
         layout = QVBoxLayout(content_widget)
         layout.setContentsMargins(36, 36, 36, 36)
@@ -319,8 +323,8 @@ class InvoicesPage(QWidget):
         chart_card.setStyleSheet("""
             QFrame#monthly_revenue_chart_card {
                 background-color: #1a1b26;
-                border: 1px solid rgba(69, 70, 82, 0.3);
-                border-radius: 8px;
+                border: 1px solid rgba(255, 255, 255, 0.06);
+                border-radius: 12px;
                 padding: 24px;
             }
         """)
@@ -444,7 +448,7 @@ class InvoicesPage(QWidget):
         add_btn.setStyleSheet("""
             QPushButton#create_invoice_btn {
                 background-color: #7c8af4;
-                color: #12131d;
+                color: #e2e4f0;
                 border-radius: 8px;
                 padding: 10px 24px;
                 font-weight: 700;
@@ -453,10 +457,11 @@ class InvoicesPage(QWidget):
                 min-width: 140px;
             }
             QPushButton#create_invoice_btn:hover {
-                background-color: #8a96f5;
+                background-color: #383844;
+                color: #e2e4f0;
             }
             QPushButton#create_invoice_btn:pressed {
-                background-color: #6b7ae3;
+                background-color: #252840;
             }
         """)
         add_btn.clicked.connect(self._create_invoice)
@@ -467,7 +472,7 @@ class InvoicesPage(QWidget):
     def _build_invoices_table(self, parent_layout: QVBoxLayout) -> None:
         table_card = QFrame()
         table_card.setObjectName("invoices_table_card")
-        table_card.setStyleSheet("QFrame#invoices_table_card { background-color: #1a1b26; border-radius: 8px; border: 1px solid rgba(69, 70, 82, 0.3); }")
+        table_card.setStyleSheet("QFrame#invoices_table_card { background-color: #1a1b26; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.06); }")
         table_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         table_layout = QVBoxLayout(table_card)
@@ -492,7 +497,7 @@ class InvoicesPage(QWidget):
 
         self.table.setStyleSheet("""
             QTableWidget {
-                background-color: transparent;
+                background-color: #1a1b26;
                 border: none;
                 color: #e2e1f1;
                 font-size: 14px;
@@ -501,7 +506,7 @@ class InvoicesPage(QWidget):
             QTableWidget::item {
                 border: none;
                 padding: 14px 20px;
-                border-bottom: 1px solid rgba(69, 70, 82, 0.15);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.06);
             }
             QTableWidget::item:selected {
                 background-color: rgba(124, 138, 244, 0.10);
@@ -513,11 +518,11 @@ class InvoicesPage(QWidget):
                 border: none;
             }
             QHeaderView::section {
-                background-color: transparent;
+                background-color: #1a1b26;
                 color: #9a9cb8;
                 padding: 14px 20px;
                 border: none;
-                border-bottom: 1px solid rgba(69, 70, 82, 0.35);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.06);
                 font-size: 11px;
                 font-weight: 700;
                 text-transform: uppercase;
