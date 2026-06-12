@@ -263,21 +263,21 @@ class ContractDeleteConfirmDialog(QDialog):
 
         title = QLabel(title_text)
         title.setFont(QFont("Inter", 15, QFont.Weight.Bold))
-        title.setStyleSheet("color: #FFFFFF; background: transparent;")
+        title.setStyleSheet("color: #FFFFFF;")
         layout.addWidget(title)
 
         question = "Are you sure you want to delete ALL contract analyses?" if is_clear_all else "Are you sure you want to delete this contract analysis?"
         question_label = QLabel(question)
         question_label.setWordWrap(True)
         question_label.setFont(QFont("Segoe UI", 12))
-        question_label.setStyleSheet("color: #8B8FA8; background: transparent;")
+        question_label.setStyleSheet("color: #8B8FA8;")
         layout.addWidget(question_label)
 
         warning = "This action will permanently remove the saved analysis data. It cannot be undone."
         warning_label = QLabel(warning)
         warning_label.setWordWrap(True)
         warning_label.setFont(QFont("Segoe UI", 9))
-        warning_label.setStyleSheet("color: #6B7280; background: transparent;")
+        warning_label.setStyleSheet("color: #6B7280;")
         layout.addWidget(warning_label)
 
         layout.addStretch()
@@ -489,8 +489,9 @@ class ContractsPage(QWidget):
 
             card._shadow = card_shadow
             card._shadow_animation = shadow_animation
-            card._original_stylesheet = "QFrame#dashboard_stat_card { background-color: #222336; border-radius: 12px; border: none; padding: 0px; }"
-            card._hover_stylesheet = "QFrame#dashboard_stat_card { background-color: #2a2c3e; border-radius: 12px; border: none; padding: 0px; }"
+            card.setObjectName("statCard")
+            card._original_stylesheet = "QFrame#statCard { background-color: #1E2139; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }"
+            card._hover_stylesheet = "QFrame#statCard { background-color: #2D304E; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; }"
 
             card.setMinimumHeight(140)
             card.setMaximumHeight(140)
@@ -638,8 +639,7 @@ class ContractsPage(QWidget):
 
         # Table Card QFrame
         self.table_card = QFrame()
-        self.table_card.setObjectName("dashboard_table_card")
-        self.table_card.setStyleSheet("QFrame#dashboard_table_card { background-color: #222336; border-radius: 12px; border: 1px solid #2d2e42; }")
+        self.table_card.setObjectName("card")
         table_card_layout = QVBoxLayout(self.table_card)
         table_card_layout.setContentsMargins(0, 0, 0, 0)
         table_card_layout.setSpacing(0)

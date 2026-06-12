@@ -104,7 +104,7 @@ class DashboardStatCard(QFrame):
         self.setMinimumHeight(140)
         self.setMaximumHeight(140)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.setStyleSheet("background-color: #222336; border-radius: 12px;")
+        self.setStyleSheet("QFrame#statCard { background-color: #1E2139; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }")
         
         # Enable mouse tracking for hover effects
         self.setAttribute(Qt.WA_Hover, True)
@@ -168,7 +168,7 @@ class DashboardStatCard(QFrame):
         # Row 2: large value text
         label_value = QLabel(value)
         label_value.setObjectName("stat_card_value")
-        label_value.setFont(QFont("Inter", 24, QFont.Bold))
+        label_value.setFont(QFont("Inter", 28, QFont.Bold))
         label_value.setStyleSheet("color: #FFFFFF; background: transparent; border: none;")
         layout.addWidget(label_value)
         self._value = label_value
@@ -193,7 +193,7 @@ class DashboardStatCard(QFrame):
         self._shadow_animation.setEndValue(20 if not is_reduced_motion() else 0)
         self._shadow_animation.start()
         # Lighten background slightly
-        self.setStyleSheet("background-color: #2a2c3e; border-radius: 12px;")
+        self.setStyleSheet("QFrame#statCard { background-color: #2D304E; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; }")
     
     def leaveEvent(self, event):
         """Mouse leave - animate shadow out and restore background."""
@@ -203,7 +203,7 @@ class DashboardStatCard(QFrame):
         self._shadow_animation.setEndValue(0)
         self._shadow_animation.start()
         # Restore original background
-        self.setStyleSheet("background-color: #222336; border-radius: 12px;")
+        self.setStyleSheet("QFrame#statCard { background-color: #1E2139; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }")
 
     def set_value(self, value: str) -> None:
         self._value.setText(value)
@@ -687,8 +687,7 @@ class DashboardPage(QWidget):
 
         # ─── Revenue Overview Card ────────────────────────────────────────
         revenue_card = QFrame()
-        revenue_card.setObjectName("dashboard_chart_card")
-        revenue_card.setStyleSheet("QFrame#dashboard_chart_card { background-color: #222336; border-radius: 12px; border: 1px solid #2d2e42; }")
+        revenue_card.setObjectName("card")
         revenue_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         revenue_card.setMinimumHeight(400)
         revenue_card.setMinimumWidth(400)
@@ -822,8 +821,7 @@ class DashboardPage(QWidget):
 
         # ─── Invoice Status Card (Donut Chart) ───────────────────────────
         status_card = QFrame()
-        status_card.setObjectName("dashboard_chart_card")
-        status_card.setStyleSheet("QFrame#dashboard_chart_card { background-color: #222336; border-radius: 12px; border: 1px solid #2d2e42; }")
+        status_card.setObjectName("card")
         status_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         status_card.setMinimumHeight(400)
         status_card.setMinimumWidth(280)
@@ -919,8 +917,7 @@ class DashboardPage(QWidget):
         # RECENT PROJECTS TABLE
         # ═══════════════════════════════════════════════════════════════════
         table_card = QFrame()
-        table_card.setObjectName("dashboard_table_card")
-        table_card.setStyleSheet("QFrame#dashboard_table_card { background-color: #222336; border-radius: 12px; border: 1px solid #2d2e42; }")
+        table_card.setObjectName("card")
         table_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         table_card.setMinimumHeight(420)
         table_card.setMaximumHeight(620)

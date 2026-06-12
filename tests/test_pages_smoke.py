@@ -29,17 +29,13 @@ class TestPagesSmoke:
 
         # Test each card's layout, spacing, and styling constraints
         for card in (page.card_new, page.card_avg, page.card_retention):
-            assert card.objectName() == "dashboard_stat_card"
+            assert card.objectName() == "statCard"
 
         # Test charts card
-        assert "background-color: #222336" in page.chart_card.styleSheet()
-        assert "border-radius: 12px" in page.chart_card.styleSheet()
-        assert "border: 1px solid #2d2e42" in page.chart_card.styleSheet()
+        assert page.chart_card.objectName() == "card"
 
         # Test table card
-        assert "background-color: #222336" in page.table_card.styleSheet()
-        assert "border-radius: 12px" in page.table_card.styleSheet()
-        assert "border: 1px solid #2d2e42" in page.table_card.styleSheet()
+        assert page.table_card.objectName() == "card"
 
     def test_clients_page_pagination(self, db, qapp):
         from app.ui.pages.clients_page import ClientsPage
@@ -185,7 +181,7 @@ class TestPagesSmoke:
         # Test each card's layout, spacing, and styling constraints
         for card in (page.card_revenue, page.card_projects, page.card_pending, page.card_hours):
             assert card.objectName() == "statCard"
-            assert "background-color: #222336" in card.styleSheet()
+            assert "background-color: #1E2139" in card.styleSheet()
             assert "border-radius: 12px" in card.styleSheet()
             assert card.minimumHeight() == 140
             assert card.maximumHeight() == 140
@@ -203,20 +199,8 @@ class TestPagesSmoke:
         # Test other cards on dashboard
         from PySide6.QtWidgets import QFrame
         frames = page.findChildren(QFrame)
-        chart_cards = [f for f in frames if f.objectName() == "dashboard_chart_card"]
-        table_cards = [f for f in frames if f.objectName() == "dashboard_table_card"]
-        
-        assert len(chart_cards) >= 2
-        for card in chart_cards:
-            assert "background-color: #222336" in card.styleSheet()
-            assert "border-radius: 12px" in card.styleSheet()
-            assert "border: 1px solid #2d2e42" in card.styleSheet()
-
-        assert len(table_cards) >= 1
-        for card in table_cards:
-            assert "background-color: #222336" in card.styleSheet()
-            assert "border-radius: 12px" in card.styleSheet()
-            assert "border: 1px solid #2d2e42" in card.styleSheet()
+        cards = [f for f in frames if f.objectName() == "card"]
+        assert len(cards) >= 3
 
         # Test specific label styling
         assert "color: #8B8FA8; background: transparent; border: none;" in page.card_revenue._label.styleSheet()

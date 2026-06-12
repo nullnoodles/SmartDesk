@@ -231,7 +231,7 @@ QMainWindow {
 }
 
 #stat_card_value {
-    font-size: 24px;
+    font-size: 28px;
     font-weight: 700;
     color: #e2e4f0;
     background: transparent;

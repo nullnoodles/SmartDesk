@@ -301,8 +301,9 @@ class ClientsPage(QWidget):
             # Store references for later use
             card._shadow = card_shadow
             card._shadow_animation = shadow_animation
-            card._original_stylesheet = "QFrame#dashboard_stat_card { background-color: #222336; border-radius: 12px; border: none; padding: 0px; }"
-            card._hover_stylesheet = "QFrame#dashboard_stat_card { background-color: #2a2c3e; border-radius: 12px; border: none; padding: 0px; }"
+            card.setObjectName("statCard")
+            card._original_stylesheet = "QFrame#statCard { background-color: #1E2139; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }"
+            card._hover_stylesheet = "QFrame#statCard { background-color: #2D304E; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; }"
             
             # 1. Height and size policy constraints
             # Add extra margins to accommodate the shadow without causing layout shift
@@ -347,8 +348,7 @@ class ClientsPage(QWidget):
 
     def _build_top_clients_chart(self, parent_layout: QVBoxLayout) -> None:
         self.chart_card = QFrame()
-        self.chart_card.setObjectName("dashboard_chart_card")
-        self.chart_card.setStyleSheet("QFrame#dashboard_chart_card { background-color: #222336; border-radius: 12px; border: 1px solid #2d2e42; }")
+        self.chart_card.setObjectName("card")
         self.chart_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         chart_layout = QVBoxLayout(self.chart_card)
@@ -498,8 +498,7 @@ class ClientsPage(QWidget):
 
     def _build_table(self, parent_layout: QVBoxLayout) -> None:
         self.table_card = QFrame()
-        self.table_card.setObjectName("dashboard_table_card")
-        self.table_card.setStyleSheet("QFrame#dashboard_table_card { background-color: #222336; border-radius: 12px; border: 1px solid #2d2e42; }")
+        self.table_card.setObjectName("card")
         self.table_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         table_layout = QVBoxLayout(self.table_card)
@@ -1303,7 +1302,7 @@ class DeleteConfirmDialog(QDialog):
         
         title = QLabel(title_text)
         title.setFont(QFont("Inter", 15, QFont.Weight.Bold))
-        title.setStyleSheet("color: #FFFFFF; background: transparent; border: none;")
+        title.setStyleSheet("color: #FFFFFF;")
         layout.addWidget(title)
         
         layout.addSpacing(8)
@@ -1312,7 +1311,7 @@ class DeleteConfirmDialog(QDialog):
         question_label = QLabel(question_text)
         question_label.setWordWrap(True)
         question_label.setFont(QFont("Segoe UI", 12))
-        question_label.setStyleSheet("color: #8B8FA8; background: transparent; border: none;")
+        question_label.setStyleSheet("color: #8B8FA8;")
         layout.addWidget(question_label)
         
         layout.addSpacing(4)
@@ -1327,7 +1326,7 @@ class DeleteConfirmDialog(QDialog):
         warning_label = QLabel(warning_text)
         warning_label.setWordWrap(True)
         warning_label.setFont(QFont("Segoe UI", 9))
-        warning_label.setStyleSheet("color: #6B7280; background: transparent; border: none;")
+        warning_label.setStyleSheet("color: #6B7280;")
         layout.addWidget(warning_label)
         
         layout.addStretch()

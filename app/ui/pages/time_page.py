@@ -326,8 +326,9 @@ class TimePage(QWidget):
 
             card._shadow = card_shadow
             card._shadow_animation = shadow_animation
-            card._original_stylesheet = "QFrame#dashboard_stat_card { background-color: #222336; border-radius: 12px; border: none; padding: 0px; }"
-            card._hover_stylesheet = "QFrame#dashboard_stat_card { background-color: #2a2c3e; border-radius: 12px; border: none; padding: 0px; }"
+            card.setObjectName("statCard")
+            card._original_stylesheet = "QFrame#statCard { background-color: #1E2139; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }"
+            card._hover_stylesheet = "QFrame#statCard { background-color: #2D304E; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; }"
 
             card.setMinimumHeight(140)
             card.setMaximumHeight(140)
@@ -363,18 +364,17 @@ class TimePage(QWidget):
 
         # ─── Live Timer Card ──────────────────────────────────────────────
         timer_card = QFrame()
-        timer_card.setObjectName("timer_card")
-        timer_card.setStyleSheet("QFrame#timer_card { background-color: #222336; border-radius: 12px; border: 1px solid #2d2e42; }")
+        timer_card.setObjectName("card")
         timer_card_layout = QVBoxLayout(timer_card)
         timer_card_layout.setContentsMargins(24, 24, 24, 24)
         timer_card_layout.setSpacing(16)
 
         timer_header = QHBoxLayout()
         timer_title = QLabel("Live Timer")
-        timer_title.setStyleSheet("color: #e2e1f1; font-size: 16px; font-weight: 500; background: transparent; border: none;")
+        timer_title.setStyleSheet("color: #e2e1f1; font-size: 16px; font-weight: 500;")
         timer_header.addWidget(timer_title)
         timer_header.addStretch()
-
+        
         self.timer_project_combo = QComboBox()
         self.timer_project_combo.setMinimumWidth(180)
         self.timer_project_combo.setStyleSheet("""
@@ -439,15 +439,14 @@ class TimePage(QWidget):
 
         # ─── Manual Entry Card ────────────────────────────────────────────
         manual_card = QFrame()
-        manual_card.setObjectName("manual_card")
-        manual_card.setStyleSheet("QFrame#manual_card { background-color: #222336; border-radius: 12px; border: 1px solid #2d2e42; }")
+        manual_card.setObjectName("card")
         manual_card_layout = QVBoxLayout(manual_card)
         manual_card_layout.setContentsMargins(24, 24, 24, 24)
         manual_card_layout.setSpacing(16)
 
         manual_header = QHBoxLayout()
         manual_title = QLabel("Manual Entry")
-        manual_title.setStyleSheet("color: #e2e1f1; font-size: 16px; font-weight: 500; background: transparent; border: none;")
+        manual_title.setStyleSheet("color: #e2e1f1; font-size: 16px; font-weight: 500;")
         manual_header.addWidget(manual_title)
         manual_header.addStretch()
 
@@ -595,8 +594,7 @@ class TimePage(QWidget):
 
     def _build_chart(self, parent_layout: QVBoxLayout) -> None:
         self.chart_card = QFrame()
-        self.chart_card.setObjectName("dashboard_chart_card")
-        self.chart_card.setStyleSheet("QFrame#dashboard_chart_card { background-color: #222336; border-radius: 12px; border: 1px solid #2d2e42; }")
+        self.chart_card.setObjectName("card")
         self.chart_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         chart_layout = QVBoxLayout(self.chart_card)
@@ -604,7 +602,7 @@ class TimePage(QWidget):
         chart_layout.setSpacing(16)
 
         title = QLabel("Hours by Project")
-        title.setStyleSheet("color: #e2e4f0; font-size: 16px; font-weight: 500; background: transparent; border: none;")
+        title.setStyleSheet("color: #e2e4f0; font-size: 16px; font-weight: 500;")
         chart_layout.addWidget(title)
 
         # Container for vertical bars
@@ -620,8 +618,7 @@ class TimePage(QWidget):
 
     def _build_table(self, parent_layout: QVBoxLayout) -> None:
         self.table_card = QFrame()
-        self.table_card.setObjectName("dashboard_table_card")
-        self.table_card.setStyleSheet("QFrame#dashboard_table_card { background-color: #222336; border-radius: 12px; border: 1px solid #2d2e42; }")
+        self.table_card.setObjectName("card")
         self.table_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         table_layout = QVBoxLayout(self.table_card)
