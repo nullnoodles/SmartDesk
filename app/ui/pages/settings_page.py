@@ -144,6 +144,177 @@ class SettingsPage(QWidget):
         self._logo_path = ""
         self._receipt_path = ""
 
+        # UI Design Token Stylesheets
+        self.INPUT_STYLE = """
+            QLineEdit, QTextEdit, QComboBox, QSpinBox {
+                background-color: #12131d;
+                border: 1px solid rgba(255,255,255,0.08);
+                border-radius: 10px;
+                padding: 6px 12px;
+                color: #e2e4f0;
+                font-family: 'Inter';
+                font-size: 13px;
+            }
+            QLineEdit:hover, QTextEdit:hover, QComboBox:hover, QSpinBox:hover {
+                border-color: rgba(124, 138, 244, 0.5);
+            }
+            QLineEdit:focus, QTextEdit:focus, QComboBox:focus, QSpinBox:focus {
+                border-color: rgba(124, 138, 244, 0.8);
+                background-color: #161724;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 24px;
+                background: transparent;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 5px solid #6b6d85;
+                margin-right: 6px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #1a1b26;
+                border: 1px solid rgba(255,255,255,0.12);
+                border-radius: 6px;
+                color: #e2e4f0;
+                selection-background-color: #3c3f5c;
+                selection-color: #ffffff;
+                outline: none;
+                padding: 2px;
+            }
+            QComboBox QAbstractItemView::item {
+                min-height: 28px;
+                padding: 4px 8px;
+            }
+            QSpinBox::up-button, QSpinBox::down-button {
+                background-color: transparent;
+                border: none;
+                width: 16px;
+            }
+            QSpinBox::up-arrow {
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-bottom: 5px solid #6b6d85;
+            }
+            QSpinBox::down-arrow {
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 5px solid #6b6d85;
+            }
+        """
+
+        self.CHECKBOX_STYLE = """
+            QCheckBox {
+                color: #e2e4f0;
+                font-family: 'Inter';
+                font-size: 13px;
+                spacing: 8px;
+                background: transparent;
+            }
+            QCheckBox:hover {
+                color: #ffffff;
+            }
+        """
+
+        self.PRIMARY_BTN_STYLE = """
+            QPushButton {
+                background-color: #7c8af4;
+                color: #ffffff;
+                border-radius: 8px;
+                padding: 8px 18px;
+                font-family: 'Inter';
+                font-size: 13px;
+                font-weight: 600;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #8a96f6;
+            }
+            QPushButton:pressed {
+                background-color: #6d7be2;
+            }
+        """
+
+        self.GHOST_BTN_STYLE = """
+            QPushButton {
+                background-color: transparent;
+                color: #9a9cb8;
+                border: 1px solid rgba(255,255,255,0.10);
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-family: 'Inter';
+                font-size: 13px;
+                font-weight: 500;
+            }
+            QPushButton:hover {
+                background-color: rgba(200, 203, 223, 0.06);
+                border-color: rgba(255,255,255,0.18);
+                color: #e2e4f0;
+            }
+            QPushButton:pressed {
+                background-color: rgba(200, 203, 223, 0.10);
+            }
+        """
+
+        self.DANGER_BTN_STYLE = """
+            QPushButton {
+                background-color: #e87c8a;
+                color: #3d0a12;
+                border: none;
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-family: 'Inter';
+                font-size: 13px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background-color: #ec8c98;
+            }
+            QPushButton:pressed {
+                background-color: #d85c6b;
+            }
+        """
+
+        self.INFO_BTN_STYLE = """
+            QPushButton {
+                background-color: #6ec5d4;
+                color: #12131d;
+                border: none;
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-family: 'Inter';
+                font-size: 13px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background-color: #83d1de;
+            }
+            QPushButton:pressed {
+                background-color: #5ab5c4;
+            }
+        """
+
+        self.WARNING_BTN_STYLE = """
+            QPushButton {
+                background-color: #f0c878;
+                color: #12131d;
+                border: none;
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-family: 'Inter';
+                font-size: 13px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background-color: #f3d290;
+            }
+            QPushButton:pressed {
+                background-color: #e0b860;
+            }
+        """
+
         # Outer layout
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(32, 32, 32, 32)
@@ -200,7 +371,32 @@ class SettingsPage(QWidget):
         scroll.setFrameShape(QFrame.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        scroll.setStyleSheet("QScrollArea { background-color: #12131d; border: none; }")
+        scroll.setStyleSheet("""
+            QScrollArea {
+                background-color: #12131d;
+                border: none;
+            }
+            QScrollBar:vertical {
+                background: #12131d;
+                width: 6px;
+                border-radius: 3px;
+                margin: 0;
+            }
+            QScrollBar::handle:vertical {
+                background: #2d2e42;
+                border-radius: 3px;
+                min-height: 20px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #454652;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: none;
+            }
+        """)
         scroll.setWidget(widget)
         return scroll
 
@@ -266,6 +462,7 @@ class SettingsPage(QWidget):
                         border-radius: 8px;
                         padding: 10px 16px;
                         text-align: left;
+                        font-family: 'Inter';
                         font-size: 14px;
                         font-weight: 500;
                     }}
@@ -289,6 +486,7 @@ class SettingsPage(QWidget):
                         border-radius: 8px;
                         padding: 10px 16px;
                         text-align: left;
+                        font-family: 'Inter';
                         font-size: 14px;
                         font-weight: 500;
                     }}
@@ -323,7 +521,7 @@ class SettingsPage(QWidget):
         widget.setObjectName("settings_panel")
         widget.setStyleSheet("QWidget#settings_panel { background-color: #12131d; }")
         layout = QVBoxLayout(widget)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(0, 0, 16, 16)
         layout.setSpacing(24)
 
         card = AnimatedCard()
@@ -332,7 +530,7 @@ class SettingsPage(QWidget):
         card_layout.setSpacing(20)
 
         title = QLabel("Profile Information")
-        title.setStyleSheet(f"font-size: 18px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
+        title.setStyleSheet(f"font-family: 'Inter'; font-size: 18px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
         card_layout.addWidget(title)
 
         # Avatar Upload Cluster
@@ -347,9 +545,10 @@ class SettingsPage(QWidget):
 
         avatar_btn_row = QHBoxLayout()
         self.upload_avatar_btn = AnimatedButton("Upload New", accent=Colors.ACCENT_PRIMARY)
+        self.upload_avatar_btn.setStyleSheet(self.PRIMARY_BTN_STYLE)
         self.upload_avatar_btn.clicked.connect(self._choose_logo)
         self.remove_avatar_btn = QPushButton("Remove")
-        self.remove_avatar_btn.setProperty("accent", "ghost")
+        self.remove_avatar_btn.setStyleSheet(self.GHOST_BTN_STYLE)
         self.remove_avatar_btn.setFixedWidth(100)
         self.remove_avatar_btn.clicked.connect(self._clear_logo)
 
@@ -359,7 +558,7 @@ class SettingsPage(QWidget):
         avatar_btn_col.addLayout(avatar_btn_row)
 
         self.avatar_path_label = QLabel("No image selected")
-        self.avatar_path_label.setStyleSheet(f"font-size: 12px; color: {Colors.TEXT_MUTED}; background: transparent;")
+        self.avatar_path_label.setStyleSheet(f"font-family: 'Inter'; font-size: 12px; color: {Colors.TEXT_MUTED}; background: transparent;")
         avatar_btn_col.addWidget(self.avatar_path_label)
 
         avatar_row.addLayout(avatar_btn_col)
@@ -375,8 +574,9 @@ class SettingsPage(QWidget):
             vbox = QVBoxLayout()
             vbox.setSpacing(6)
             lbl = QLabel(label_text.upper())
-            lbl.setStyleSheet(f"font-size: 11px; font-weight: 700; color: {Colors.TEXT_SECONDARY}; text-transform: uppercase; letter-spacing: 0.05em;")
+            lbl.setStyleSheet(f"font-family: 'Inter'; font-size: 11px; font-weight: 700; color: {Colors.TEXT_SECONDARY}; text-transform: uppercase; letter-spacing: 0.05em; background: transparent;")
             inp = QLineEdit()
+            inp.setStyleSheet(self.INPUT_STYLE)
             vbox.addWidget(lbl)
             vbox.addWidget(inp)
             grid.addLayout(vbox, row, col)
@@ -393,8 +593,9 @@ class SettingsPage(QWidget):
         bio_vbox = QVBoxLayout()
         bio_vbox.setSpacing(6)
         bio_lbl = QLabel("BIO")
-        bio_lbl.setStyleSheet(f"font-size: 11px; font-weight: 700; color: {Colors.TEXT_SECONDARY}; text-transform: uppercase; letter-spacing: 0.05em;")
+        bio_lbl.setStyleSheet(f"font-family: 'Inter'; font-size: 11px; font-weight: 700; color: {Colors.TEXT_SECONDARY}; text-transform: uppercase; letter-spacing: 0.05em; background: transparent;")
         self.bio_input = QTextEdit()
+        self.bio_input.setStyleSheet(self.INPUT_STYLE)
         self.bio_input.setMaximumHeight(80)
         bio_vbox.addWidget(bio_lbl)
         bio_vbox.addWidget(self.bio_input)
@@ -404,6 +605,7 @@ class SettingsPage(QWidget):
         save_row = QHBoxLayout()
         save_row.addStretch()
         self.save_profile_btn = AnimatedButton("Save Changes", accent=Colors.ACCENT_PRIMARY)
+        self.save_profile_btn.setStyleSheet(self.PRIMARY_BTN_STYLE)
         self.save_profile_btn.setIcon(_load_svg_icon("task_alt", size=18, color=Colors.TEXT_ON_PRIMARY))
         self.save_profile_btn.clicked.connect(self._save_profile)
         save_row.addWidget(self.save_profile_btn)
@@ -419,7 +621,7 @@ class SettingsPage(QWidget):
         widget.setObjectName("settings_panel")
         widget.setStyleSheet("QWidget#settings_panel { background-color: #12131d; }")
         layout = QVBoxLayout(widget)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(0, 0, 16, 16)
         layout.setSpacing(24)
 
         # Card 1: Workspace / Invoice Settings
@@ -431,44 +633,63 @@ class SettingsPage(QWidget):
         work_layout.setSpacing(16)
 
         title_work = QLabel("Workspace Settings")
-        title_work.setStyleSheet(f"font-size: 18px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
+        title_work.setStyleSheet(f"font-family: 'Inter'; font-size: 18px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
         work_layout.addWidget(title_work)
 
         form_work = QFormLayout()
         form_work.setSpacing(12)
 
         self.address_input = QTextEdit()
+        self.address_input.setStyleSheet(self.INPUT_STYLE)
         self.address_input.setPlaceholderText("Enter your billing address...")
         self.address_input.setMaximumHeight(60)
 
         self.gstin_input = QLineEdit()
+        self.gstin_input.setStyleSheet(self.INPUT_STYLE)
         self.gstin_input.setPlaceholderText("e.g. 22AAAAA0000A1Z5 (optional)")
 
         self.due_days_input = QSpinBox()
+        self.due_days_input.setStyleSheet(self.INPUT_STYLE)
         self.due_days_input.setRange(1, 90)
         self.due_days_input.setSuffix(" days")
 
-        form_work.addRow("Billing Address", self.address_input)
-        form_work.addRow("GSTIN", self.gstin_input)
-        form_work.addRow("Payment Due Period", self.due_days_input)
+        # Label styling inside FormLayout
+        lbl_billing = QLabel("Billing Address")
+        lbl_gstin = QLabel("GSTIN")
+        lbl_period = QLabel("Payment Due Period")
+        for lbl in (lbl_billing, lbl_gstin, lbl_period):
+            lbl.setStyleSheet("font-family: 'Inter'; font-size: 13px; color: #9a9cb8; background: transparent;")
+
+        form_work.addRow(lbl_billing, self.address_input)
+        form_work.addRow(lbl_gstin, self.gstin_input)
+        form_work.addRow(lbl_period, self.due_days_input)
         work_layout.addLayout(form_work)
 
         # Card 2: UPI details
         title_upi = QLabel("UPI Payments (India)")
-        title_upi.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {Colors.TEXT_PRIMARY}; margin-top: 10px; background: transparent;")
+        title_upi.setStyleSheet(f"font-family: 'Inter'; font-size: 14px; font-weight: 600; color: {Colors.TEXT_PRIMARY}; margin-top: 10px; background: transparent;")
         work_layout.addWidget(title_upi)
 
         form_upi = QFormLayout()
         form_upi.setSpacing(12)
         self.upi_id_input = QLineEdit()
+        self.upi_id_input.setStyleSheet(self.INPUT_STYLE)
         self.upi_id_input.setPlaceholderText("yourname@upi")
         self.upi_name_input = QLineEdit()
+        self.upi_name_input.setStyleSheet(self.INPUT_STYLE)
         self.upi_name_input.setPlaceholderText("Payee display name")
-        form_upi.addRow("UPI ID", self.upi_id_input)
-        form_upi.addRow("Display Name", self.upi_name_input)
+
+        lbl_upi_id = QLabel("UPI ID")
+        lbl_upi_name = QLabel("Display Name")
+        for lbl in (lbl_upi_id, lbl_upi_name):
+            lbl.setStyleSheet("font-family: 'Inter'; font-size: 13px; color: #9a9cb8; background: transparent;")
+
+        form_upi.addRow(lbl_upi_id, self.upi_id_input)
+        form_upi.addRow(lbl_upi_name, self.upi_name_input)
         work_layout.addLayout(form_upi)
 
         save_work_btn = AnimatedButton("Save Workspace Details", accent=Colors.ACCENT_PRIMARY)
+        save_work_btn.setStyleSheet(self.PRIMARY_BTN_STYLE)
         save_work_btn.clicked.connect(self._save_workspace)
         work_layout.addWidget(save_work_btn)
 
@@ -483,18 +704,20 @@ class SettingsPage(QWidget):
         backup_layout.setSpacing(14)
 
         title_backup = QLabel("Backup & Export")
-        title_backup.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
+        title_backup.setStyleSheet(f"font-family: 'Inter'; font-size: 16px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
         backup_layout.addWidget(title_backup)
 
         desc_backup = QLabel("Create zip archives of database and invoices, restore previous snapshots, or export table data directly to CSV.")
         desc_backup.setWordWrap(True)
-        desc_backup.setStyleSheet(f"font-size: 13px; color: {Colors.TEXT_SECONDARY}; background: transparent;")
+        desc_backup.setStyleSheet(f"font-family: 'Inter'; font-size: 13px; color: {Colors.TEXT_SECONDARY}; background: transparent;")
         backup_layout.addWidget(desc_backup)
 
         backup_btns = QHBoxLayout()
         self.btn_backup = AnimatedButton("Create Backup", accent=Colors.ACCENT_INFO)
+        self.btn_backup.setStyleSheet(self.INFO_BTN_STYLE)
         self.btn_backup.clicked.connect(self._create_backup)
         self.btn_restore = AnimatedButton("Restore from Backup", accent=Colors.ACCENT_WARNING)
+        self.btn_restore.setStyleSheet(self.WARNING_BTN_STYLE)
         self.btn_restore.clicked.connect(self._restore_backup)
         backup_btns.addWidget(self.btn_backup)
         backup_btns.addWidget(self.btn_restore)
@@ -504,7 +727,7 @@ class SettingsPage(QWidget):
         csv_btns = QHBoxLayout()
         for lbl, k in [("Clients", "clients"), ("Projects", "projects"), ("Invoices", "invoices")]:
             btn = QPushButton(f"Export {lbl}")
-            btn.setProperty("accent", "ghost")
+            btn.setStyleSheet(self.GHOST_BTN_STYLE)
             btn.clicked.connect(lambda _=False, kind=k: self._export_csv(kind))
             csv_btns.addWidget(btn)
         csv_btns.addStretch()
@@ -521,25 +744,26 @@ class SettingsPage(QWidget):
         ocr_layout.setSpacing(12)
 
         title_ocr = QLabel("Receipt OCR Scanner")
-        title_ocr.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
+        title_ocr.setStyleSheet(f"font-family: 'Inter'; font-size: 16px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
         ocr_layout.addWidget(title_ocr)
 
         status_txt = "✓ Tesseract OCR Detected" if self.ocr.is_available() else "⚠️ Tesseract Not Found (Receipt scanning disabled)"
         ocr_status = QLabel(status_txt)
         ocr_status.setStyleSheet(
-            f"font-size: 12px; color: {Colors.ACCENT_SUCCESS if self.ocr.is_available() else Colors.ACCENT_WARNING}; "
+            f"font-family: 'Inter'; font-size: 12px; color: {Colors.ACCENT_SUCCESS if self.ocr.is_available() else Colors.ACCENT_WARNING}; "
             f"font-weight: 500; background: transparent;"
         )
         ocr_layout.addWidget(ocr_status)
 
         choose_ocr_row = QHBoxLayout()
         self.receipt_path_label = QLabel("No image selected")
-        self.receipt_path_label.setStyleSheet(f"color: {Colors.TEXT_SECONDARY}; background: transparent;")
+        self.receipt_path_label.setStyleSheet(f"font-family: 'Inter'; color: {Colors.TEXT_SECONDARY}; background: transparent;")
         btn_choose_rec = QPushButton("Choose Image...")
-        btn_choose_rec.setProperty("accent", "ghost")
+        btn_choose_rec.setStyleSheet(self.GHOST_BTN_STYLE)
         btn_choose_rec.clicked.connect(self._choose_receipt)
 
         btn_run_ocr = AnimatedButton("Extract Text", accent=Colors.ACCENT_PRIMARY)
+        btn_run_ocr.setStyleSheet(self.PRIMARY_BTN_STYLE)
         btn_run_ocr.clicked.connect(self._run_receipt_ocr)
 
         choose_ocr_row.addWidget(self.receipt_path_label, 1)
@@ -548,10 +772,11 @@ class SettingsPage(QWidget):
         ocr_layout.addLayout(choose_ocr_row)
 
         self.receipt_summary = QLabel("Extracted data will appear here...")
-        self.receipt_summary.setStyleSheet(f"font-size: 13px; font-weight: 600; color: {Colors.TEXT_PRIMARY}; background: transparent;")
+        self.receipt_summary.setStyleSheet(f"font-family: 'Inter'; font-size: 13px; font-weight: 600; color: {Colors.TEXT_PRIMARY}; background: transparent;")
         ocr_layout.addWidget(self.receipt_summary)
 
         self.receipt_text = QTextEdit()
+        self.receipt_text.setStyleSheet(self.INPUT_STYLE)
         self.receipt_text.setReadOnly(True)
         self.receipt_text.setPlaceholderText("OCR Output...")
         self.receipt_text.setMaximumHeight(100)
@@ -568,16 +793,16 @@ class SettingsPage(QWidget):
         about_layout.setSpacing(8)
 
         lbl_app = QLabel(f"{APP_NAME} — v{APP_VERSION}")
-        lbl_app.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {Colors.ACCENT_PRIMARY_LIGHT}; background: transparent;")
+        lbl_app.setStyleSheet(f"font-family: 'Inter'; font-size: 16px; font-weight: 700; color: {Colors.ACCENT_PRIMARY_LIGHT}; background: transparent;")
         about_layout.addWidget(lbl_app)
 
         lbl_desc = QLabel(APP_DESCRIPTION)
         lbl_desc.setWordWrap(True)
-        lbl_desc.setStyleSheet(f"font-size: 13px; color: {Colors.TEXT_PRIMARY}; background: transparent;")
+        lbl_desc.setStyleSheet(f"font-family: 'Inter'; font-size: 13px; color: {Colors.TEXT_PRIMARY}; background: transparent;")
         about_layout.addWidget(lbl_desc)
 
         lbl_license = QLabel("Built offline with PySide6, SQLite, and scikit-learn. MIT License.")
-        lbl_license.setStyleSheet(f"font-size: 12px; color: {Colors.TEXT_MUTED}; background: transparent;")
+        lbl_license.setStyleSheet(f"font-family: 'Inter'; font-size: 12px; color: {Colors.TEXT_MUTED}; background: transparent;")
         about_layout.addWidget(lbl_license)
 
         layout.addWidget(card_about)
@@ -589,7 +814,7 @@ class SettingsPage(QWidget):
         widget.setObjectName("settings_panel")
         widget.setStyleSheet("QWidget#settings_panel { background-color: #12131d; }")
         layout = QVBoxLayout(widget)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(0, 0, 16, 16)
         layout.setSpacing(24)
 
         # Card 1: Settings
@@ -601,12 +826,15 @@ class SettingsPage(QWidget):
         sett_layout.setSpacing(14)
 
         title = QLabel("Notification Preferences")
-        title.setStyleSheet(f"font-size: 18px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
+        title.setStyleSheet(f"font-family: 'Inter'; font-size: 18px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
         sett_layout.addWidget(title)
 
         self.notifications_enabled = QCheckBox("Enable Notifications")
+        self.notifications_enabled.setStyleSheet(self.CHECKBOX_STYLE)
         self.desktop_notifications = QCheckBox("Desktop Notifications (Pop-ups)")
+        self.desktop_notifications.setStyleSheet(self.CHECKBOX_STYLE)
         self.email_reminders = QCheckBox("Email Reminders")
+        self.email_reminders.setStyleSheet(self.CHECKBOX_STYLE)
 
         sett_layout.addWidget(self.notifications_enabled)
         sett_layout.addWidget(self.desktop_notifications)
@@ -622,14 +850,21 @@ class SettingsPage(QWidget):
         freq_layout.setSpacing(12)
 
         self.reminder_frequency = QComboBox()
+        self.reminder_frequency.setStyleSheet(self.INPUT_STYLE)
         self.reminder_frequency.addItems(["Daily", "Weekly"])
         
         self.days_before_due = QSpinBox()
+        self.days_before_due.setStyleSheet(self.INPUT_STYLE)
         self.days_before_due.setRange(1, 30)
         self.days_before_due.setSuffix(" days")
 
-        freq_layout.addRow("Check Frequency", self.reminder_frequency)
-        freq_layout.addRow("Remind Before Deadline", self.days_before_due)
+        lbl_freq = QLabel("Check Frequency")
+        lbl_days = QLabel("Remind Before Deadline")
+        for lbl in (lbl_freq, lbl_days):
+            lbl.setStyleSheet("font-family: 'Inter'; font-size: 13px; color: #9a9cb8; background: transparent;")
+
+        freq_layout.addRow(lbl_freq, self.reminder_frequency)
+        freq_layout.addRow(lbl_days, self.days_before_due)
         layout.addWidget(card_freq)
 
         # Card 3: Types
@@ -641,12 +876,15 @@ class SettingsPage(QWidget):
         types_layout.setSpacing(12)
 
         title_types = QLabel("Notification Types")
-        title_types.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {Colors.TEXT_PRIMARY}; background: transparent;")
+        title_types.setStyleSheet(f"font-family: 'Inter'; font-size: 14px; font-weight: 600; color: {Colors.TEXT_PRIMARY}; background: transparent;")
         types_layout.addWidget(title_types)
 
         self.notify_overdue = QCheckBox("Overdue Invoices")
+        self.notify_overdue.setStyleSheet(self.CHECKBOX_STYLE)
         self.notify_deadlines = QCheckBox("Upcoming Project Deadlines")
+        self.notify_deadlines.setStyleSheet(self.CHECKBOX_STYLE)
         self.notify_payments = QCheckBox("Payments Received")
+        self.notify_payments.setStyleSheet(self.CHECKBOX_STYLE)
 
         types_layout.addWidget(self.notify_overdue)
         types_layout.addWidget(self.notify_deadlines)
@@ -662,20 +900,21 @@ class SettingsPage(QWidget):
         status_layout.setSpacing(12)
 
         title_status = QLabel("System Status")
-        title_status.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {Colors.TEXT_PRIMARY}; background: transparent;")
+        title_status.setStyleSheet(f"font-family: 'Inter'; font-size: 14px; font-weight: 600; color: {Colors.TEXT_PRIMARY}; background: transparent;")
         status_layout.addWidget(title_status)
 
         self.notification_status_label = QLabel("Loading status...")
         self.notification_status_label.setWordWrap(True)
-        self.notification_status_label.setStyleSheet(f"color: {Colors.TEXT_SECONDARY}; background: transparent; font-size: 13px;")
+        self.notification_status_label.setStyleSheet(f"font-family: 'Inter'; color: {Colors.TEXT_SECONDARY}; background: transparent; font-size: 13px;")
         status_layout.addWidget(self.notification_status_label)
 
         btn_row = QHBoxLayout()
         test_btn = QPushButton("Send Test Alert")
-        test_btn.setProperty("accent", "ghost")
+        test_btn.setStyleSheet(self.GHOST_BTN_STYLE)
         test_btn.clicked.connect(self._send_test_notification)
 
         run_check_btn = AnimatedButton("Check Now", accent=Colors.ACCENT_INFO)
+        run_check_btn.setStyleSheet(self.INFO_BTN_STYLE)
         run_check_btn.clicked.connect(self._check_notifications_now)
 
         btn_row.addWidget(test_btn)
@@ -686,6 +925,7 @@ class SettingsPage(QWidget):
 
         # Save notifications button
         save_btn = AnimatedButton("Save Notification Preferences", accent=Colors.ACCENT_PRIMARY)
+        save_btn.setStyleSheet(self.PRIMARY_BTN_STYLE)
         save_btn.clicked.connect(self._save_notification_settings)
         layout.addWidget(save_btn)
         layout.addStretch()
@@ -697,12 +937,12 @@ class SettingsPage(QWidget):
         widget.setObjectName("settings_panel")
         widget.setStyleSheet("QWidget#settings_panel { background-color: #12131d; }")
         layout = QVBoxLayout(widget)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(0, 0, 16, 16)
         layout.setSpacing(24)
 
         # Header Title
         title = QLabel("Subscription Plan")
-        title.setStyleSheet(f"font-size: 18px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
+        title.setStyleSheet(f"font-family: 'Inter'; font-size: 18px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
         layout.addWidget(title)
 
         # Plan 1: Active Local Free Plan
@@ -711,9 +951,9 @@ class SettingsPage(QWidget):
         card_local.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         card_local.setStyleSheet(f"""
             .AnimatedCard {{
-                background-color: {Colors.BG_CARD};
-                border: 1.5px solid {Colors.ACCENT_SUCCESS};
-                border-radius: 14px;
+                background-color: #1a1b26;
+                border: 1px solid {Colors.ACCENT_SUCCESS};
+                border-radius: 12px;
                 padding: 24px;
             }}
         """)
@@ -723,10 +963,10 @@ class SettingsPage(QWidget):
 
         top_row = QHBoxLayout()
         lbl_local_title = QLabel("SmartDesk Local")
-        lbl_local_title.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
+        lbl_local_title.setStyleSheet(f"font-family: 'Inter'; font-size: 16px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
         badge = QLabel("✓ ACTIVE LOCAL LICENSE")
         badge.setStyleSheet(
-            f"font-size: 11px; font-weight: 700; color: #ffffff; "
+            f"font-family: 'Inter'; font-size: 11px; font-weight: 700; color: #ffffff; "
             f"background-color: {Colors.ACCENT_SUCCESS}; border-radius: 4px; padding: 2px 8px;"
         )
         top_row.addWidget(lbl_local_title)
@@ -734,13 +974,13 @@ class SettingsPage(QWidget):
         top_row.addStretch()
 
         price_lbl = QLabel("₹0 / lifetime")
-        price_lbl.setStyleSheet(f"font-size: 18px; font-weight: 700; color: {Colors.ACCENT_SUCCESS}; background: transparent;")
+        price_lbl.setStyleSheet(f"font-family: 'Inter'; font-size: 18px; font-weight: 700; color: {Colors.ACCENT_SUCCESS}; background: transparent;")
         top_row.addWidget(price_lbl)
         local_layout.addLayout(top_row)
 
         desc = QLabel("Offline-first workspace. Your client profiles, projects, invoices, and analytics data stay secure on this local machine.")
         desc.setWordWrap(True)
-        desc.setStyleSheet(f"font-size: 13px; color: {Colors.TEXT_SECONDARY}; background: transparent;")
+        desc.setStyleSheet(f"font-family: 'Inter'; font-size: 13px; color: {Colors.TEXT_SECONDARY}; background: transparent;")
         local_layout.addWidget(desc)
 
         features = [
@@ -752,7 +992,7 @@ class SettingsPage(QWidget):
         for f in features:
             flbl = QLabel(f"•  {f}")
             flbl.setWordWrap(True)
-            flbl.setStyleSheet(f"font-size: 13px; color: {Colors.TEXT_PRIMARY}; background: transparent;")
+            flbl.setStyleSheet(f"font-family: 'Inter'; font-size: 13px; color: {Colors.TEXT_PRIMARY}; background: transparent;")
             local_layout.addWidget(flbl)
 
         layout.addWidget(card_local)
@@ -763,11 +1003,11 @@ class SettingsPage(QWidget):
         card_cloud.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         card_cloud.setStyleSheet(f"""
             .AnimatedCard {{
-                background-color: {Colors.BG_CARD};
-                border: 1px dashed {Colors.BORDER_SUBTLE};
-                border-radius: 14px;
+                background-color: #1a1b26;
+                border: 1px dashed rgba(255,255,255,0.12);
+                border-radius: 12px;
                 padding: 24px;
-                opacity: 0.8;
+                opacity: 0.85;
             }}
         """)
         cloud_layout = QVBoxLayout(card_cloud)
@@ -776,10 +1016,10 @@ class SettingsPage(QWidget):
 
         ctop = QHBoxLayout()
         lbl_cloud_title = QLabel("SmartDesk Cloud")
-        lbl_cloud_title.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {Colors.TEXT_SECONDARY}; background: transparent;")
+        lbl_cloud_title.setStyleSheet(f"font-family: 'Inter'; font-size: 16px; font-weight: 700; color: {Colors.TEXT_SECONDARY}; background: transparent;")
         cbadge = QLabel("COMING SOON")
         cbadge.setStyleSheet(
-            f"font-size: 11px; font-weight: 700; color: #3d2a0a; "
+            f"font-family: 'Inter'; font-size: 11px; font-weight: 700; color: #3d2a0a; "
             f"background-color: {Colors.ACCENT_WARNING}; border-radius: 4px; padding: 2px 8px;"
         )
         ctop.addWidget(lbl_cloud_title)
@@ -787,13 +1027,13 @@ class SettingsPage(QWidget):
         ctop.addStretch()
 
         cprice = QLabel("₹499 / mo")
-        cprice.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {Colors.TEXT_SECONDARY}; background: transparent;")
+        cprice.setStyleSheet(f"font-family: 'Inter'; font-size: 16px; font-weight: 700; color: {Colors.TEXT_SECONDARY}; background: transparent;")
         ctop.addWidget(cprice)
         cloud_layout.addLayout(ctop)
 
         cdesc = QLabel("Synchronize your workspace across multiple computers, run secure cloud backups, and collaborate with other freelancers.")
         cdesc.setWordWrap(True)
-        cdesc.setStyleSheet(f"font-size: 13px; color: {Colors.TEXT_MUTED}; background: transparent;")
+        cdesc.setStyleSheet(f"font-family: 'Inter'; font-size: 13px; color: {Colors.TEXT_MUTED}; background: transparent;")
         cloud_layout.addWidget(cdesc)
 
         cfeatures = [
@@ -805,12 +1045,12 @@ class SettingsPage(QWidget):
         for f in cfeatures:
             flbl = QLabel(f"•  {f}")
             flbl.setWordWrap(True)
-            flbl.setStyleSheet(f"font-size: 13px; color: {Colors.TEXT_MUTED}; background: transparent;")
+            flbl.setStyleSheet(f"font-family: 'Inter'; font-size: 13px; color: {Colors.TEXT_MUTED}; background: transparent;")
             cloud_layout.addWidget(flbl)
 
         btn_notify = QPushButton("Notify Me on Launch")
         btn_notify.setEnabled(False)
-        btn_notify.setStyleSheet(f"background-color: {Colors.BG_ELEVATED}; color: {Colors.TEXT_MUTED}; border-radius: 10px; padding: 10px; font-size: 13px;")
+        btn_notify.setStyleSheet(f"background-color: {Colors.BG_ELEVATED}; color: {Colors.TEXT_MUTED}; border-radius: 8px; padding: 10px; font-family: 'Inter'; font-size: 13px; border: none;")
         cloud_layout.addWidget(btn_notify)
 
         layout.addWidget(card_cloud)
@@ -823,12 +1063,12 @@ class SettingsPage(QWidget):
         widget.setObjectName("settings_panel")
         widget.setStyleSheet("QWidget#settings_panel { background-color: #12131d; }")
         layout = QVBoxLayout(widget)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(0, 0, 16, 16)
         layout.setSpacing(24)
 
         # Header Title
         title = QLabel("Connected Systems")
-        title.setStyleSheet(f"font-size: 18px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
+        title.setStyleSheet(f"font-family: 'Inter'; font-size: 18px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
         layout.addWidget(title)
 
         # Grid of connected APIs (3rd party placeholders)
@@ -852,11 +1092,11 @@ class SettingsPage(QWidget):
 
             trow = QHBoxLayout()
             iname = QLabel(name)
-            iname.setStyleSheet(f"font-size: 14px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
+            iname.setStyleSheet(f"font-family: 'Inter'; font-size: 14px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
             
             # Simple colored dot indicating disconnect
             dot = QLabel("● Disconnected")
-            dot.setStyleSheet(f"font-size: 11px; color: {Colors.TEXT_MUTED}; background: transparent;")
+            dot.setStyleSheet(f"font-family: 'Inter'; font-size: 11px; color: {Colors.TEXT_MUTED}; background: transparent;")
             trow.addWidget(iname)
             trow.addStretch()
             trow.addWidget(dot)
@@ -864,14 +1104,14 @@ class SettingsPage(QWidget):
 
             idesc = QLabel(desc)
             idesc.setWordWrap(True)
-            idesc.setStyleSheet(f"font-size: 12px; color: {Colors.TEXT_SECONDARY}; background: transparent;")
+            idesc.setStyleSheet(f"font-family: 'Inter'; font-size: 12px; color: {Colors.TEXT_SECONDARY}; background: transparent;")
             ilay.addWidget(idesc)
 
             icon = _load_svg_icon(icon_name, size=16, color=Colors.TEXT_MUTED)
             ibtn = QPushButton("  Connect")
             ibtn.setIcon(icon)
-            ibtn.setProperty("accent", "ghost")
-            ibtn.setFixedHeight(30)
+            ibtn.setStyleSheet(self.GHOST_BTN_STYLE)
+            ibtn.setFixedHeight(34)
             ibtn.setCursor(Qt.PointingHandCursor)
             ibtn.clicked.connect(lambda _=False, n=name: QMessageBox.information(self, "Integrations", f"Connecting to {n} is a cloud subscription feature."))
             ilay.addWidget(ibtn)
@@ -889,51 +1129,66 @@ class SettingsPage(QWidget):
         smtp_layout.setSpacing(16)
 
         title_smtp = QLabel("Email (SMTP) Settings")
-        title_smtp.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
+        title_smtp.setStyleSheet(f"font-family: 'Inter'; font-size: 16px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
         smtp_layout.addWidget(title_smtp)
 
         sub_smtp = QLabel("Configure custom SMTP details to auto-mail invoices and payment reminders to clients.")
         sub_smtp.setWordWrap(True)
-        sub_smtp.setStyleSheet(f"font-size: 13px; color: {Colors.TEXT_SECONDARY}; background: transparent;")
+        sub_smtp.setStyleSheet(f"font-family: 'Inter'; font-size: 13px; color: {Colors.TEXT_SECONDARY}; background: transparent;")
         smtp_layout.addWidget(sub_smtp)
 
         form_smtp = QFormLayout()
         form_smtp.setSpacing(12)
 
         self.smtp_host = QLineEdit()
+        self.smtp_host.setStyleSheet(self.INPUT_STYLE)
         self.smtp_host.setPlaceholderText("e.g. smtp.gmail.com")
 
         self.smtp_port = QSpinBox()
+        self.smtp_port.setStyleSheet(self.INPUT_STYLE)
         self.smtp_port.setRange(1, 65535)
         self.smtp_port.setValue(587)
 
         self.smtp_username = QLineEdit()
+        self.smtp_username.setStyleSheet(self.INPUT_STYLE)
         self.smtp_username.setPlaceholderText("smtp_username@example.com")
 
         self.smtp_password = QLineEdit()
+        self.smtp_password.setStyleSheet(self.INPUT_STYLE)
         self.smtp_password.setEchoMode(QLineEdit.Password)
         self.smtp_password.setPlaceholderText("Password or client App Token")
 
         self.smtp_from = QLineEdit()
+        self.smtp_from.setStyleSheet(self.INPUT_STYLE)
         self.smtp_from.setPlaceholderText("sender_email@example.com")
 
         self.smtp_use_tls = QCheckBox("Use STARTTLS (default 587)")
+        self.smtp_use_tls.setStyleSheet(self.CHECKBOX_STYLE)
         self.smtp_use_tls.setChecked(True)
 
-        form_smtp.addRow("SMTP Server Host", self.smtp_host)
-        form_smtp.addRow("Port Number", self.smtp_port)
-        form_smtp.addRow("Username", self.smtp_username)
-        form_smtp.addRow("Password", self.smtp_password)
-        form_smtp.addRow("Sender Address", self.smtp_from)
+        lbl_smtp_host = QLabel("SMTP Server Host")
+        lbl_smtp_port = QLabel("Port Number")
+        lbl_smtp_user = QLabel("Username")
+        lbl_smtp_pass = QLabel("Password")
+        lbl_smtp_from = QLabel("Sender Address")
+        for lbl in (lbl_smtp_host, lbl_smtp_port, lbl_smtp_user, lbl_smtp_pass, lbl_smtp_from):
+            lbl.setStyleSheet("font-family: 'Inter'; font-size: 13px; color: #9a9cb8; background: transparent;")
+
+        form_smtp.addRow(lbl_smtp_host, self.smtp_host)
+        form_smtp.addRow(lbl_smtp_port, self.smtp_port)
+        form_smtp.addRow(lbl_smtp_user, self.smtp_username)
+        form_smtp.addRow(lbl_smtp_pass, self.smtp_password)
+        form_smtp.addRow(lbl_smtp_from, self.smtp_from)
         form_smtp.addRow("", self.smtp_use_tls)
         smtp_layout.addLayout(form_smtp)
 
         smtp_btns = QHBoxLayout()
         save_smtp_btn = AnimatedButton("Save SMTP Settings", accent=Colors.ACCENT_PRIMARY)
+        save_smtp_btn.setStyleSheet(self.PRIMARY_BTN_STYLE)
         save_smtp_btn.clicked.connect(self._save_smtp)
         
         test_email_btn = QPushButton("Send Test Email")
-        test_email_btn.setProperty("accent", "ghost")
+        test_email_btn.setStyleSheet(self.GHOST_BTN_STYLE)
         test_email_btn.clicked.connect(self._send_test_email)
 
         smtp_btns.addWidget(save_smtp_btn)
@@ -951,7 +1206,7 @@ class SettingsPage(QWidget):
         widget.setObjectName("settings_panel")
         widget.setStyleSheet("QWidget#settings_panel { background-color: #12131d; }")
         layout = QVBoxLayout(widget)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(0, 0, 16, 16)
         layout.setSpacing(24)
 
         card = AnimatedCard()
@@ -959,9 +1214,9 @@ class SettingsPage(QWidget):
         card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         card.setStyleSheet(f"""
             .AnimatedCard {{
-                background-color: {Colors.BG_CARD};
-                border: 1.5px solid {Colors.ACCENT_DANGER};
-                border-radius: 14px;
+                background-color: #1a1b26;
+                border: 1px solid {Colors.ACCENT_DANGER};
+                border-radius: 12px;
                 padding: 24px;
             }}
         """)
@@ -970,12 +1225,12 @@ class SettingsPage(QWidget):
         danger_layout.setSpacing(16)
 
         title = QLabel("Danger Zone")
-        title.setStyleSheet(f"font-size: 18px; font-weight: 700; color: {Colors.ACCENT_DANGER}; background: transparent;")
+        title.setStyleSheet(f"font-family: 'Inter'; font-size: 18px; font-weight: 700; color: {Colors.ACCENT_DANGER}; background: transparent;")
         danger_layout.addWidget(title)
 
         desc = QLabel("These operations are destructive and modify or delete workspace parameters, settings keys, and transactional logs. Be careful.")
         desc.setWordWrap(True)
-        desc.setStyleSheet(f"font-size: 13px; color: {Colors.TEXT_PRIMARY}; background: transparent;")
+        desc.setStyleSheet(f"font-family: 'Inter'; font-size: 13px; color: {Colors.TEXT_PRIMARY}; background: transparent;")
         danger_layout.addWidget(desc)
 
         # Destructive buttons column
@@ -986,10 +1241,11 @@ class SettingsPage(QWidget):
         row1 = QHBoxLayout()
         lbl1 = QLabel("Reset settings keys (SMTP configurations and UI preferences) to defaults. Data is safe.")
         lbl1.setWordWrap(True)
-        lbl1.setStyleSheet(f"font-size: 12px; color: {Colors.TEXT_SECONDARY}; background: transparent;")
+        lbl1.setStyleSheet(f"font-family: 'Inter'; font-size: 12px; color: {Colors.TEXT_SECONDARY}; background: transparent;")
         btn1 = QPushButton("Reset Preferences")
-        btn1.setProperty("accent", "danger")
+        btn1.setStyleSheet(self.DANGER_BTN_STYLE)
         btn1.setFixedWidth(160)
+        btn1.setFixedHeight(38)
         btn1.clicked.connect(self._reset_preferences)
         row1.addWidget(lbl1, 1)
         row1.addWidget(btn1)
@@ -1005,10 +1261,11 @@ class SettingsPage(QWidget):
         row2 = QHBoxLayout()
         lbl2 = QLabel("Delete all client records, invoice lists, payment registries, time log sheets, and active contracts. Settings are safe.")
         lbl2.setWordWrap(True)
-        lbl2.setStyleSheet(f"font-size: 12px; color: {Colors.TEXT_SECONDARY}; background: transparent;")
+        lbl2.setStyleSheet(f"font-family: 'Inter'; font-size: 12px; color: {Colors.TEXT_SECONDARY}; background: transparent;")
         btn2 = QPushButton("Clear All Data")
-        btn2.setProperty("accent", "danger")
+        btn2.setStyleSheet(self.DANGER_BTN_STYLE)
         btn2.setFixedWidth(160)
+        btn2.setFixedHeight(38)
         btn2.clicked.connect(self._clear_workspace_data)
         row2.addWidget(lbl2, 1)
         row2.addWidget(btn2)
@@ -1024,16 +1281,18 @@ class SettingsPage(QWidget):
         row3 = QHBoxLayout()
         lbl3 = QLabel("Drop all local SQLite tables and run initial database scripts again. Wipes all settings and data.")
         lbl3.setWordWrap(True)
-        lbl3.setStyleSheet(f"font-size: 12px; color: {Colors.TEXT_SECONDARY}; background: transparent;")
+        lbl3.setStyleSheet(f"font-family: 'Inter'; font-size: 12px; color: {Colors.TEXT_SECONDARY}; background: transparent;")
         btn3 = QPushButton("Reset Database")
-        btn3.setProperty("accent", "danger")
+        btn3.setStyleSheet(self.DANGER_BTN_STYLE)
         btn3.setFixedWidth(160)
+        btn3.setFixedHeight(38)
         btn3.clicked.connect(self._reset_database)
         row3.addWidget(lbl3, 1)
         row3.addWidget(btn3)
         btns_col.addLayout(row3)
 
         danger_layout.addLayout(btns_col)
+        danger_layout.addStretch()
         layout.addWidget(card)
         layout.addStretch()
         return widget
