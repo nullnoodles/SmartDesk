@@ -670,13 +670,14 @@ class ContractsPage(QWidget):
             QScrollArea { background-color: #12131d; border: none; }
             QScrollBar:vertical {
                 background-color: #12131d;
-                width: 8px;
-                border-radius: 4px;
+                width: 6px;
+                border-radius: 3px;
+                margin: 0;
             }
             QScrollBar::handle:vertical {
-                background-color: #333440;
-                border-radius: 4px;
-                min-height: 24px;
+                background-color: #2d2e42;
+                border-radius: 3px;
+                min-height: 20px;
             }
             QScrollBar::handle:vertical:hover {
                 background-color: #454652;
@@ -684,6 +685,10 @@ class ContractsPage(QWidget):
             QScrollBar::add-line:vertical,
             QScrollBar::sub-line:vertical {
                 height: 0px;
+            }
+            QScrollBar::add-page:vertical,
+            QScrollBar::sub-page:vertical {
+                background: none;
             }
         """)
 
@@ -747,21 +752,21 @@ class ContractsPage(QWidget):
         # Search bar
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Search contracts by project or text...")
-        self.search_input.setFixedWidth(480)
+        self.search_input.setFixedWidth(380)
         self.search_input.textChanged.connect(self._on_search)
-        self.search_input.setFixedHeight(38)
+        self.search_input.setFixedHeight(36)
         self.search_input.setStyleSheet("""
             QLineEdit {
                 background-color: #1a1b26;
-                border: 1px solid #333440;
-                border-radius: 8px;
-                padding: 8px 14px 8px 36px;
+                border: 1px solid rgba(255,255,255,0.08);
+                border-radius: 10px;
+                padding: 6px 12px 6px 34px;
                 color: #e2e4f0;
                 font-family: 'Inter';
                 font-size: 13px;
             }
             QLineEdit:focus {
-                border: 1px solid #7c8af4;
+                border: 1px solid rgba(124, 138, 244, 0.6);
                 background-color: #1e1f2a;
             }
             QLineEdit::placeholder {
@@ -785,7 +790,7 @@ class ContractsPage(QWidget):
         self.filter_btn = QPushButton("  Filter")
         self.filter_btn.setObjectName("filter_btn")
         self.filter_btn.setCursor(Qt.PointingHandCursor)
-        self.filter_btn.setFixedHeight(38)
+        self.filter_btn.setFixedHeight(36)
         filter_icon = _load_svg_icon("filter_list", size=16, color="#9a9cb8")
         self.filter_btn.setIcon(QIcon(filter_icon))
         self.filter_btn.clicked.connect(self._toggle_filter)
@@ -794,22 +799,22 @@ class ContractsPage(QWidget):
             QPushButton#filter_btn {
                 background-color: transparent;
                 color: #9a9cb8;
-                border: 1px solid #333440;
-                border-radius: 8px;
-                padding: 0px 16px;
+                border: 1px solid rgba(255,255,255,0.08);
+                border-radius: 10px;
+                padding: 0px 14px;
                 font-family: 'Inter';
-                font-size: 13px;
+                font-size: 12px;
                 font-weight: 500;
             }
             QPushButton#filter_btn:hover {
-                border-color: #454652;
+                border-color: rgba(124, 138, 244, 0.5);
                 color: #e2e4f0;
-                background-color: #1a1b26;
+                background-color: rgba(200, 203, 223, 0.06);
             }
             QPushButton#filter_btn:checked {
                 background-color: rgba(124, 138, 244, 0.10);
                 color: #bcc2ff;
-                border-color: #7c8af4;
+                border-color: rgba(124, 138, 244, 0.5);
             }
             QPushButton#filter_btn:pressed {
                 background-color: rgba(124, 138, 244, 0.15);
@@ -838,24 +843,24 @@ class ContractsPage(QWidget):
         # Clear All button
         self.clear_btn = QPushButton(" Clear All")
         self.clear_btn.setCursor(Qt.PointingHandCursor)
-        self.clear_btn.setFixedHeight(38)
+        self.clear_btn.setFixedHeight(36)
         self.clear_btn.setStyleSheet("""
             QPushButton {
                 background-color: transparent;
                 color: #e87c8a;
-                border: 1px solid rgba(232, 124, 138, 0.40);
-                border-radius: 8px;
-                padding: 0px 16px;
+                border: 1px solid rgba(232, 124, 138, 0.30);
+                border-radius: 10px;
+                padding: 0px 14px;
                 font-family: 'Inter';
-                font-size: 13px;
-                font-weight: 600;
+                font-size: 12px;
+                font-weight: 500;
             }
             QPushButton:hover {
-                background-color: rgba(232, 124, 138, 0.10);
-                border-color: #e87c8a;
+                background-color: rgba(232, 124, 138, 0.08);
+                border-color: rgba(232, 124, 138, 0.6);
             }
             QPushButton:pressed {
-                background-color: rgba(232, 124, 138, 0.18);
+                background-color: rgba(232, 124, 138, 0.15);
             }
         """)
         self.clear_btn.clicked.connect(self._clear_all_analyses)
@@ -865,15 +870,15 @@ class ContractsPage(QWidget):
         self.add_btn = QPushButton("  Analyze Contract")
         self.add_btn.setObjectName("analyze_new_btn")
         self.add_btn.setCursor(Qt.PointingHandCursor)
-        self.add_btn.setFixedHeight(38)
+        self.add_btn.setFixedHeight(36)
         self.add_btn.setStyleSheet("""
             QPushButton#analyze_new_btn {
                 background-color: #7c8af4;
-                color: #061987;
-                border-radius: 8px;
-                padding: 0px 20px;
+                color: #ffffff;
+                border-radius: 10px;
+                padding: 0px 18px;
                 font-family: 'Inter';
-                font-weight: 700;
+                font-weight: 600;
                 font-size: 13px;
                 border: none;
             }
@@ -922,7 +927,7 @@ class ContractsPage(QWidget):
         # Table Card QFrame
         self.table_card = QFrame()
         self.table_card.setObjectName("card")
-        self.table_card.setStyleSheet("QFrame#card { background-color: #1a1b26; border: 1px solid #333440; border-radius: 14px; }")
+        self.table_card.setStyleSheet("QFrame#card { background-color: #1a1b26; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }")
         table_card_layout = QVBoxLayout(self.table_card)
         table_card_layout.setContentsMargins(0, 0, 0, 0)
         table_card_layout.setSpacing(0)
@@ -940,12 +945,12 @@ class ContractsPage(QWidget):
         self.table.verticalHeader().setVisible(False)
         self.table.setShowGrid(False)
         self.table.setFocusPolicy(Qt.NoFocus)
-        self.table.verticalHeader().setDefaultSectionSize(52)  # Row height 52px
+        self.table.verticalHeader().setDefaultSectionSize(48)  # Dashboard-matched 48px rows
         self.table.setFrameShape(QFrame.NoFrame)
         self.table.setStyleSheet("""
             QTableWidget {
                 background-color: #1a1b26;
-                alternate-background-color: #1e1f2a;
+                alternate-background-color: transparent;
                 border: none;
                 color: #e2e4f0;
                 font-size: 13px;
@@ -954,45 +959,39 @@ class ContractsPage(QWidget):
             }
             QHeaderView::section {
                 background-color: #1a1b26;
-                color: #9a9cb8;
-                padding: 14px 24px;
+                color: #6b6d85;
+                padding: 8px 12px;
                 border: none;
-                border-bottom: 1px solid #333440;
+                border-bottom: 1px solid rgba(255,255,255,0.06);
                 font-family: 'Inter';
                 font-size: 11px;
                 font-weight: 700;
                 text-transform: uppercase;
                 letter-spacing: 0.05em;
             }
-            QHeaderView::section:first {
-                border-top-left-radius: 14px;
-            }
-            QHeaderView::section:last {
-                border-top-right-radius: 14px;
-            }
             QTableWidget::item {
                 border: none;
-                padding: 10px 24px;
-                border-bottom: 1px solid rgba(51, 52, 64, 0.60);
+                padding: 8px 12px;
+                border-bottom: 1px solid rgba(255,255,255,0.04);
+                color: #e2e4f0;
+                font-size: 13px;
             }
             QTableWidget::item:selected {
                 background-color: rgba(124, 138, 244, 0.12);
-                border: none;
-                color: #e2e4f0;
+                color: #ffffff;
             }
             QTableWidget::item:hover {
-                background-color: rgba(30, 31, 42, 0.80);
-                border: none;
+                background-color: rgba(255, 255, 255, 0.04);
             }
             QScrollBar:vertical {
                 background-color: #12131d;
-                width: 8px;
-                border-radius: 4px;
+                width: 6px;
+                border-radius: 3px;
             }
             QScrollBar::handle:vertical {
-                background-color: #333440;
-                border-radius: 4px;
-                min-height: 24px;
+                background-color: #2d2e42;
+                border-radius: 3px;
+                min-height: 20px;
             }
             QScrollBar::handle:vertical:hover {
                 background-color: #454652;
@@ -1000,23 +999,6 @@ class ContractsPage(QWidget):
             QScrollBar::add-line:vertical,
             QScrollBar::sub-line:vertical {
                 height: 0px;
-            }
-            QScrollBar:horizontal {
-                background-color: #12131d;
-                height: 8px;
-                border-radius: 4px;
-            }
-            QScrollBar::handle:horizontal {
-                background-color: #333440;
-                border-radius: 4px;
-                min-width: 24px;
-            }
-            QScrollBar::handle:horizontal:hover {
-                background-color: #454652;
-            }
-            QScrollBar::add-line:horizontal,
-            QScrollBar::sub-line:horizontal {
-                width: 0px;
             }
         """)
 
@@ -1042,12 +1024,12 @@ class ContractsPage(QWidget):
         # Pagination Footer
         self.footer_widget = QWidget()
         self.footer_widget.setObjectName("table_footer")
-        self.footer_widget.setStyleSheet("QWidget#table_footer { background-color: #1e1f2a; border-top: 1px solid #333440; border-bottom-left-radius: 14px; border-bottom-right-radius: 14px; }")
+        self.footer_widget.setStyleSheet("QWidget#table_footer { background-color: transparent; border-top: 1px solid rgba(255,255,255,0.06); }")
         footer_layout = QHBoxLayout(self.footer_widget)
         footer_layout.setContentsMargins(24, 16, 24, 16)
 
         self.info_label = QLabel()
-        self.info_label.setStyleSheet("color: #9a9cb8; font-size: 13px;")
+        self.info_label.setStyleSheet("color: #6b6d85; font-family: 'Inter'; font-size: 12px;")
         footer_layout.addWidget(self.info_label, 0, Qt.AlignLeft | Qt.AlignVCenter)
         footer_layout.addStretch()
 
@@ -1181,19 +1163,20 @@ class ContractsPage(QWidget):
         upload_card.setObjectName("glassCardUpload")
         upload_card.setStyleSheet("""
             QFrame#glassCardUpload {
-                background-color: #222336;
-                border: 1px solid #333440;
-                border-radius: 14px;
+                background-color: #1a1b26;
+                border: 1px solid rgba(255,255,255,0.06);
+                border-radius: 12px;
             }
             QFrame#glassCardUpload:hover {
-                background-color: #282935;
+                background-color: #1e1f2a;
+                border-color: rgba(255,255,255,0.10);
             }
         """)
         upload_card_layout = QVBoxLayout(upload_card)
         upload_card_layout.setContentsMargins(24, 24, 24, 24)
         upload_card_layout.setSpacing(16)
 
-        upload_title = QLabel("📄 Contract Upload")
+        upload_title = QLabel("Contract Upload")
         upload_title.setStyleSheet("font-family: 'Inter'; font-size: 16px; font-weight: 700; color: #e2e4f0; background: transparent; border: none;")
         upload_card_layout.addWidget(upload_title)
 
@@ -1212,19 +1195,20 @@ class ContractsPage(QWidget):
         params_card.setObjectName("glassCardParams")
         params_card.setStyleSheet("""
             QFrame#glassCardParams {
-                background-color: #222336;
-                border: 1px solid #333440;
-                border-radius: 14px;
+                background-color: #1a1b26;
+                border: 1px solid rgba(255,255,255,0.06);
+                border-radius: 12px;
             }
             QFrame#glassCardParams:hover {
-                background-color: #282935;
+                background-color: #1e1f2a;
+                border-color: rgba(255,255,255,0.10);
             }
         """)
         params_card_layout = QVBoxLayout(params_card)
         params_card_layout.setContentsMargins(24, 24, 24, 24)
         params_card_layout.setSpacing(16)
 
-        params_title = QLabel("⚙️ Project Details")
+        params_title = QLabel("Project Details")
         params_title.setStyleSheet("font-family: 'Inter'; font-size: 16px; font-weight: 700; color: #e2e4f0; background: transparent; border: none;")
         params_card_layout.addWidget(params_title)
 
@@ -1264,25 +1248,25 @@ class ContractsPage(QWidget):
         # Style inputs
         input_style = """
             QComboBox, QAbstractSpinBox {
-                background-color: #1a1b26;
-                border: 1px solid #333440;
-                border-radius: 6px;
-                padding: 6px 12px;
-                color: #e2e4f0;
+                background-color: #12131d;
+                border: 1px solid rgba(255,255,255,0.08);
+                border-radius: 10px;
+                padding: 5px 12px;
+                color: #e0e2f0;
                 font-family: 'Inter';
-                font-size: 13px;
-                selection-background-color: rgba(124, 138, 244, 0.20);
+                font-size: 12px;
+                min-height: 28px;
             }
             QComboBox:hover, QAbstractSpinBox:hover {
-                border-color: #454652;
+                border-color: rgba(124, 138, 244, 0.5);
             }
             QComboBox:focus, QAbstractSpinBox:focus {
-                border-color: #7c8af4;
-                background-color: #1e1f2a;
+                border-color: rgba(124, 138, 244, 0.8);
             }
             QComboBox::drop-down {
                 border: none;
-                padding-right: 8px;
+                width: 24px;
+                background: transparent;
             }
             QComboBox::down-arrow {
                 image: none;
@@ -1292,12 +1276,18 @@ class ContractsPage(QWidget):
                 margin-right: 6px;
             }
             QComboBox QAbstractItemView {
-                background-color: #1e1f2a;
-                border: 1px solid #333440;
+                background-color: #1a1b26;
+                border: 1px solid rgba(255,255,255,0.12);
                 border-radius: 6px;
-                color: #e2e4f0;
-                selection-background-color: rgba(124, 138, 244, 0.20);
+                color: #e0e2f0;
+                selection-background-color: #3c3f5c;
+                selection-color: #ffffff;
                 outline: none;
+                padding: 2px;
+            }
+            QComboBox QAbstractItemView::item {
+                min-height: 28px;
+                padding: 4px 8px;
             }
             QAbstractSpinBox::up-button,
             QAbstractSpinBox::down-button {
@@ -1341,40 +1331,39 @@ class ContractsPage(QWidget):
 
         self.contract_text = QTextEdit()
         self.contract_text.setPlaceholderText("Paste contract text here...")
-        self.contract_text.setMinimumHeight(120)
+        self.contract_text.setMinimumHeight(100)
         self.contract_text.setStyleSheet("""
             QTextEdit {
-                background-color: #1a1b26;
-                border: 1px solid #333440;
-                border-radius: 6px;
+                background-color: #12131d;
+                border: 1px solid rgba(255,255,255,0.08);
+                border-radius: 10px;
                 padding: 8px 12px;
                 color: #e2e4f0;
                 font-family: 'Inter';
                 font-size: 13px;
             }
             QTextEdit:focus {
-                border-color: #7c8af4;
-                background-color: #1e1f2a;
+                border-color: rgba(124, 138, 244, 0.8);
             }
             QTextEdit:hover {
-                border-color: #454652;
+                border-color: rgba(255,255,255,0.14);
             }
         """)
         params_card_layout.addWidget(self.contract_text)
 
         # Analyze button
-        self.analyze_btn = QPushButton("🔍  Analyze Contract")
+        self.analyze_btn = QPushButton("  Analyze Contract")
         self.analyze_btn.setCursor(Qt.PointingHandCursor)
-        self.analyze_btn.setFixedHeight(44)
+        self.analyze_btn.setFixedHeight(42)
         self.analyze_btn.setStyleSheet("""
             QPushButton {
                 background-color: #7c8af4;
-                color: #061987;
+                color: #ffffff;
                 border: none;
                 border-radius: 10px;
                 font-family: 'Inter';
                 font-size: 14px;
-                font-weight: 700;
+                font-weight: 600;
             }
             QPushButton:hover {
                 background-color: #8a96f6;
@@ -1401,9 +1390,9 @@ class ContractsPage(QWidget):
         self.overall_card.setObjectName("overallCard")
         self.overall_card.setStyleSheet("""
             QFrame#overallCard {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #222336, stop:0.6 #1e1f2a, stop:1 #1a1b26);
-                border: 1px solid #333440;
-                border-radius: 14px;
+                background-color: #1a1b26;
+                border: 1px solid rgba(255,255,255,0.06);
+                border-radius: 12px;
             }
         """)
         overall_layout = QHBoxLayout(self.overall_card)
@@ -1422,7 +1411,7 @@ class ContractsPage(QWidget):
         risk_info_layout.setSpacing(8)
 
         self.risk_level_label = QLabel("Risk Level: Not Analyzed")
-        self.risk_level_label.setStyleSheet("font-family: 'Inter'; font-size: 22px; font-weight: 700; color: #e2e4f0; background: transparent; border: none; letter-spacing: -0.01em;")
+        self.risk_level_label.setStyleSheet("font-family: 'Inter'; font-size: 20px; font-weight: 700; color: #e2e4f0; background: transparent; border: none; letter-spacing: -0.01em;")
         risk_info_layout.addWidget(self.risk_level_label)
 
         self.recommendation_label = QLabel("Upload a contract to begin analysis")
@@ -1509,9 +1498,9 @@ class ContractsPage(QWidget):
         self.findings_table.setStyleSheet("""
             QTableWidget {
                 background-color: #1a1b26;
-                alternate-background-color: #1e1f2a;
-                border: 1px solid #333440;
-                border-radius: 14px;
+                alternate-background-color: transparent;
+                border: 1px solid rgba(255,255,255,0.06);
+                border-radius: 12px;
                 gridline-color: transparent;
                 color: #e2e4f0;
                 font-family: 'Inter';
@@ -1519,34 +1508,37 @@ class ContractsPage(QWidget):
                 outline: none;
             }
             QTableWidget::item {
-                border-bottom: 1px solid rgba(51, 52, 64, 0.60);
-                padding: 10px 16px;
+                border-bottom: 1px solid rgba(255,255,255,0.04);
+                padding: 8px 12px;
             }
             QTableWidget::item:selected {
                 background-color: rgba(124, 138, 244, 0.12);
-                color: #e2e4f0;
+                color: #ffffff;
+            }
+            QTableWidget::item:hover {
+                background-color: rgba(255, 255, 255, 0.04);
             }
             QHeaderView::section {
                 background-color: #1a1b26;
-                color: #9a9cb8;
+                color: #6b6d85;
                 font-family: 'Inter';
                 font-size: 11px;
                 font-weight: 700;
                 letter-spacing: 0.05em;
                 text-transform: uppercase;
                 border: none;
-                border-bottom: 1px solid #333440;
-                padding: 10px 16px;
+                border-bottom: 1px solid rgba(255,255,255,0.06);
+                padding: 8px 12px;
             }
             QScrollBar:vertical {
                 background-color: #12131d;
-                width: 8px;
-                border-radius: 4px;
+                width: 6px;
+                border-radius: 3px;
             }
             QScrollBar::handle:vertical {
-                background-color: #333440;
-                border-radius: 4px;
-                min-height: 24px;
+                background-color: #2d2e42;
+                border-radius: 3px;
+                min-height: 20px;
             }
             QScrollBar::handle:vertical:hover {
                 background-color: #454652;
@@ -1564,41 +1556,41 @@ class ContractsPage(QWidget):
 
         self.export_btn = QPushButton("Export PDF")
         self.export_btn.setCursor(Qt.PointingHandCursor)
-        self.export_btn.setFixedHeight(40)
+        self.export_btn.setFixedHeight(38)
         self.export_btn.setStyleSheet("""
             QPushButton {
                 background-color: transparent;
-                color: #e2e4f0;
-                border: 1px solid #333440;
+                color: #9a9cb8;
+                border: 1px solid rgba(255,255,255,0.10);
                 border-radius: 10px;
                 font-family: 'Inter';
-                font-weight: 600;
+                font-weight: 500;
                 font-size: 13px;
-                padding: 0px 20px;
+                padding: 0px 18px;
             }
             QPushButton:hover {
-                background-color: #1a1b26;
-                border-color: #454652;
-                color: #bcc2ff;
+                background-color: rgba(200, 203, 223, 0.06);
+                border-color: rgba(255,255,255,0.18);
+                color: #e2e4f0;
             }
             QPushButton:pressed {
-                background-color: #1e1f2a;
+                background-color: rgba(200, 203, 223, 0.10);
             }
         """)
 
         self.share_btn = QPushButton("Share with Client")
         self.share_btn.setCursor(Qt.PointingHandCursor)
-        self.share_btn.setFixedHeight(40)
+        self.share_btn.setFixedHeight(38)
         self.share_btn.setStyleSheet("""
             QPushButton {
                 background-color: #7c8af4;
-                color: #061987;
+                color: #ffffff;
                 border: none;
                 border-radius: 10px;
                 font-family: 'Inter';
-                font-weight: 700;
+                font-weight: 600;
                 font-size: 13px;
-                padding: 0px 20px;
+                padding: 0px 18px;
             }
             QPushButton:hover {
                 background-color: #8a96f6;
@@ -1833,10 +1825,10 @@ class ContractsPage(QWidget):
         self.table.clearSpans()
         if not page_contracts:
             self.table.setRowCount(1)
-            self.table.setRowHeight(0, 120)
+            self.table.setRowHeight(0, 100)
             self.table.setSpan(0, 0, 1, 6)
-            empty_label = QLabel("No analyzed contracts found. Upload one to start.")
-            empty_label.setStyleSheet("color: #6b6d85; font-size: 13px; background: transparent; border: none;")
+            empty_label = QLabel("No analyzed contracts found. Click \"Analyze Contract\" to get started.")
+            empty_label.setStyleSheet("color: #6b6d85; font-family: 'Inter'; font-size: 13px; background: transparent; border: none;")
             empty_label.setAlignment(Qt.AlignCenter)
             self.table.setCellWidget(0, 0, empty_label)
         else:
