@@ -146,21 +146,31 @@ class SettingsPage(QWidget):
 
         # UI Design Token Stylesheets
         self.INPUT_STYLE = """
-            QLineEdit, QTextEdit, QComboBox, QSpinBox {
-                background-color: #12131d;
-                border: 1px solid rgba(255,255,255,0.08);
+            QLineEdit, QComboBox, QSpinBox {
+                background-color: #1e1f2a;
+                border: 1px solid #2d2e42;
                 border-radius: 10px;
-                padding: 6px 12px;
+                padding: 10px 14px;
                 color: #e2e4f0;
                 font-family: 'Inter';
-                font-size: 13px;
+                font-size: 14px;
+                min-height: 38px;
+            }
+            QTextEdit {
+                background-color: #1e1f2a;
+                border: 1px solid #2d2e42;
+                border-radius: 10px;
+                padding: 10px 14px;
+                color: #e2e4f0;
+                font-family: 'Inter';
+                font-size: 14px;
             }
             QLineEdit:hover, QTextEdit:hover, QComboBox:hover, QSpinBox:hover {
                 border-color: rgba(124, 138, 244, 0.5);
             }
             QLineEdit:focus, QTextEdit:focus, QComboBox:focus, QSpinBox:focus {
-                border-color: rgba(124, 138, 244, 0.8);
-                background-color: #161724;
+                border-color: #7c8af4;
+                background-color: #232435;
             }
             QComboBox::drop-down {
                 border: none;
@@ -171,37 +181,44 @@ class SettingsPage(QWidget):
                 image: none;
                 border-left: 4px solid transparent;
                 border-right: 4px solid transparent;
-                border-top: 5px solid #6b6d85;
+                border-top: 5px solid #9a9cb8;
                 margin-right: 6px;
             }
             QComboBox QAbstractItemView {
-                background-color: #1a1b26;
-                border: 1px solid rgba(255,255,255,0.12);
-                border-radius: 6px;
+                background-color: #222336;
+                border: 1px solid #2d2e42;
+                border-radius: 8px;
                 color: #e2e4f0;
-                selection-background-color: #3c3f5c;
-                selection-color: #ffffff;
+                selection-background-color: rgba(124, 138, 244, 0.15);
+                selection-color: #bcc2ff;
                 outline: none;
-                padding: 2px;
+                padding: 4px;
             }
             QComboBox QAbstractItemView::item {
-                min-height: 28px;
-                padding: 4px 8px;
+                min-height: 32px;
+                padding: 8px 12px;
+                border-radius: 6px;
+            }
+            QComboBox QAbstractItemView::item:hover {
+                background-color: rgba(124, 138, 244, 0.10);
             }
             QSpinBox::up-button, QSpinBox::down-button {
                 background-color: transparent;
                 border: none;
-                width: 16px;
+                width: 20px;
+            }
+            QSpinBox::up-button:hover, QSpinBox::down-button:hover {
+                background-color: rgba(124, 138, 244, 0.10);
             }
             QSpinBox::up-arrow {
                 border-left: 4px solid transparent;
                 border-right: 4px solid transparent;
-                border-bottom: 5px solid #6b6d85;
+                border-bottom: 6px solid #9a9cb8;
             }
             QSpinBox::down-arrow {
                 border-left: 4px solid transparent;
                 border-right: 4px solid transparent;
-                border-top: 5px solid #6b6d85;
+                border-top: 6px solid #9a9cb8;
             }
         """
 
@@ -209,7 +226,7 @@ class SettingsPage(QWidget):
             QCheckBox {
                 color: #e2e4f0;
                 font-family: 'Inter';
-                font-size: 13px;
+                font-size: 14px;
                 spacing: 8px;
                 background: transparent;
             }
@@ -221,13 +238,14 @@ class SettingsPage(QWidget):
         self.PRIMARY_BTN_STYLE = """
             QPushButton {
                 background-color: #7c8af4;
-                color: #ffffff;
-                border-radius: 8px;
-                padding: 8px 18px;
+                color: #0f208b;
+                border-radius: 10px;
+                padding: 10px 22px;
                 font-family: 'Inter';
-                font-size: 13px;
+                font-size: 14px;
                 font-weight: 600;
                 border: none;
+                min-height: 38px;
             }
             QPushButton:hover {
                 background-color: #8a96f6;
@@ -235,26 +253,30 @@ class SettingsPage(QWidget):
             QPushButton:pressed {
                 background-color: #6d7be2;
             }
+            QPushButton:disabled {
+                background-color: #454652;
+                color: #6b6d85;
+            }
         """
 
         self.GHOST_BTN_STYLE = """
             QPushButton {
                 background-color: transparent;
-                color: #9a9cb8;
-                border: 1px solid rgba(255,255,255,0.10);
-                border-radius: 8px;
-                padding: 8px 16px;
+                color: #e2e4f0;
+                border: 1px solid #2d2e42;
+                border-radius: 10px;
+                padding: 10px 22px;
                 font-family: 'Inter';
-                font-size: 13px;
-                font-weight: 500;
+                font-size: 14px;
+                font-weight: 600;
+                min-height: 38px;
             }
             QPushButton:hover {
-                background-color: rgba(200, 203, 223, 0.06);
-                border-color: rgba(255,255,255,0.18);
-                color: #e2e4f0;
+                background-color: rgba(124, 138, 244, 0.05);
+                border-color: #454652;
             }
             QPushButton:pressed {
-                background-color: rgba(200, 203, 223, 0.10);
+                background-color: rgba(124, 138, 244, 0.10);
             }
         """
 
@@ -263,11 +285,12 @@ class SettingsPage(QWidget):
                 background-color: #e87c8a;
                 color: #3d0a12;
                 border: none;
-                border-radius: 8px;
-                padding: 8px 16px;
+                border-radius: 10px;
+                padding: 10px 22px;
                 font-family: 'Inter';
-                font-size: 13px;
+                font-size: 14px;
                 font-weight: 600;
+                min-height: 38px;
             }
             QPushButton:hover {
                 background-color: #ec8c98;
@@ -280,13 +303,14 @@ class SettingsPage(QWidget):
         self.INFO_BTN_STYLE = """
             QPushButton {
                 background-color: #6ec5d4;
-                color: #12131d;
+                color: #0a2d3d;
                 border: none;
-                border-radius: 8px;
-                padding: 8px 16px;
+                border-radius: 10px;
+                padding: 10px 22px;
                 font-family: 'Inter';
-                font-size: 13px;
+                font-size: 14px;
                 font-weight: 600;
+                min-height: 38px;
             }
             QPushButton:hover {
                 background-color: #83d1de;
@@ -299,13 +323,14 @@ class SettingsPage(QWidget):
         self.WARNING_BTN_STYLE = """
             QPushButton {
                 background-color: #f0c878;
-                color: #12131d;
+                color: #3d2a0a;
                 border: none;
-                border-radius: 8px;
-                padding: 8px 16px;
+                border-radius: 10px;
+                padding: 10px 22px;
                 font-family: 'Inter';
-                font-size: 13px;
+                font-size: 14px;
                 font-weight: 600;
+                min-height: 38px;
             }
             QPushButton:hover {
                 background-color: #f3d290;
@@ -530,7 +555,7 @@ class SettingsPage(QWidget):
         card_layout.setSpacing(20)
 
         title = QLabel("Profile Information")
-        title.setStyleSheet(f"font-family: 'Inter'; font-size: 18px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
+        title.setStyleSheet(f"font-family: 'Inter'; font-size: 16px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
         card_layout.addWidget(title)
 
         # Avatar Upload Cluster
@@ -633,7 +658,7 @@ class SettingsPage(QWidget):
         work_layout.setSpacing(16)
 
         title_work = QLabel("Workspace Settings")
-        title_work.setStyleSheet(f"font-family: 'Inter'; font-size: 18px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
+        title_work.setStyleSheet(f"font-family: 'Inter'; font-size: 16px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
         work_layout.addWidget(title_work)
 
         form_work = QFormLayout()
@@ -654,11 +679,12 @@ class SettingsPage(QWidget):
         self.due_days_input.setSuffix(" days")
 
         # Label styling inside FormLayout
-        lbl_billing = QLabel("Billing Address")
-        lbl_gstin = QLabel("GSTIN")
-        lbl_period = QLabel("Payment Due Period")
+        lbl_billing = QLabel("Billing Address".upper())
+        lbl_gstin = QLabel("GSTIN".upper())
+        lbl_period = QLabel("Payment Due Period".upper())
+        LABEL_STYLE = f"font-family: 'Inter'; font-size: 11px; font-weight: 700; color: {Colors.TEXT_SECONDARY}; text-transform: uppercase; letter-spacing: 0.05em; background: transparent;"
         for lbl in (lbl_billing, lbl_gstin, lbl_period):
-            lbl.setStyleSheet("font-family: 'Inter'; font-size: 13px; color: #9a9cb8; background: transparent;")
+            lbl.setStyleSheet(LABEL_STYLE)
 
         form_work.addRow(lbl_billing, self.address_input)
         form_work.addRow(lbl_gstin, self.gstin_input)
@@ -679,10 +705,11 @@ class SettingsPage(QWidget):
         self.upi_name_input.setStyleSheet(self.INPUT_STYLE)
         self.upi_name_input.setPlaceholderText("Payee display name")
 
-        lbl_upi_id = QLabel("UPI ID")
-        lbl_upi_name = QLabel("Display Name")
+        lbl_upi_id = QLabel("UPI ID".upper())
+        lbl_upi_name = QLabel("Display Name".upper())
+        LABEL_STYLE = f"font-family: 'Inter'; font-size: 11px; font-weight: 700; color: {Colors.TEXT_SECONDARY}; text-transform: uppercase; letter-spacing: 0.05em; background: transparent;"
         for lbl in (lbl_upi_id, lbl_upi_name):
-            lbl.setStyleSheet("font-family: 'Inter'; font-size: 13px; color: #9a9cb8; background: transparent;")
+            lbl.setStyleSheet(LABEL_STYLE)
 
         form_upi.addRow(lbl_upi_id, self.upi_id_input)
         form_upi.addRow(lbl_upi_name, self.upi_name_input)
@@ -826,7 +853,7 @@ class SettingsPage(QWidget):
         sett_layout.setSpacing(14)
 
         title = QLabel("Notification Preferences")
-        title.setStyleSheet(f"font-family: 'Inter'; font-size: 18px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
+        title.setStyleSheet(f"font-family: 'Inter'; font-size: 16px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
         sett_layout.addWidget(title)
 
         self.notifications_enabled = QCheckBox("Enable Notifications")
@@ -858,10 +885,11 @@ class SettingsPage(QWidget):
         self.days_before_due.setRange(1, 30)
         self.days_before_due.setSuffix(" days")
 
-        lbl_freq = QLabel("Check Frequency")
-        lbl_days = QLabel("Remind Before Deadline")
+        lbl_freq = QLabel("Check Frequency".upper())
+        lbl_days = QLabel("Remind Before Deadline".upper())
+        LABEL_STYLE = f"font-family: 'Inter'; font-size: 11px; font-weight: 700; color: {Colors.TEXT_SECONDARY}; text-transform: uppercase; letter-spacing: 0.05em; background: transparent;"
         for lbl in (lbl_freq, lbl_days):
-            lbl.setStyleSheet("font-family: 'Inter'; font-size: 13px; color: #9a9cb8; background: transparent;")
+            lbl.setStyleSheet(LABEL_STYLE)
 
         freq_layout.addRow(lbl_freq, self.reminder_frequency)
         freq_layout.addRow(lbl_days, self.days_before_due)
@@ -942,7 +970,7 @@ class SettingsPage(QWidget):
 
         # Header Title
         title = QLabel("Subscription Plan")
-        title.setStyleSheet(f"font-family: 'Inter'; font-size: 18px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
+        title.setStyleSheet(f"font-family: 'Inter'; font-size: 16px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
         layout.addWidget(title)
 
         # Plan 1: Active Local Free Plan
@@ -1068,7 +1096,7 @@ class SettingsPage(QWidget):
 
         # Header Title
         title = QLabel("Connected Systems")
-        title.setStyleSheet(f"font-family: 'Inter'; font-size: 18px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
+        title.setStyleSheet(f"font-family: 'Inter'; font-size: 16px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
         layout.addWidget(title)
 
         # Grid of connected APIs (3rd party placeholders)
@@ -1111,7 +1139,7 @@ class SettingsPage(QWidget):
             ibtn = QPushButton("  Connect")
             ibtn.setIcon(icon)
             ibtn.setStyleSheet(self.GHOST_BTN_STYLE)
-            ibtn.setFixedHeight(34)
+            ibtn.setFixedHeight(38)
             ibtn.setCursor(Qt.PointingHandCursor)
             ibtn.clicked.connect(lambda _=False, n=name: QMessageBox.information(self, "Integrations", f"Connecting to {n} is a cloud subscription feature."))
             ilay.addWidget(ibtn)
@@ -1166,13 +1194,14 @@ class SettingsPage(QWidget):
         self.smtp_use_tls.setStyleSheet(self.CHECKBOX_STYLE)
         self.smtp_use_tls.setChecked(True)
 
-        lbl_smtp_host = QLabel("SMTP Server Host")
-        lbl_smtp_port = QLabel("Port Number")
-        lbl_smtp_user = QLabel("Username")
-        lbl_smtp_pass = QLabel("Password")
-        lbl_smtp_from = QLabel("Sender Address")
+        lbl_smtp_host = QLabel("SMTP Server Host".upper())
+        lbl_smtp_port = QLabel("Port Number".upper())
+        lbl_smtp_user = QLabel("Username".upper())
+        lbl_smtp_pass = QLabel("Password".upper())
+        lbl_smtp_from = QLabel("Sender Address".upper())
+        LABEL_STYLE = f"font-family: 'Inter'; font-size: 11px; font-weight: 700; color: {Colors.TEXT_SECONDARY}; text-transform: uppercase; letter-spacing: 0.05em; background: transparent;"
         for lbl in (lbl_smtp_host, lbl_smtp_port, lbl_smtp_user, lbl_smtp_pass, lbl_smtp_from):
-            lbl.setStyleSheet("font-family: 'Inter'; font-size: 13px; color: #9a9cb8; background: transparent;")
+            lbl.setStyleSheet(LABEL_STYLE)
 
         form_smtp.addRow(lbl_smtp_host, self.smtp_host)
         form_smtp.addRow(lbl_smtp_port, self.smtp_port)
@@ -1225,7 +1254,7 @@ class SettingsPage(QWidget):
         danger_layout.setSpacing(16)
 
         title = QLabel("Danger Zone")
-        title.setStyleSheet(f"font-family: 'Inter'; font-size: 18px; font-weight: 700; color: {Colors.ACCENT_DANGER}; background: transparent;")
+        title.setStyleSheet(f"font-family: 'Inter'; font-size: 16px; font-weight: 700; color: {Colors.ACCENT_DANGER}; background: transparent;")
         danger_layout.addWidget(title)
 
         desc = QLabel("These operations are destructive and modify or delete workspace parameters, settings keys, and transactional logs. Be careful.")
@@ -1244,7 +1273,7 @@ class SettingsPage(QWidget):
         lbl1.setStyleSheet(f"font-family: 'Inter'; font-size: 12px; color: {Colors.TEXT_SECONDARY}; background: transparent;")
         btn1 = QPushButton("Reset Preferences")
         btn1.setStyleSheet(self.DANGER_BTN_STYLE)
-        btn1.setFixedWidth(160)
+        btn1.setMinimumWidth(180)
         btn1.setFixedHeight(38)
         btn1.clicked.connect(self._reset_preferences)
         row1.addWidget(lbl1, 1)
@@ -1264,7 +1293,7 @@ class SettingsPage(QWidget):
         lbl2.setStyleSheet(f"font-family: 'Inter'; font-size: 12px; color: {Colors.TEXT_SECONDARY}; background: transparent;")
         btn2 = QPushButton("Clear All Data")
         btn2.setStyleSheet(self.DANGER_BTN_STYLE)
-        btn2.setFixedWidth(160)
+        btn2.setMinimumWidth(180)
         btn2.setFixedHeight(38)
         btn2.clicked.connect(self._clear_workspace_data)
         row2.addWidget(lbl2, 1)
@@ -1284,7 +1313,7 @@ class SettingsPage(QWidget):
         lbl3.setStyleSheet(f"font-family: 'Inter'; font-size: 12px; color: {Colors.TEXT_SECONDARY}; background: transparent;")
         btn3 = QPushButton("Reset Database")
         btn3.setStyleSheet(self.DANGER_BTN_STYLE)
-        btn3.setFixedWidth(160)
+        btn3.setMinimumWidth(180)
         btn3.setFixedHeight(38)
         btn3.clicked.connect(self._reset_database)
         row3.addWidget(lbl3, 1)
