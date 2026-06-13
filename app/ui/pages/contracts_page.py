@@ -726,7 +726,7 @@ class ContractsPage(QWidget):
 
         self.view_stack.addWidget(self.history_view)
         self.view_stack.addWidget(self.analyzer_view)
-        self.view_stack.setCurrentWidget(self.history_view)
+        self.view_stack.setCurrentWidget(self.analyzer_view)  # Analyzer is the primary view
 
         scroll.setWidget(content_widget)
         page_layout.addWidget(scroll)
@@ -917,6 +917,33 @@ class ContractsPage(QWidget):
         self.add_btn.setIcon(QIcon(add_icon))
         self.add_btn.clicked.connect(self._show_analyzer_view)
         right_side.addWidget(self.add_btn)
+
+        # Back to Analyzer button (from History view)
+        self.back_to_analyzer_btn = QPushButton("  Back to Analyzer")
+        self.back_to_analyzer_btn.setObjectName("back_to_analyzer_btn")
+        self.back_to_analyzer_btn.setCursor(Qt.PointingHandCursor)
+        self.back_to_analyzer_btn.setFixedHeight(38)
+        self.back_to_analyzer_btn.setStyleSheet("""
+            QPushButton#back_to_analyzer_btn {
+                background-color: transparent;
+                color: #9a9cb8;
+                border: 1px solid #333440;
+                border-radius: 8px;
+                padding: 0px 16px;
+                font-family: 'Inter';
+                font-size: 13px;
+                font-weight: 500;
+            }
+            QPushButton#back_to_analyzer_btn:hover {
+                color: #bcc2ff;
+                border-color: #454652;
+                background-color: #1a1b26;
+            }
+        """)
+        back_icon = _load_svg_icon("chevron_left", size=16, color="#9a9cb8")
+        self.back_to_analyzer_btn.setIcon(QIcon(back_icon))
+        self.back_to_analyzer_btn.clicked.connect(self._show_analyzer_view)
+        right_side.addWidget(self.back_to_analyzer_btn)
 
         search_row.addLayout(right_side)
         history_layout.addLayout(search_row)
@@ -1139,10 +1166,10 @@ class ContractsPage(QWidget):
         analyzer_layout.setContentsMargins(0, 0, 0, 0)
         analyzer_layout.setSpacing(24)
 
-        # Back Row
+        # Back Row — now labeled "View History" since Analyzer is primary
         back_row = QHBoxLayout()
         back_row.setContentsMargins(0, 0, 0, 0)
-        self.back_btn = QPushButton("← Back to History")
+        self.back_btn = QPushButton("  View History")
         self.back_btn.setObjectName("back_btn")
         self.back_btn.setCursor(Qt.PointingHandCursor)
         self.back_btn.clicked.connect(self._show_history_view)
@@ -1166,6 +1193,8 @@ class ContractsPage(QWidget):
                 background-color: #1e1f2a;
             }
         """)
+        history_icon = _load_svg_icon("history", size=16, color="#9a9cb8")
+        self.back_btn.setIcon(QIcon(history_icon))
         back_row.addWidget(self.back_btn)
         back_row.addStretch()
         analyzer_layout.addLayout(back_row)
@@ -1677,17 +1706,17 @@ class ContractsPage(QWidget):
         self.refresh()
 
     def _show_analyzer_view(self) -> None:
-        # Reset inputs
-        self.contract_text.clear()
-        self.file_label.setText("No file selected")
-        self.file_label.setStyleSheet("color: #6b6d85; background: transparent; font-size: 13px; border: none;")
-        self.project_combo.setCurrentIndex(0)
-        self.rate_input.setValue(500)
-        self.revisions_input.setValue(2)
-        self.timeline_input.setValue(14)
-        self.type_combo.setCurrentIndex(0)
-
-        self.results_container.hide()
+        # Only reset inputs if switching FROM history, not if already on analyzer
+        if self.view_stack.currentWidget() != self.analyzer_view:
+            self.contract_text.clear()
+            self.file_label.setText("No file selected")
+            self.file_label.setStyleSheet("color: #6b6d85; background: transparent; font-size: 13px; border: none;")
+            self.project_combo.setCurrentIndex(0)
+            self.rate_input.setValue(500)
+            self.revisions_input.setValue(2)
+            self.timeline_input.setValue(14)
+            self.type_combo.setCurrentIndex(0)
+            self.results_container.hide()
         self.view_stack.setCurrentWidget(self.analyzer_view)
 
     def _toggle_filter(self) -> None:
