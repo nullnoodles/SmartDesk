@@ -1,4 +1,4 @@
-"""Rebuilt Contracts Page — Studio Graphite redesign matching the Stitch design system.
+"""Rebuilt Contracts Page — Studio Graphite redesign matching the HTML design mockup.
 
 Features:
 - Sub-views managed by QStackedWidget: History View and Analyzer View.
@@ -7,7 +7,8 @@ Features:
 - Contract history table with custom StatusPills and Action buttons (View/Delete).
 - Pagination of 10 items per table with Prev/Next chevron buttons and dynamic page numbers.
 - Dynamic project details dropdown loading from the database.
-- Upload PDF / Paste text analyzer with overall Score Circle (100x100px) and 5 criteria cards (Indemnity, Payment, IP, Termination, Revisions).
+- Upload PDF / Paste text analyzer with custom circular progress score ring and 5 critical risk cards.
+- Multi-colored sliding indicator progress bar representing overall risk.
 """
 from __future__ import annotations
 
@@ -21,8 +22,8 @@ _project_root = Path(__file__).resolve().parents[3]
 if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
 
-from PySide6.QtCore import Qt, QSize, QPropertyAnimation, QEasingCurve, QEvent, Property
-from PySide6.QtGui import QColor, QIcon, QPixmap, QPainter, QBrush, QFont
+from PySide6.QtCore import Qt, QSize, QPropertyAnimation, QEasingCurve, QEvent, Property, Signal
+from PySide6.QtGui import QColor, QIcon, QPixmap, QPainter, QBrush, QFont, QPen, QLinearGradient, QPainterPath
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QComboBox,
@@ -55,7 +56,7 @@ from app.data.database import Database
 from app.data.repositories.contract_repo import ContractRepository
 from app.data.repositories.project_repo import ProjectRepository
 from app.ui.styles.theme import Colors
-from app.ui.widgets.stat_card import StatCard
+from app.ui.pages.dashboard_page import DashboardStatCard
 from app.ui.widgets.animated import AnimatedButton, AnimatedCard, GradientBar
 from app.ui.widgets.page_header import PageHeader
 from app.ui.widgets.status_pill import StatusPill
@@ -107,134 +108,402 @@ def _create_avatar_pixmap(initials: str, size: int = 28) -> QPixmap:
     return pixmap
 
 
-class RiskCriteriaCard(AnimatedCard):
-    """Card showing individual risk criterion with icon and score."""
+class CircularRiskScore(QWidget):
+    """Circular risk score visualization drawing an arc using QPainter."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedSize(130, 130)
+        self._score = 0
+        self._animated_score = 0.0
+        self._color = QColor(Colors.ACCENT_SUCCESS)
+
+        self._anim = QPropertyAnimation(self, b"animatedScore")
+        self._anim.setDuration(0 if is_reduced_motion() else 800)
+        self._anim.setEasingCurve(QEasingCurve.OutCubic)
+
+    def get_animated_score(self) -> float:
+        return self._animated_score
+
+    def set_animated_score(self, val: float) -> None:
+        self._animated_score = val
+        self.update()
+
+    animatedScore = Property(float, get_animated_score, set_animated_score)
+
+    def set_score(self, score: int, color_hex: str) -> None:
+        self._score = score
+        self._color = QColor(color_hex)
+
+        self._anim.stop()
+        self._anim.setStartValue(self._animated_score)
+        self._anim.setEndValue(float(score))
+        self._anim.start()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        rect = self.rect()
+        cx = rect.width() / 2.0
+        cy = rect.height() / 2.0
+        radius = min(rect.width(), rect.height()) / 2.0 - 10.0
+
+        # Draw background track
+        pen_track = QPen(QColor("#2d2e42"))
+        pen_track.setWidth(8)
+        pen_track.setCapStyle(Qt.PenCapStyle.RoundCap)
+        painter.setPen(pen_track)
+        painter.drawEllipse(cx - radius, cy - radius, radius * 2.0, radius * 2.0)
+
+        # Draw active foreground arc
+        max_value = 100
+        ratio = min(self._animated_score / max_value, 1.0)
+        span_angle = -int(ratio * 360 * 16)
+        start_angle = 90 * 16
+
+        pen_active = QPen(self._color)
+        pen_active.setWidth(8)
+        pen_active.setCapStyle(Qt.PenCapStyle.RoundCap)
+        painter.setPen(pen_active)
+        painter.drawArc(cx - radius, cy - radius, radius * 2.0, radius * 2.0, start_angle, span_angle)
+
+        # Draw text in center
+        score_text = str(int(self._animated_score))
+        painter.setPen(QColor(Colors.TEXT_PRIMARY))
+        font_score = QFont("Inter", 28, QFont.Bold)
+        painter.setFont(font_score)
+        painter.drawText(rect.adjusted(0, -12, 0, -12), Qt.AlignCenter, score_text)
+
+        painter.setPen(QColor(Colors.TEXT_MUTED))
+        font_max = QFont("Inter", 10, QFont.Weight.Medium)
+        painter.setFont(font_max)
+        painter.drawText(rect.adjusted(0, 24, 0, 24), Qt.AlignCenter, "/ 100")
+
+        painter.end()
+
+
+class MultiColorGradientBar(QWidget):
+    """
+    Progress bar with a three-color gradient (Green -> Lavender -> Red)
+    and a sliding indicator line showing the current score.
+    """
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedHeight(12)
+        self.setMinimumWidth(150)
+        self._score = 0.0
+        self._animated_score = 0.0
+
+        self._anim = QPropertyAnimation(self, b"animatedScore")
+        self._anim.setDuration(0 if is_reduced_motion() else 1200)
+        self._anim.setEasingCurve(QEasingCurve.OutCubic)
+
+    def get_animated_score(self) -> float:
+        return self._animated_score
+
+    def set_animated_score(self, val: float) -> None:
+        self._animated_score = val
+        self.update()
+
+    animatedScore = Property(float, get_animated_score, set_animated_score)
+
+    def set_score(self, score: float, animate: bool = True) -> None:
+        self._score = score
+        if animate:
+            self._anim.stop()
+            self._anim.setStartValue(self._animated_score)
+            self._anim.setEndValue(score)
+            self._anim.start()
+        else:
+            self._animated_score = score
+            self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        rect = self.rect()
+        radius = rect.height() / 2.0
+
+        # Background track
+        bg_path = QPainterPath()
+        bg_path.addRoundedRect(rect.x(), rect.y(), rect.width(), rect.height(), radius, radius)
+        painter.fillPath(bg_path, QColor(Colors.BG_ELEVATED))
+
+        # Filled portion
+        max_value = 150
+        ratio = min(self._animated_score / max_value, 1.0)
+        fill_width = rect.width() * ratio
+
+        if fill_width > 0:
+            gradient = QLinearGradient(0, 0, rect.width(), 0)
+            gradient.setColorAt(0.0, QColor("#82d8ac"))  # Green
+            gradient.setColorAt(0.5, QColor("#7c8af4"))  # Lavender
+            gradient.setColorAt(1.0, QColor("#e87c8a"))  # Red
+
+            fill_path = QPainterPath()
+            fill_path.addRoundedRect(rect.x(), rect.y(), fill_width, rect.height(), radius, radius)
+            painter.fillPath(fill_path, gradient)
+
+            # Draw white indicator line
+            pen = QPen(QColor("#FFFFFF"))
+            pen.setWidth(2)
+            painter.setPen(pen)
+            painter.drawLine(fill_width, rect.y(), fill_width, rect.y() + rect.height())
+
+        painter.end()
+
+
+class UploadDashedArea(QFrame):
+    """Dashed area inside upload card supporting drag and drop of PDF files."""
+    file_dropped = Signal(str)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("uploadDashedArea")
+        self.setAcceptDrops(True)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setStyleSheet("""
+            QFrame#uploadDashedArea {
+                border: 2px dashed #333440;
+                border-radius: 12px;
+                background-color: #1a1b26;
+            }
+            QFrame#uploadDashedArea:hover {
+                border-color: #7c8af4;
+            }
+        """)
+
+        layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignCenter)
+        layout.setSpacing(8)
+
+        self.icon_label = QLabel("☁️")
+        self.icon_label.setStyleSheet("font-size: 36px; background: transparent; border: none;")
+        layout.addWidget(self.icon_label, 0, Qt.AlignCenter)
+
+        self.text_label = QLabel("Drop contract PDF here or click to browse")
+        self.text_label.setStyleSheet("color: #e2e4f0; font-size: 14px; font-weight: 500; background: transparent; border: none;")
+        layout.addWidget(self.text_label, 0, Qt.AlignCenter)
+
+        self.subtext_label = QLabel("Supports PDF (Max 10MB)")
+        self.subtext_label.setStyleSheet("color: #6b6d85; font-size: 11px; background: transparent; border: none;")
+        layout.addWidget(self.subtext_label, 0, Qt.AlignCenter)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+            self.setStyleSheet("""
+                QFrame#uploadDashedArea {
+                    border: 2px dashed #7c8af4;
+                    border-radius: 12px;
+                    background-color: #222336;
+                }
+            """)
+
+    def dragLeaveEvent(self, event):
+        self.setStyleSheet("""
+            QFrame#uploadDashedArea {
+                border: 2px dashed #333440;
+                border-radius: 12px;
+                background-color: #1a1b26;
+            }
+        """)
+
+    def dropEvent(self, event):
+        self.setStyleSheet("""
+            QFrame#uploadDashedArea {
+                border: 2px dashed #333440;
+                border-radius: 12px;
+                background-color: #1a1b26;
+            }
+        """)
+        for url in event.mimeData().urls():
+            filepath = url.toLocalFile()
+            if filepath.lower().endswith('.pdf'):
+                self.file_dropped.emit(filepath)
+                break
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.file_dropped.emit("")
+
+
+class RiskProgressBar(QWidget):
+    """Simple progress bar styled with a single dynamic risk color."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedHeight(6)
+        self._value = 0.0
+        self._animated_value = 0.0
+        self._color = QColor(Colors.ACCENT_SUCCESS)
+
+        self._anim = QPropertyAnimation(self, b"animatedValue")
+        self._anim.setDuration(0 if is_reduced_motion() else 600)
+        self._anim.setEasingCurve(QEasingCurve.OutCubic)
+
+    def get_animated_value(self) -> float:
+        return self._animated_value
+
+    def set_animated_value(self, v: float) -> None:
+        self._animated_value = v
+        self.update()
+
+    animatedValue = Property(float, get_animated_value, set_animated_value)
+
+    def set_value(self, value: float, color_hex: str, animate: bool = True) -> None:
+        self._value = value
+        self._color = QColor(color_hex)
+        if animate:
+            self._anim.stop()
+            self._anim.setStartValue(self._animated_value)
+            self._anim.setEndValue(value)
+            self._anim.start()
+        else:
+            self._animated_value = value
+            self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        rect = self.rect()
+        radius = rect.height() / 2.0
+
+        # Background track
+        bg_path = QPainterPath()
+        bg_path.addRoundedRect(rect, radius, radius)
+        painter.fillPath(bg_path, QColor("#1e1f2a"))
+
+        # Filled portion
+        max_value = 40
+        ratio = min(self._animated_value / max_value, 1.0)
+        fill_width = rect.width() * ratio
+
+        if fill_width > 0:
+            fill_path = QPainterPath()
+            fill_path.addRoundedRect(0, 0, fill_width, rect.height(), radius, radius)
+            painter.fillPath(fill_path, self._color)
+
+        painter.end()
+
+
+class RiskCriteriaCard(QFrame):
+    """Card showing individual risk criterion with icon, score badge, progress, and findings."""
 
     def __init__(self, title: str, icon: str, description: str, parent=None):
         super().__init__(parent)
-        self.title = title
-        self.score = 0
-        self.risk_level = "LOW"
-        self.findings = []
+        self.setObjectName("riskCard")
+        self.setStyleSheet("""
+            QFrame#riskCard {
+                background-color: #1a1b26;
+                border: 1px solid #333440;
+                border-radius: 14px;
+            }
+        """)
+        self.setMinimumHeight(140)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 18, 20, 18)
+        layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(12)
 
-        # Header row
-        header_row = QHBoxLayout()
-        header_row.setSpacing(12)
+        # Header Row
+        header_layout = QHBoxLayout()
+        header_layout.setSpacing(12)
 
         # Icon
-        icon_label = QLabel(icon)
-        icon_label.setStyleSheet(
-            "font-size: 32px; background: transparent;"
-        )
-        header_row.addWidget(icon_label)
+        self.icon_label = QLabel(icon)
+        self.icon_label.setStyleSheet("font-size: 28px; background: transparent; border: none;")
+        header_layout.addWidget(self.icon_label)
 
-        # Title column
-        title_col = QVBoxLayout()
-        title_col.setSpacing(2)
+        # Title Stack
+        title_stack = QVBoxLayout()
+        title_stack.setSpacing(2)
 
         self.title_label = QLabel(title)
-        self.title_label.setStyleSheet(
-            f"font-size: 15px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; "
-            "background: transparent;"
-        )
-        title_col.addWidget(self.title_label)
+        self.title_label.setStyleSheet("font-size: 15px; font-weight: 700; color: #e2e4f0; background: transparent; border: none;")
+        title_stack.addWidget(self.title_label)
 
         self.desc_label = QLabel(description)
-        self.desc_label.setWordWrap(True)
-        self.desc_label.setStyleSheet(
-            f"font-size: 11px; color: {Colors.TEXT_MUTED}; background: transparent;"
-        )
-        title_col.addWidget(self.desc_label)
+        self.desc_label.setStyleSheet("font-size: 11px; color: #6b6d85; background: transparent; border: none;")
+        title_stack.addWidget(self.desc_label)
 
-        header_row.addLayout(title_col, 1)
-        header_row.addStretch()
+        header_layout.addLayout(title_stack, 1)
 
-        # Score badge - perfect circle (50x50)
+        # Score Badge
         self.score_badge = QLabel("—")
         self.score_badge.setAlignment(Qt.AlignCenter)
-        self.score_badge.setFixedSize(50, 50)
-        self.score_badge.setStyleSheet(
-            f"background-color: {Colors.BG_ELEVATED}; "
-            f"border: 2px solid {Colors.BORDER_SUBTLE}; "
-            "border-radius: 25px; "
-            "font-size: 16px; font-weight: 700; "
-            f"color: {Colors.TEXT_SECONDARY};"
-        )
-        header_row.addWidget(self.score_badge)
+        self.score_badge.setFixedSize(44, 44)
+        self.score_badge.setStyleSheet("""
+            background-color: #1e1f2a;
+            border: 2px solid #2d2e42;
+            border-radius: 22px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #9a9cb8;
+        """)
+        header_layout.addWidget(self.score_badge)
 
-        layout.addLayout(header_row)
+        layout.addLayout(header_layout)
 
         # Progress bar
-        self.progress_bar = GradientBar(
-            value=0,
-            max_value=40,
-            color_start=Colors.ACCENT_SUCCESS,
-            color_end=Colors.ACCENT_DANGER,
-            height=6,
-        )
+        self.progress_bar = RiskProgressBar()
         layout.addWidget(self.progress_bar)
 
-        # Findings list (hidden initially)
+        # Findings list (starts hidden)
         self.findings_widget = QWidget()
+        self.findings_widget.setStyleSheet("background: transparent; border: none;")
         findings_layout = QVBoxLayout(self.findings_widget)
-        findings_layout.setContentsMargins(0, 8, 0, 0)
-        findings_layout.setSpacing(6)
+        findings_layout.setContentsMargins(0, 4, 0, 0)
+        findings_layout.setSpacing(4)
 
         self.findings_container = QVBoxLayout()
+        self.findings_container.setSpacing(4)
         findings_layout.addLayout(self.findings_container)
 
         layout.addWidget(self.findings_widget)
         self.findings_widget.hide()
 
-        self.setMinimumHeight(120)
-
     def set_result(self, score: int, risk_level: str, findings: list[str]):
-        """Update card with analysis results."""
-        self.score = score
-        self.risk_level = risk_level
-        self.findings = findings
-
+        """Update card with dynamic score and findings."""
         self.score_badge.setText(str(score))
 
         risk_colors = {
-            "CRITICAL": Colors.ACCENT_DANGER,
-            "HIGH": Colors.ACCENT_WARNING,
-            "MEDIUM": Colors.ACCENT_INFO,
-            "LOW": Colors.ACCENT_SUCCESS,
+            "CRITICAL": "#e87c8a",  # Red
+            "HIGH": "#e87c8a",      # Red
+            "MEDIUM": "#f0c878",    # Yellow
+            "LOW": "#82d8ac",       # Green
         }
-        color = risk_colors.get(risk_level, Colors.TEXT_SECONDARY)
+        color_hex = risk_colors.get(risk_level, "#9a9cb8")
 
-        self.score_badge.setStyleSheet(
-            f"background-color: {color}; "
-            f"border: 2px solid {color}; "
-            "border-radius: 25px; "
-            "font-size: 16px; font-weight: 700; "
-            "color: #FFFFFF;"
-        )
+        self.score_badge.setStyleSheet(f"""
+            background-color: {color_hex};
+            border: 2px solid {color_hex};
+            border-radius: 22px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #FFFFFF;
+        """)
 
-        self.progress_bar.set_value(min(score, 40), animate=True)
+        # Update progress bar
+        self.progress_bar.set_value(min(score, 40), color_hex, animate=True)
+
+        # Update findings
+        while self.findings_container.count():
+            item = self.findings_container.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
 
         if findings:
             self.findings_widget.show()
-            # Clear old findings
-            while self.findings_container.count():
-                item = self.findings_container.takeAt(0)
-                if item.widget():
-                    item.widget().deleteLater()
-
-            # Add new findings
             for finding in findings:
-                finding_label = QLabel(finding)
-                finding_label.setWordWrap(True)
-                finding_label.setStyleSheet(
-                    f"font-size: 12px; color: {Colors.TEXT_SECONDARY}; "
-                    "background: transparent; padding: 2px 0;"
-                )
-                self.findings_container.addWidget(finding_label)
+                finding_lbl = QLabel(finding)
+                finding_lbl.setWordWrap(True)
+                finding_lbl.setStyleSheet("color: #9a9cb8; font-size: 12px; background: transparent; border: none; padding: 2px 0;")
+                self.findings_container.addWidget(finding_lbl)
         else:
             self.findings_widget.hide()
 
@@ -253,7 +522,7 @@ class ContractDeleteConfirmDialog(QDialog):
             QDialog#delete_confirm_dialog {
                 background-color: #1a1b26;
                 border: none;
-                border-radius: 12px;
+                border-radius: 14px;
             }
         """)
 
@@ -294,7 +563,7 @@ class ContractDeleteConfirmDialog(QDialog):
                 background-color: #2d2e42;
                 color: #e2e4f0;
                 border: 1px solid #454652;
-                border-radius: 8px;
+                border-radius: 10px;
                 font-weight: 600;
             }
             QPushButton:hover {
@@ -309,13 +578,16 @@ class ContractDeleteConfirmDialog(QDialog):
         self.yes_btn.setStyleSheet("""
             QPushButton {
                 background-color: #e87c8a;
-                color: #e2e4f0;
+                color: #3d0a12;
                 border: none;
-                border-radius: 8px;
+                border-radius: 10px;
                 font-weight: 600;
             }
             QPushButton:hover {
-                background-color: #383844;
+                background-color: #ec8c98;
+            }
+            QPushButton:pressed {
+                background-color: #d85c6b;
             }
         """)
         self.yes_btn.clicked.connect(self.accept)
@@ -394,7 +666,26 @@ class ContractsPage(QWidget):
         scroll.setFrameShape(QFrame.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        scroll.setStyleSheet("QScrollArea { background-color: #12131d; border: none; }")
+        scroll.setStyleSheet("""
+            QScrollArea { background-color: #12131d; border: none; }
+            QScrollBar:vertical {
+                background-color: #12131d;
+                width: 8px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background-color: #333440;
+                border-radius: 4px;
+                min-height: 24px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background-color: #454652;
+            }
+            QScrollBar::add-line:vertical,
+            QScrollBar::sub-line:vertical {
+                height: 0px;
+            }
+        """)
 
         content_widget = QWidget()
         content_widget.setObjectName("contracts_content")
@@ -411,13 +702,17 @@ class ContractsPage(QWidget):
             title="Contract Risk Analyzer",
             subtitle="AI-powered analysis of 55+ dangerous contract clauses",
         )
-        badge = QLabel("🛡️ 5 Core Risks")
+        badge = QLabel("🛡️ 5 CORE RISKS")
         badge.setStyleSheet(
-            f"background-color: rgba(130, 216, 172, 0.15); "
-            f"color: {Colors.ACCENT_SUCCESS}; "
-            f"border: 1px solid {Colors.ACCENT_SUCCESS}; "
-            "border-radius: 999px; padding: 6px 14px; "
-            "font-size: 12px; font-weight: 700;"
+            "background-color: #282935;"
+            "color: #9a9cb8;"
+            "border: 1px solid #383844;"
+            "border-radius: 9999px;"
+            "padding: 4px 14px;"
+            "font-family: 'Inter';"
+            "font-size: 11px;"
+            "font-weight: 700;"
+            "letter-spacing: 0.05em;"
         )
         self.header.add_action(badge)
         layout.addWidget(self.header)
@@ -447,81 +742,26 @@ class ContractsPage(QWidget):
         stat_row.setContentsMargins(0, 0, 0, 0)
         stat_row.setSpacing(16)
 
-        self.card_total = StatCard(
+        self.card_total = DashboardStatCard(
             "Total Contracts", "0",
             icon="description",
             accent=Colors.ACCENT_PRIMARY_LIGHT,
             sub_text="Analyzed history"
         )
-        self.card_avg = StatCard(
+        self.card_avg = DashboardStatCard(
             "Avg. Risk Score", "0.0",
             icon="analytics",
             accent=Colors.ACCENT_INFO,
             sub_text="Score index"
         )
-        self.card_critical = StatCard(
+        self.card_critical = DashboardStatCard(
             "Critical Risks", "0",
             icon="warning",
             accent=Colors.ACCENT_DANGER,
             sub_text="High alert contracts"
         )
 
-        tints = {
-            Colors.ACCENT_PRIMARY_LIGHT: "rgba(188, 194, 255, 0.10)",
-            Colors.ACCENT_INFO: "rgba(110, 197, 212, 0.10)",
-            Colors.ACCENT_DANGER: "rgba(232, 124, 138, 0.10)",
-        }
-        card_configs = [
-            (self.card_total, Colors.ACCENT_PRIMARY_LIGHT, "description"),
-            (self.card_avg, Colors.ACCENT_INFO, "analytics"),
-            (self.card_critical, Colors.ACCENT_DANGER, "warning"),
-        ]
-
-        for card, accent, icon_name in card_configs:
-            card.setAttribute(Qt.WA_Hover, True)
-            card.setMouseTracking(True)
-
-            card_shadow = QGraphicsDropShadowEffect(card)
-            card_shadow.setBlurRadius(0)
-            card_shadow.setColor(QColor(124, 138, 244, 180))
-            card_shadow.setOffset(0, 0)
-            card.setGraphicsEffect(card_shadow)
-
-            shadow_animation = QPropertyAnimation(card_shadow, b"blurRadius")
-            shadow_animation.setDuration(200 if not is_reduced_motion() else 0)
-            shadow_animation.setEasingCurve(QEasingCurve.OutCubic)
-
-            card._shadow = card_shadow
-            card._shadow_animation = shadow_animation
-            card.setObjectName("statCard")
-            card._original_stylesheet = "QFrame#statCard { background-color: #1a1b26; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }"
-            card._hover_stylesheet = "QFrame#statCard { background-color: #383844; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; }"
-
-            card.setMinimumHeight(140)
-            card.setMaximumHeight(140)
-            card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-            card.setStyleSheet(card._original_stylesheet)
-            card.setContentsMargins(4, 4, 4, 4)
-
-            card._icon_bubble.setAttribute(Qt.WA_TranslucentBackground, False)
-            card._icon_bubble.setMinimumSize(24, 24)
-            card._icon_bubble.setMaximumSize(24, 24)
-
-            card_layout = card.layout()
-            if card_layout:
-                card_layout.setContentsMargins(20, 16, 20, 16)
-                card_layout.setSpacing(4)
-
-            rgba_color = tints.get(accent, "rgba(124, 138, 244, 0.10)")
-            card._icon_bubble.setFixedSize(24, 24)
-            if icon_name and (_ICONS_DIR / f"{icon_name}.svg").exists():
-                icon_pixmap = _load_svg_icon(icon_name, size=16, color=accent)
-                card._icon_bubble.setPixmap(icon_pixmap)
-            card._icon_bubble.setStyleSheet(
-                f"background-color: {rgba_color}; border-radius: 4px; border: none; min-width: 24px; max-width: 24px; min-height: 24px; max-height: 24px;"
-            )
-
-            card.installEventFilter(self)
+        for card in (self.card_total, self.card_avg, self.card_critical):
             stat_row.addWidget(card)
 
         history_layout.addLayout(stat_row)
@@ -536,8 +776,27 @@ class ContractsPage(QWidget):
         # Search bar
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Search contracts by project or text...")
-        self.search_input.setFixedWidth(500)
+        self.search_input.setFixedWidth(480)
         self.search_input.textChanged.connect(self._on_search)
+        self.search_input.setFixedHeight(38)
+        self.search_input.setStyleSheet("""
+            QLineEdit {
+                background-color: #1a1b26;
+                border: 1px solid #333440;
+                border-radius: 8px;
+                padding: 8px 14px 8px 36px;
+                color: #e2e4f0;
+                font-family: 'Inter';
+                font-size: 13px;
+            }
+            QLineEdit:focus {
+                border: 1px solid #7c8af4;
+                background-color: #1e1f2a;
+            }
+            QLineEdit::placeholder {
+                color: #6b6d85;
+            }
+        """)
 
         search_icon = QLabel()
         search_icon.setPixmap(_load_svg_icon("search", size=16, color="#6b6d85"))
@@ -555,27 +814,35 @@ class ContractsPage(QWidget):
         self.filter_btn = QPushButton("  Filter")
         self.filter_btn.setObjectName("filter_btn")
         self.filter_btn.setCursor(Qt.PointingHandCursor)
-        self.filter_btn.setFixedHeight(36)
-        filter_icon = _load_svg_icon("filter_list", size=16, color=Colors.TEXT_PRIMARY)
+        self.filter_btn.setFixedHeight(38)
+        filter_icon = _load_svg_icon("filter_list", size=16, color="#9a9cb8")
         self.filter_btn.setIcon(QIcon(filter_icon))
         self.filter_btn.clicked.connect(self._toggle_filter)
 
-        self.filter_btn.setStyleSheet(f"""
-            QPushButton#filter_btn {{
+        self.filter_btn.setStyleSheet("""
+            QPushButton#filter_btn {
                 background-color: transparent;
-                color: #8B8FA8;
-                border: 1px solid #3D3F55;
+                color: #9a9cb8;
+                border: 1px solid #333440;
                 border-radius: 8px;
                 padding: 0px 16px;
+                font-family: 'Inter';
                 font-size: 13px;
-            }}
-            QPushButton#filter_btn:hover {{
-                border-color: #7C8AF4;
-                color: #FFFFFF;
-            }}
-            QPushButton#filter_btn:pressed {{
+                font-weight: 500;
+            }
+            QPushButton#filter_btn:hover {
+                border-color: #454652;
+                color: #e2e4f0;
+                background-color: #1a1b26;
+            }
+            QPushButton#filter_btn:checked {
                 background-color: rgba(124, 138, 244, 0.10);
-            }}
+                color: #bcc2ff;
+                border-color: #7c8af4;
+            }
+            QPushButton#filter_btn:pressed {
+                background-color: rgba(124, 138, 244, 0.15);
+            }
         """)
         self.filter_btn.setAttribute(Qt.WA_Hover, True)
         filter_shadow = QGraphicsDropShadowEffect(self.filter_btn)
@@ -600,44 +867,53 @@ class ContractsPage(QWidget):
         # Clear All button
         self.clear_btn = QPushButton(" Clear All")
         self.clear_btn.setCursor(Qt.PointingHandCursor)
-        self.clear_btn.setFixedHeight(36)
+        self.clear_btn.setFixedHeight(38)
         self.clear_btn.setStyleSheet("""
             QPushButton {
-                background-color: #e87c8a;
-                color: #e2e4f0;
+                background-color: transparent;
+                color: #e87c8a;
+                border: 1px solid rgba(232, 124, 138, 0.40);
                 border-radius: 8px;
                 padding: 0px 16px;
+                font-family: 'Inter';
                 font-size: 13px;
                 font-weight: 600;
             }
             QPushButton:hover {
-                background-color: #383844;
+                background-color: rgba(232, 124, 138, 0.10);
+                border-color: #e87c8a;
+            }
+            QPushButton:pressed {
+                background-color: rgba(232, 124, 138, 0.18);
             }
         """)
         self.clear_btn.clicked.connect(self._clear_all_analyses)
         right_side.addWidget(self.clear_btn)
 
         # "+ Analyze New" button
-        self.add_btn = QPushButton("Analyze Contract")
+        self.add_btn = QPushButton("  Analyze Contract")
         self.add_btn.setObjectName("analyze_new_btn")
         self.add_btn.setCursor(Qt.PointingHandCursor)
-        self.add_btn.setFixedHeight(36)
-        self.add_btn.setStyleSheet(f"""
-            QPushButton#analyze_new_btn {{
-                background-color: {Colors.ACCENT_PRIMARY};
-                color: #e2e4f0;
+        self.add_btn.setFixedHeight(38)
+        self.add_btn.setStyleSheet("""
+            QPushButton#analyze_new_btn {
+                background-color: #7c8af4;
+                color: #061987;
                 border-radius: 8px;
-                padding: 8px 16px;
-                font-weight: 600;
+                padding: 0px 20px;
+                font-family: 'Inter';
+                font-weight: 700;
                 font-size: 13px;
                 border: none;
-            }}
-            QPushButton#analyze_new_btn:hover {{
-                background-color: #383844;
-                color: #e2e4f0;
-            }}
+            }
+            QPushButton#analyze_new_btn:hover {
+                background-color: #8a96f6;
+            }
+            QPushButton#analyze_new_btn:pressed {
+                background-color: #6d7be2;
+            }
         """)
-        add_icon = _load_svg_icon("add", size=16, color="#ffffff")
+        add_icon = _load_svg_icon("add", size=16, color="#061987")
         self.add_btn.setIcon(QIcon(add_icon))
         self.add_btn.clicked.connect(self._show_analyzer_view)
         right_side.addWidget(self.add_btn)
@@ -648,7 +924,7 @@ class ContractsPage(QWidget):
         # Table Card QFrame
         self.table_card = QFrame()
         self.table_card.setObjectName("card")
-        self.table_card.setStyleSheet("QFrame#card { background-color: #1a1b26; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }")
+        self.table_card.setStyleSheet("QFrame#card { background-color: #1a1b26; border: 1px solid #333440; border-radius: 14px; }")
         table_card_layout = QVBoxLayout(self.table_card)
         table_card_layout.setContentsMargins(0, 0, 0, 0)
         table_card_layout.setSpacing(0)
@@ -662,32 +938,87 @@ class ContractsPage(QWidget):
         self.table.setAlternatingRowColors(True)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setSelectionMode(QTableWidget.SingleSelection)
+        self.table.horizontalHeader().setVisible(True)
         self.table.verticalHeader().setVisible(False)
         self.table.setShowGrid(False)
         self.table.setFocusPolicy(Qt.NoFocus)
-        self.table.verticalHeader().setDefaultSectionSize(48)
+        self.table.verticalHeader().setDefaultSectionSize(52)  # Row height 52px
         self.table.setFrameShape(QFrame.NoFrame)
         self.table.setStyleSheet("""
             QTableWidget {
                 background-color: #1a1b26;
+                alternate-background-color: #1e1f2a;
+                border: none;
+                color: #e2e4f0;
+                font-size: 13px;
+                font-family: 'Inter';
+                outline: none;
+            }
+            QHeaderView::section {
+                background-color: #1a1b26;
+                color: #9a9cb8;
+                padding: 14px 24px;
+                border: none;
+                border-bottom: 1px solid #333440;
+                font-family: 'Inter';
+                font-size: 11px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+            QHeaderView::section:first {
+                border-top-left-radius: 14px;
+            }
+            QHeaderView::section:last {
+                border-top-right-radius: 14px;
             }
             QTableWidget::item {
                 border: none;
-                padding: 8px 12px;
+                padding: 10px 24px;
+                border-bottom: 1px solid rgba(51, 52, 64, 0.60);
             }
             QTableWidget::item:selected {
                 background-color: rgba(124, 138, 244, 0.12);
                 border: none;
-                color: white;
+                color: #e2e4f0;
             }
             QTableWidget::item:hover {
-                background-color: rgba(255, 255, 255, 0.04);
+                background-color: rgba(30, 31, 42, 0.80);
                 border: none;
             }
-            QHeaderView::section {
-                background-color: #1a1b26;
-                padding-left: 12px;
-                padding-right: 12px;
+            QScrollBar:vertical {
+                background-color: #12131d;
+                width: 8px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background-color: #333440;
+                border-radius: 4px;
+                min-height: 24px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background-color: #454652;
+            }
+            QScrollBar::add-line:vertical,
+            QScrollBar::sub-line:vertical {
+                height: 0px;
+            }
+            QScrollBar:horizontal {
+                background-color: #12131d;
+                height: 8px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:horizontal {
+                background-color: #333440;
+                border-radius: 4px;
+                min-width: 24px;
+            }
+            QScrollBar::handle:horizontal:hover {
+                background-color: #454652;
+            }
+            QScrollBar::add-line:horizontal,
+            QScrollBar::sub-line:horizontal {
+                width: 0px;
             }
         """)
 
@@ -713,7 +1044,7 @@ class ContractsPage(QWidget):
         # Pagination Footer
         self.footer_widget = QWidget()
         self.footer_widget.setObjectName("table_footer")
-        self.footer_widget.setStyleSheet("QWidget#table_footer { background-color: transparent; border-top: 1px solid #2d2e42; }")
+        self.footer_widget.setStyleSheet("QWidget#table_footer { background-color: #1e1f2a; border-top: 1px solid #333440; border-bottom-left-radius: 14px; border-bottom-right-radius: 14px; }")
         footer_layout = QHBoxLayout(self.footer_widget)
         footer_layout.setContentsMargins(24, 16, 24, 16)
 
@@ -736,7 +1067,7 @@ class ContractsPage(QWidget):
             QPushButton {
                 background-color: transparent;
                 border: 1px solid #2d2e42;
-                border-radius: 6px;
+                border-radius: 8px;
                 padding: 0;
             }
             QPushButton:hover {
@@ -764,7 +1095,7 @@ class ContractsPage(QWidget):
             QPushButton {
                 background-color: transparent;
                 border: 1px solid #2d2e42;
-                border-radius: 6px;
+                border-radius: 8px;
                 padding: 0;
             }
             QPushButton:hover {
@@ -788,7 +1119,7 @@ class ContractsPage(QWidget):
             QComboBox {
                 background-color: #1e1f2a;
                 border: 1px solid #2d2e42;
-                border-radius: 6px;
+                border-radius: 8px;
                 padding: 4px 10px;
                 color: #9a9cb8;
                 font-size: 13px;
@@ -815,92 +1146,102 @@ class ContractsPage(QWidget):
         self.back_btn.setObjectName("back_btn")
         self.back_btn.setCursor(Qt.PointingHandCursor)
         self.back_btn.clicked.connect(self._show_history_view)
-        self.back_btn.setStyleSheet(f"""
-            QPushButton#back_btn {{
+        self.back_btn.setStyleSheet("""
+            QPushButton#back_btn {
                 background-color: transparent;
-                color: {Colors.TEXT_PRIMARY};
-                font-size: 14px;
-                font-weight: 600;
-                border: none;
-                padding: 8px 12px;
-            }}
-            QPushButton#back_btn:hover {{
-                color: {Colors.ACCENT_PRIMARY};
-            }}
+                color: #9a9cb8;
+                font-family: 'Inter';
+                font-size: 13px;
+                font-weight: 500;
+                border: 1px solid #333440;
+                border-radius: 8px;
+                padding: 6px 14px;
+            }
+            QPushButton#back_btn:hover {
+                color: #bcc2ff;
+                border-color: #454652;
+                background-color: #1a1b26;
+            }
+            QPushButton#back_btn:pressed {
+                background-color: #1e1f2a;
+            }
         """)
         back_row.addWidget(self.back_btn)
         back_row.addStretch()
         analyzer_layout.addLayout(back_row)
 
-        # Input card
-        input_card = AnimatedCard()
-        input_layout = QVBoxLayout(input_card)
-        input_layout.setContentsMargins(28, 24, 28, 24)
-        input_layout.setSpacing(20)
+        # Input Grid (Left: Upload PDF Card, Right: Parameters & Text Area)
+        input_grid = QWidget()
+        input_grid_layout = QHBoxLayout(input_grid)
+        input_grid_layout.setContentsMargins(0, 0, 0, 0)
+        input_grid_layout.setSpacing(24)
 
-        upload_title = QLabel("📄 Contract Upload")
-        upload_title.setStyleSheet(
-            f"font-size: 16px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; "
-            "background: transparent;"
-        )
-        input_layout.addWidget(upload_title)
-
-        file_row = QHBoxLayout()
-        file_row.setSpacing(16)
-
-        self.file_label = QLabel("No file selected")
-        self.file_label.setStyleSheet(
-            f"color: {Colors.TEXT_MUTED}; background: transparent; font-size: 13px;"
-        )
-        file_row.addWidget(self.file_label, 1)
-
-        upload_btn = AnimatedButton("📤 Upload PDF", accent=Colors.ACCENT_INFO)
-        upload_btn.setCursor(Qt.PointingHandCursor)
-        upload_btn.clicked.connect(self._upload_pdf)
-        upload_btn.setFixedHeight(42)
-        file_row.addWidget(upload_btn)
-        input_layout.addLayout(file_row)
-
-        text_label = QLabel("Or paste contract text:")
-        text_label.setStyleSheet(
-            f"font-size: 13px; color: {Colors.TEXT_SECONDARY}; background: transparent;"
-        )
-        input_layout.addWidget(text_label)
-
-        self.contract_text = QTextEdit()
-        self.contract_text.setPlaceholderText(
-            "Paste your contract here...\n\n"
-            "The analyzer will scan for:\n"
-            "• Unlimited liability clauses\n"
-            "• Extended payment terms (Net-60/90)\n"
-            "• IP transfer before payment\n"
-            "• Termination without compensation\n"
-            "• Unlimited revision requirements"
-        )
-        self.contract_text.setMinimumHeight(160)
-        self.contract_text.setStyleSheet("""
-            QTextEdit {
-                background-color: #1e1f2a;
-                border: 1px solid #2d2e42;
-                border-radius: 10px;
-                padding: 10px 14px;
-                color: #e2e4f0;
-                font-size: 14px;
+        # 1. Left Upload Card
+        upload_card = QFrame()
+        upload_card.setObjectName("glassCardUpload")
+        upload_card.setStyleSheet("""
+            QFrame#glassCardUpload {
+                background-color: #222336;
+                border: 1px solid #333440;
+                border-radius: 14px;
+            }
+            QFrame#glassCardUpload:hover {
+                background-color: #282935;
             }
         """)
-        input_layout.addWidget(self.contract_text)
+        upload_card_layout = QVBoxLayout(upload_card)
+        upload_card_layout.setContentsMargins(24, 24, 24, 24)
+        upload_card_layout.setSpacing(16)
 
-        params_title = QLabel("⚙️ Project Details (Optional)")
-        params_title.setStyleSheet(
-            f"font-size: 16px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; "
-            "background: transparent; margin-top: 12px;"
-        )
-        input_layout.addWidget(params_title)
+        upload_title = QLabel("📄 Contract Upload")
+        upload_title.setStyleSheet("font-family: 'Inter'; font-size: 16px; font-weight: 700; color: #e2e4f0; background: transparent; border: none;")
+        upload_card_layout.addWidget(upload_title)
 
-        params_grid = QGridLayout()
-        params_grid.setSpacing(16)
-        params_grid.setColumnStretch(1, 1)
-        params_grid.setColumnStretch(3, 1)
+        self.upload_area = UploadDashedArea()
+        self.upload_area.file_dropped.connect(self._handle_file_drop)
+        upload_card_layout.addWidget(self.upload_area, 1)
+
+        self.file_label = QLabel("No file selected")
+        self.file_label.setStyleSheet("color: #6b6d85; background: transparent; font-size: 13px; border: none;")
+        upload_card_layout.addWidget(self.file_label, 0, Qt.AlignCenter)
+
+        input_grid_layout.addWidget(upload_card, 1)
+
+        # 2. Right Parameters Card
+        params_card = QFrame()
+        params_card.setObjectName("glassCardParams")
+        params_card.setStyleSheet("""
+            QFrame#glassCardParams {
+                background-color: #222336;
+                border: 1px solid #333440;
+                border-radius: 14px;
+            }
+            QFrame#glassCardParams:hover {
+                background-color: #282935;
+            }
+        """)
+        params_card_layout = QVBoxLayout(params_card)
+        params_card_layout.setContentsMargins(24, 24, 24, 24)
+        params_card_layout.setSpacing(16)
+
+        params_title = QLabel("⚙️ Project Details")
+        params_title.setStyleSheet("font-family: 'Inter'; font-size: 16px; font-weight: 700; color: #e2e4f0; background: transparent; border: none;")
+        params_card_layout.addWidget(params_title)
+
+        # Form fields Grid layout
+        form_layout = QGridLayout()
+        form_layout.setSpacing(12)
+        form_layout.setColumnStretch(1, 1)
+        form_layout.setColumnStretch(3, 1)
+
+        # Labels
+        lbl_project = QLabel("PROJECT:")
+        lbl_rate = QLabel("HOURLY RATE (₹):")
+        lbl_revisions = QLabel("REVISIONS:")
+        lbl_timeline = QLabel("TIMELINE:")
+        lbl_type = QLabel("TYPE:")
+        for lbl in (lbl_project, lbl_rate, lbl_revisions, lbl_timeline, lbl_type):
+            lbl.setStyleSheet("color: #6b6d85; font-family: 'Inter'; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; background: transparent; border: none;")
 
         self.project_combo = QComboBox()
         self.rate_input = QDoubleSpinBox()
@@ -920,150 +1261,223 @@ class ContractsPage(QWidget):
         self.type_combo = QComboBox()
         self.type_combo.addItems(["Design", "Video", "Writing", "Music", "Development", "General"])
 
-        params_grid.addWidget(QLabel("Project:"), 0, 0)
-        params_grid.addWidget(self.project_combo, 0, 1)
-        params_grid.addWidget(QLabel("Hourly Rate:"), 0, 2)
-        params_grid.addWidget(self.rate_input, 0, 3)
+        # Style inputs
+        input_style = """
+            QComboBox, QAbstractSpinBox {
+                background-color: #1a1b26;
+                border: 1px solid #333440;
+                border-radius: 6px;
+                padding: 6px 12px;
+                color: #e2e4f0;
+                font-family: 'Inter';
+                font-size: 13px;
+                selection-background-color: rgba(124, 138, 244, 0.20);
+            }
+            QComboBox:hover, QAbstractSpinBox:hover {
+                border-color: #454652;
+            }
+            QComboBox:focus, QAbstractSpinBox:focus {
+                border-color: #7c8af4;
+                background-color: #1e1f2a;
+            }
+            QComboBox::drop-down {
+                border: none;
+                padding-right: 8px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 5px solid #6b6d85;
+                margin-right: 6px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #1e1f2a;
+                border: 1px solid #333440;
+                border-radius: 6px;
+                color: #e2e4f0;
+                selection-background-color: rgba(124, 138, 244, 0.20);
+                outline: none;
+            }
+            QAbstractSpinBox::up-button,
+            QAbstractSpinBox::down-button {
+                background-color: transparent;
+                border: none;
+                width: 16px;
+            }
+            QAbstractSpinBox::up-arrow {
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-bottom: 5px solid #6b6d85;
+            }
+            QAbstractSpinBox::down-arrow {
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 5px solid #6b6d85;
+            }
+        """
+        for widget in (self.project_combo, self.rate_input, self.revisions_input, self.timeline_input, self.type_combo):
+            widget.setStyleSheet(input_style)
 
-        params_grid.addWidget(QLabel("Revision Rounds:"), 1, 0)
-        params_grid.addWidget(self.revisions_input, 1, 1)
-        params_grid.addWidget(QLabel("Timeline:"), 1, 2)
-        params_grid.addWidget(self.timeline_input, 1, 3)
+        form_layout.addWidget(lbl_project, 0, 0)
+        form_layout.addWidget(self.project_combo, 0, 1)
+        form_layout.addWidget(lbl_rate, 0, 2)
+        form_layout.addWidget(self.rate_input, 0, 3)
 
-        params_grid.addWidget(QLabel("Project Type:"), 2, 0)
-        params_grid.addWidget(self.type_combo, 2, 1, 1, 3)
+        form_layout.addWidget(lbl_revisions, 1, 0)
+        form_layout.addWidget(self.revisions_input, 1, 1)
+        form_layout.addWidget(lbl_timeline, 1, 2)
+        form_layout.addWidget(self.timeline_input, 1, 3)
 
-        for combo in (self.project_combo, self.type_combo):
-            combo.setStyleSheet("""
-                QComboBox {
-                    background-color: #1e1f2a;
-                    border: 1px solid #2d2e42;
-                    border-radius: 6px;
-                    padding: 4px 10px;
-                    color: #e2e4f0;
-                    font-size: 13px;
-                }
-            """)
-        for spin in (self.rate_input, self.revisions_input, self.timeline_input):
-            spin.setStyleSheet("""
-                QAbstractSpinBox {
-                    background-color: #1e1f2a;
-                    border: 1px solid #2d2e42;
-                    border-radius: 6px;
-                    padding: 4px 10px;
-                    color: #e2e4f0;
-                    font-size: 13px;
-                }
-            """)
+        form_layout.addWidget(lbl_type, 2, 0)
+        form_layout.addWidget(self.type_combo, 2, 1, 1, 3)
 
-        input_layout.addLayout(params_grid)
+        params_card_layout.addLayout(form_layout)
+
+        # Text area label
+        lbl_text = QLabel("PASTE CONTRACT TEXT")
+        lbl_text.setStyleSheet("color: #6b6d85; font-family: 'Inter'; font-size: 11px; font-weight: 700; background: transparent; border: none; letter-spacing: 0.05em;")
+        params_card_layout.addWidget(lbl_text)
+
+        self.contract_text = QTextEdit()
+        self.contract_text.setPlaceholderText("Paste contract text here...")
+        self.contract_text.setMinimumHeight(120)
+        self.contract_text.setStyleSheet("""
+            QTextEdit {
+                background-color: #1a1b26;
+                border: 1px solid #333440;
+                border-radius: 6px;
+                padding: 8px 12px;
+                color: #e2e4f0;
+                font-family: 'Inter';
+                font-size: 13px;
+            }
+            QTextEdit:focus {
+                border-color: #7c8af4;
+                background-color: #1e1f2a;
+            }
+            QTextEdit:hover {
+                border-color: #454652;
+            }
+        """)
+        params_card_layout.addWidget(self.contract_text)
 
         # Analyze button
-        self.analyze_btn = AnimatedButton("🔍 Analyze Contract Risk", accent=Colors.ACCENT_PRIMARY)
+        self.analyze_btn = QPushButton("🔍  Analyze Contract")
         self.analyze_btn.setCursor(Qt.PointingHandCursor)
+        self.analyze_btn.setFixedHeight(44)
+        self.analyze_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #7c8af4;
+                color: #061987;
+                border: none;
+                border-radius: 10px;
+                font-family: 'Inter';
+                font-size: 14px;
+                font-weight: 700;
+            }
+            QPushButton:hover {
+                background-color: #8a96f6;
+            }
+            QPushButton:pressed {
+                background-color: #6d7be2;
+            }
+        """)
         self.analyze_btn.clicked.connect(lambda: self._analyze(save_db=True))
-        self.analyze_btn.setFixedHeight(48)
-        font = QFont()
-        font.setPointSize(14)
-        font.setWeight(QFont.Bold)
-        self.analyze_btn.setFont(font)
-        input_layout.addWidget(self.analyze_btn)
+        params_card_layout.addWidget(self.analyze_btn)
 
-        analyzer_layout.addWidget(input_card)
+        input_grid_layout.addWidget(params_card, 1.2)
+        analyzer_layout.addWidget(input_grid)
 
         # Results Container (starts hidden)
         self.results_container = QWidget()
+        self.results_container.setStyleSheet("background: transparent; border: none;")
         results_layout = QVBoxLayout(self.results_container)
         results_layout.setContentsMargins(0, 0, 0, 0)
         results_layout.setSpacing(24)
 
         # Overall Assessment Card
-        self.overall_card = AnimatedCard()
-        overall_layout = QVBoxLayout(self.overall_card)
-        overall_layout.setContentsMargins(32, 28, 32, 28)
-        overall_layout.setSpacing(16)
+        self.overall_card = QFrame()
+        self.overall_card.setObjectName("overallCard")
+        self.overall_card.setStyleSheet("""
+            QFrame#overallCard {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #222336, stop:0.6 #1e1f2a, stop:1 #1a1b26);
+                border: 1px solid #333440;
+                border-radius: 14px;
+            }
+        """)
+        overall_layout = QHBoxLayout(self.overall_card)
+        overall_layout.setContentsMargins(28, 24, 28, 24)
+        overall_layout.setSpacing(24)
 
-        overall_title = QLabel("📊 Overall Risk Assessment")
-        overall_title.setStyleSheet(
-            f"font-size: 18px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; "
-            "background: transparent;"
-        )
-        overall_layout.addWidget(overall_title)
+        # Left: Circular progress score ring
+        self.circular_score = CircularRiskScore()
+        overall_layout.addWidget(self.circular_score)
 
-        risk_display = QHBoxLayout()
-        risk_display.setSpacing(24)
-
-        score_container = QVBoxLayout()
-        score_container.setAlignment(Qt.AlignCenter)
-
-        self.score_circle = QLabel("—")
-        self.score_circle.setAlignment(Qt.AlignCenter)
-        self.score_circle.setFixedSize(100, 100)
-        self.score_circle.setStyleSheet(
-            f"background-color: {Colors.BG_ELEVATED}; "
-            f"border: 4px solid {Colors.BORDER_SUBTLE}; "
-            "border-radius: 50px; "
-            "font-size: 32px; font-weight: 700; "
-            f"color: {Colors.TEXT_PRIMARY};"
-        )
-        score_container.addWidget(self.score_circle)
-
-        score_label = QLabel("Risk Score")
-        score_label.setAlignment(Qt.AlignCenter)
-        score_label.setStyleSheet(
-            f"font-size: 12px; color: {Colors.TEXT_MUTED}; background: transparent;"
-        )
-        score_container.addWidget(score_label)
-        risk_display.addLayout(score_container)
-
-        level_container = QVBoxLayout()
-        level_container.setAlignment(Qt.AlignLeft)
-        level_container.setSpacing(8)
+        # Right: Risk level and recommendation details
+        risk_info = QWidget()
+        risk_info.setStyleSheet("background: transparent; border: none;")
+        risk_info_layout = QVBoxLayout(risk_info)
+        risk_info_layout.setContentsMargins(0, 0, 0, 0)
+        risk_info_layout.setSpacing(8)
 
         self.risk_level_label = QLabel("Risk Level: Not Analyzed")
-        self.risk_level_label.setStyleSheet(
-            f"font-size: 24px; font-weight: 700; color: {Colors.TEXT_SECONDARY}; "
-            "background: transparent;"
-        )
-        level_container.addWidget(self.risk_level_label)
+        self.risk_level_label.setStyleSheet("font-family: 'Inter'; font-size: 22px; font-weight: 700; color: #e2e4f0; background: transparent; border: none; letter-spacing: -0.01em;")
+        risk_info_layout.addWidget(self.risk_level_label)
 
         self.recommendation_label = QLabel("Upload a contract to begin analysis")
         self.recommendation_label.setWordWrap(True)
-        self.recommendation_label.setStyleSheet(
-            f"font-size: 14px; color: {Colors.TEXT_MUTED}; background: transparent;"
-        )
-        level_container.addWidget(self.recommendation_label)
-        risk_display.addLayout(level_container, 1)
+        self.recommendation_label.setStyleSheet("font-family: 'Inter'; font-size: 13px; color: #9a9cb8; background: transparent; border: none;")
+        risk_info_layout.addWidget(self.recommendation_label)
 
-        overall_layout.addLayout(risk_display)
+        # Sliding white indicator line on multi-colored progress bar
+        self.multi_progress = MultiColorGradientBar()
+        risk_info_layout.addWidget(self.multi_progress)
 
-        self.overall_progress = GradientBar(
-            value=0,
-            max_value=150,
-            color_start=Colors.ACCENT_SUCCESS,
-            color_end=Colors.ACCENT_DANGER,
-            height=12,
-        )
-        overall_layout.addWidget(self.overall_progress)
+        # Legend row
+        legend_row = QHBoxLayout()
+        legend_row.setSpacing(16)
+        
+        def make_legend_item(text, color):
+            item = QWidget()
+            item.setStyleSheet("background: transparent; border: none;")
+            item_layout = QHBoxLayout(item)
+            item_layout.setContentsMargins(0, 0, 0, 0)
+            item_layout.setSpacing(6)
+            
+            dot = QLabel()
+            dot.setFixedSize(8, 8)
+            dot.setStyleSheet(f"background-color: {color}; border-radius: 4px; border: none;")
+            item_layout.addWidget(dot)
+            
+            label = QLabel(text)
+            label.setStyleSheet("color: #6b6d85; font-size: 11px; font-weight: 500; background: transparent; border: none;")
+            item_layout.addWidget(label)
+            return item
+
+        legend_row.addWidget(make_legend_item("LOW RISK", "#82d8ac"))
+        legend_row.addWidget(make_legend_item("MEDIUM", "#7c8af4"))
+        legend_row.addWidget(make_legend_item("CRITICAL", "#e87c8a"))
+        legend_row.addStretch()
+        risk_info_layout.addLayout(legend_row)
+
+        overall_layout.addWidget(risk_info, 1)
         results_layout.addWidget(self.overall_card)
 
         # 5 Critical Areas Grid
-        self.criteria_title = QLabel("🎯 5 Critical Risk Areas")
-        self.criteria_title.setStyleSheet(
-            f"font-size: 18px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; "
-            "background: transparent;"
-        )
+        self.criteria_title = QLabel("🎯  5 Critical Risk Areas")
+        self.criteria_title.setStyleSheet("font-family: 'Inter'; font-size: 18px; font-weight: 700; color: #e2e4f0; background: transparent; border: none; letter-spacing: -0.01em;")
         results_layout.addWidget(self.criteria_title)
 
         criteria_grid = QGridLayout()
-        criteria_grid.setSpacing(24)
+        criteria_grid.setSpacing(20)
 
         criteria_defs = [
-            ("indemnity", "⚖️", "Indemnity Clause", "Unlimited liability exposure"),
+            ("ip_transfer", "🎨", "Intellectual Property", "Loss of ownership rights"),
             ("payment_terms", "💰", "Payment Terms", "Extended payment delays"),
-            ("ip_transfer", "🎨", "IP Transfer", "Loss of ownership rights"),
-            ("termination", "🚫", "Termination", "Cancellation without payment"),
-            ("revision_scope", "🔄", "Revision Scope", "Unlimited work requirements"),
+            ("revision_scope", "🔄", "Scope Creep Control", "Unlimited work requirements"),
+            ("termination", "🚫", "Termination Rights", "Cancellation without payment"),
+            ("indemnity", "🛡️", "Liability Caps", "Unlimited liability exposure"),
         ]
 
         for idx, (key, icon, title, desc) in enumerate(criteria_defs):
@@ -1072,19 +1486,16 @@ class ContractsPage(QWidget):
             row = idx // 2
             col = idx % 2
             if idx == 4:
-                # Span revision scope card across both columns for visual balance
+                # Span 5th card across both columns
                 criteria_grid.addWidget(card, row, col, 1, 2)
             else:
                 criteria_grid.addWidget(card, row, col)
 
         results_layout.addLayout(criteria_grid)
 
-        # Detailed Findings Table
-        self.findings_title = QLabel("📋 Detailed Findings")
-        self.findings_title.setStyleSheet(
-            f"font-size: 18px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; "
-            "background: transparent;"
-        )
+        # Detailed Findings Table Card
+        self.findings_title = QLabel("📋  Detailed Findings")
+        self.findings_title.setStyleSheet("font-family: 'Inter'; font-size: 18px; font-weight: 700; color: #e2e4f0; background: transparent; border: none; letter-spacing: -0.01em;")
         results_layout.addWidget(self.findings_title)
 
         self.findings_table = QTableWidget()
@@ -1098,51 +1509,116 @@ class ContractsPage(QWidget):
         self.findings_table.setStyleSheet("""
             QTableWidget {
                 background-color: #1a1b26;
-                border: 1px solid rgba(255, 255, 255, 0.06);
-                border-radius: 10px;
+                alternate-background-color: #1e1f2a;
+                border: 1px solid #333440;
+                border-radius: 14px;
+                gridline-color: transparent;
+                color: #e2e4f0;
+                font-family: 'Inter';
+                font-size: 13px;
+                outline: none;
             }
             QTableWidget::item {
-                border: none;
-                padding: 8px 12px;
+                border-bottom: 1px solid rgba(51, 52, 64, 0.60);
+                padding: 10px 16px;
             }
             QTableWidget::item:selected {
                 background-color: rgba(124, 138, 244, 0.12);
-                border: none;
-                color: white;
-            }
-            QTableWidget::item:hover {
-                background-color: rgba(255, 255, 255, 0.04);
-                border: none;
+                color: #e2e4f0;
             }
             QHeaderView::section {
                 background-color: #1a1b26;
-                padding-left: 12px;
-                padding-right: 12px;
+                color: #9a9cb8;
+                font-family: 'Inter';
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 0.05em;
+                text-transform: uppercase;
+                border: none;
+                border-bottom: 1px solid #333440;
+                padding: 10px 16px;
+            }
+            QScrollBar:vertical {
+                background-color: #12131d;
+                width: 8px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background-color: #333440;
+                border-radius: 4px;
+                min-height: 24px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background-color: #454652;
+            }
+            QScrollBar::add-line:vertical,
+            QScrollBar::sub-line:vertical {
+                height: 0px;
             }
         """)
         results_layout.addWidget(self.findings_table)
+
+        # Action Buttons at the bottom
+        actions_row = QHBoxLayout()
+        actions_row.setSpacing(12)
+
+        self.export_btn = QPushButton("Export PDF")
+        self.export_btn.setCursor(Qt.PointingHandCursor)
+        self.export_btn.setFixedHeight(40)
+        self.export_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                color: #e2e4f0;
+                border: 1px solid #333440;
+                border-radius: 10px;
+                font-family: 'Inter';
+                font-weight: 600;
+                font-size: 13px;
+                padding: 0px 20px;
+            }
+            QPushButton:hover {
+                background-color: #1a1b26;
+                border-color: #454652;
+                color: #bcc2ff;
+            }
+            QPushButton:pressed {
+                background-color: #1e1f2a;
+            }
+        """)
+
+        self.share_btn = QPushButton("Share with Client")
+        self.share_btn.setCursor(Qt.PointingHandCursor)
+        self.share_btn.setFixedHeight(40)
+        self.share_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #7c8af4;
+                color: #061987;
+                border: none;
+                border-radius: 10px;
+                font-family: 'Inter';
+                font-weight: 700;
+                font-size: 13px;
+                padding: 0px 20px;
+            }
+            QPushButton:hover {
+                background-color: #8a96f6;
+            }
+            QPushButton:pressed {
+                background-color: #6d7be2;
+            }
+        """)
+
+        actions_row.addWidget(self.export_btn)
+        actions_row.addWidget(self.share_btn)
+        results_layout.addLayout(actions_row)
 
         analyzer_layout.addWidget(self.results_container)
         self.results_container.hide()
 
     def eventFilter(self, obj, event) -> bool:
-        """Handle hover events for stat cards to trigger shadow animation."""
-        if obj in (self.card_total, self.card_avg, self.card_critical):
-            if hasattr(obj, "_shadow") and hasattr(obj, "_shadow_animation"):
-                event_type = event.type()
-                if event_type == QEvent.Enter:
-                    obj._shadow_animation.stop()
-                    obj._shadow_animation.setStartValue(obj._shadow.blurRadius())
-                    obj._shadow_animation.setEndValue(20 if not is_reduced_motion() else 0)
-                    obj._shadow_animation.start()
-                    obj.setStyleSheet(obj._hover_stylesheet)
-                elif event_type == QEvent.Leave:
-                    obj._shadow_animation.stop()
-                    obj._shadow_animation.setStartValue(obj._shadow.blurRadius())
-                    obj._shadow_animation.setEndValue(0)
-                    obj._shadow_animation.start()
-                    obj.setStyleSheet(obj._original_stylesheet)
-        elif obj == self.filter_btn:
+        """Handle hover events for custom buttons."""
+        from PySide6.QtCore import QEvent
+        if obj == self.filter_btn:
             shadow = self.filter_btn.graphicsEffect()
             if shadow and hasattr(self, "_filter_btn_shadow_animation"):
                 event_type = event.type()
@@ -1204,9 +1680,7 @@ class ContractsPage(QWidget):
         # Reset inputs
         self.contract_text.clear()
         self.file_label.setText("No file selected")
-        self.file_label.setStyleSheet(
-            f"color: {Colors.TEXT_MUTED}; background: transparent; font-size: 13px;"
-        )
+        self.file_label.setStyleSheet("color: #6b6d85; background: transparent; font-size: 13px; border: none;")
         self.project_combo.setCurrentIndex(0)
         self.rate_input.setValue(500)
         self.revisions_input.setValue(2)
@@ -1217,19 +1691,27 @@ class ContractsPage(QWidget):
         self.view_stack.setCurrentWidget(self.analyzer_view)
 
     def _toggle_filter(self) -> None:
-        pass  # Filter dropdown details omitted for simplicity
+        pass
 
     def _upload_pdf(self) -> None:
         path, _ = QFileDialog.getOpenFileName(self, "Select Contract PDF", "", "PDF Files (*.pdf)")
         if not path:
             return
-        filename = path.replace("\\", "/").split("/")[-1]
+        self._handle_file_drop(path)
+
+    def _handle_file_drop(self, filepath: str) -> None:
+        if not filepath:
+            filepath, _ = QFileDialog.getOpenFileName(self, "Select Contract PDF", "", "PDF Files (*.pdf)")
+            if not filepath:
+                return
+
+        filename = filepath.replace("\\", "/").split("/")[-1]
         self.file_label.setText(f"✅ {filename}")
         self.file_label.setStyleSheet(
-            f"color: {Colors.ACCENT_SUCCESS}; background: transparent; font-size: 13px; font-weight: 600;"
+            "color: #82d8ac; background: transparent; font-size: 13px; font-weight: 600; border: none;"
         )
         try:
-            text = self.contract_parser.extract_text(path)
+            text = self.contract_parser.extract_text(filepath)
             self.contract_text.setPlainText(text)
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Could not read PDF: {e}")
@@ -1267,28 +1749,19 @@ class ContractsPage(QWidget):
         total_score = result["total_score"]
         level = result["risk_level"]
 
-        self.score_circle.setText(str(total_score))
-
         level_colors = {
-            "LOW": Colors.ACCENT_SUCCESS,
-            "MEDIUM": Colors.ACCENT_INFO,
-            "HIGH": Colors.ACCENT_WARNING,
-            "CRITICAL": Colors.ACCENT_DANGER,
+            "LOW": "#82d8ac",       # Green
+            "MEDIUM": "#7c8af4",    # Lavender
+            "HIGH": "#e87c8a",      # Red
+            "CRITICAL": "#e87c8a",  # Red
         }
-        color = level_colors.get(level, Colors.TEXT_SECONDARY)
+        color_hex = level_colors.get(level, "#9a9cb8")
 
-        self.score_circle.setStyleSheet(
-            f"background-color: {color}; "
-            f"border: 4px solid {color}; "
-            "border-radius: 50px; "
-            "font-size: 32px; font-weight: 700; "
-            "color: #FFFFFF;"
-        )
+        self.circular_score.set_score(total_score, color_hex)
+        self.multi_progress.set_score(total_score, animate=True)
 
         self.risk_level_label.setText(f"Risk Level: {level}")
-        self.risk_level_label.setStyleSheet(
-            f"font-size: 24px; font-weight: 700; color: {color}; background: transparent;"
-        )
+        self.risk_level_label.setStyleSheet(f"font-size: 24px; font-weight: 700; color: {color_hex}; background: transparent; border: none; letter-spacing: -0.01em;")
 
         recommendations = {
             "LOW": "✅ Acceptable risk - proceed with standard caution",
@@ -1297,8 +1770,6 @@ class ContractsPage(QWidget):
             "CRITICAL": "❌ DO NOT SIGN - extremely dangerous contract",
         }
         self.recommendation_label.setText(recommendations.get(level, ""))
-
-        self.overall_progress.set_value(min(total_score, 150), animate=True)
 
         # Update 5 critical area cards
         for key, card in self.risk_cards.items():
@@ -1326,13 +1797,13 @@ class ContractsPage(QWidget):
             score_item = QTableWidgetItem(str(f["score"]))
             score_item.setFont(QFont("Inter", 11, QFont.Bold))
             if f["score"] >= 25:
-                score_item.setForeground(QColor(Colors.ACCENT_DANGER))
+                score_item.setForeground(QColor("#e87c8a"))
             elif f["score"] >= 15:
-                score_item.setForeground(QColor(Colors.ACCENT_WARNING))
+                score_item.setForeground(QColor("#f0c878"))
             elif f["score"] >= 8:
-                score_item.setForeground(QColor(Colors.ACCENT_INFO))
+                score_item.setForeground(QColor("#7c8af4"))
             else:
-                score_item.setForeground(QColor(Colors.ACCENT_SUCCESS))
+                score_item.setForeground(QColor("#82d8ac"))
             self.findings_table.setItem(i, 2, score_item)
 
         # Save to database if requested
@@ -1378,7 +1849,7 @@ class ContractsPage(QWidget):
             self.table.setRowHeight(0, 120)
             self.table.setSpan(0, 0, 1, 6)
             empty_label = QLabel("No analyzed contracts found. Upload one to start.")
-            empty_label.setStyleSheet("color: #6B7280; font-size: 13px;")
+            empty_label.setStyleSheet("color: #6b6d85; font-size: 13px; background: transparent; border: none;")
             empty_label.setAlignment(Qt.AlignCenter)
             self.table.setCellWidget(0, 0, empty_label)
         else:
@@ -1402,7 +1873,7 @@ class ContractsPage(QWidget):
                 project_layout.addWidget(avatar_lbl)
 
                 name_lbl = QLabel(proj_name)
-                name_lbl.setStyleSheet(f"font-weight: 600; color: {Colors.TEXT_PRIMARY};")
+                name_lbl.setStyleSheet(f"font-weight: 600; color: {Colors.TEXT_PRIMARY}; background: transparent; border: none;")
                 project_layout.addWidget(name_lbl)
                 project_layout.addStretch()
 
@@ -1430,13 +1901,20 @@ class ContractsPage(QWidget):
 
                 # 4. Risk Level (StatusPill)
                 level = c["risk_level"]
-                level_colors = {
-                    "LOW": Colors.ACCENT_SUCCESS,
-                    "MEDIUM": Colors.ACCENT_INFO,
-                    "HIGH": Colors.ACCENT_WARNING,
-                    "CRITICAL": Colors.ACCENT_DANGER,
-                }
-                pill = StatusPill(level, level_colors.get(level, Colors.TEXT_SECONDARY))
+                if level in ("CRITICAL", "HIGH"):
+                    text_color = "#e87c8a"
+                    bg_color = "rgba(232, 124, 138, 0.20)"
+                elif level == "MEDIUM":
+                    text_color = "#f0c878"
+                    bg_color = "rgba(240, 200, 120, 0.10)"
+                elif level == "LOW":
+                    text_color = "#82d8ac"
+                    bg_color = "rgba(0, 106, 71, 0.20)"
+                else:
+                    text_color = "#9a9cb8"
+                    bg_color = "rgba(154, 156, 184, 0.12)"
+
+                pill = StatusPill(level, color=text_color, bg_color=bg_color)
                 pill_container = QWidget()
                 pill_layout = QHBoxLayout(pill_container)
                 pill_layout.setContentsMargins(0, 0, 0, 0)
@@ -1467,20 +1945,54 @@ class ContractsPage(QWidget):
         layout.setSpacing(8)
         layout.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
+        _action_btn_style = """
+            QPushButton {
+                background-color: transparent;
+                border: 1px solid transparent;
+                border-radius: 8px;
+                padding: 4px;
+            }
+            QPushButton:hover {
+                background-color: rgba(188, 194, 255, 0.08);
+                border: 1px solid #454652;
+            }
+            QPushButton:pressed {
+                background-color: rgba(124, 138, 244, 0.15);
+            }
+        """
+
         view_btn = QPushButton()
         view_btn.setObjectName("table_action_icon_btn")
         view_btn.setCursor(Qt.PointingHandCursor)
         view_btn.setToolTip("View Analysis")
-        view_btn.setIcon(QIcon(_load_svg_icon("edit", size=18, color="#6b6d85")))
+        view_btn.setFixedSize(32, 32)
+        view_btn.setIcon(QIcon(_load_svg_icon("edit", size=18, color="#bcc2ff")))
         view_btn.setIconSize(QSize(18, 18))
+        view_btn.setStyleSheet(_action_btn_style)
         view_btn.clicked.connect(lambda: self._view_analysis(contract_id))
 
         del_btn = QPushButton()
-        del_btn.setObjectName("table_action_icon_btn")
+        del_btn.setObjectName("table_action_icon_btn_danger")
         del_btn.setCursor(Qt.PointingHandCursor)
         del_btn.setToolTip("Delete Analysis")
-        del_btn.setIcon(QIcon(_load_svg_icon("delete", size=18, color="#6b6d85")))
+        del_btn.setFixedSize(32, 32)
+        del_btn.setIcon(QIcon(_load_svg_icon("delete", size=18, color="#e87c8a")))
         del_btn.setIconSize(QSize(18, 18))
+        del_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                border: 1px solid transparent;
+                border-radius: 8px;
+                padding: 4px;
+            }
+            QPushButton:hover {
+                background-color: rgba(232, 124, 138, 0.12);
+                border: 1px solid rgba(232, 124, 138, 0.30);
+            }
+            QPushButton:pressed {
+                background-color: rgba(232, 124, 138, 0.20);
+            }
+        """)
         del_btn.clicked.connect(lambda: self._delete_analysis(contract_id))
 
         layout.addWidget(view_btn)
@@ -1572,7 +2084,7 @@ class ContractsPage(QWidget):
                         background-color: #7c8af4;
                         color: #0f208b;
                         border: none;
-                        border-radius: 6px;
+                        border-radius: 8px;
                         font-weight: 700;
                         font-size: 13px;
                     }
@@ -1582,7 +2094,7 @@ class ContractsPage(QWidget):
                     QPushButton {
                         background-color: transparent;
                         border: 1px solid #2d2e42;
-                        border-radius: 6px;
+                        border-radius: 8px;
                         color: #9a9cb8;
                         font-weight: 600;
                         font-size: 13px;
