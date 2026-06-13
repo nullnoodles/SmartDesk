@@ -404,7 +404,7 @@ class InvoicesPage(QWidget):
         filter_bar_widget = QWidget()
         filter_bar_layout = QHBoxLayout(filter_bar_widget)
         filter_bar_layout.setContentsMargins(16, 0, 0, 0)
-        filter_bar_layout.setSpacing(12)
+        filter_bar_layout.setSpacing(4)
 
         for fs in filter_statuses:
             btn = QPushButton(fs)
@@ -415,22 +415,22 @@ class InvoicesPage(QWidget):
             btn.setStyleSheet("""
                 QPushButton#invoice_filter_tab {
                     background: transparent;
-                    color: #9a9cb8;
+                    color: #6b6d85;
                     border: 1px solid transparent;
-                    border-radius: 6px;
-                    padding: 6px 14px;
-                    font-size: 13px;
+                    border-radius: 8px;
+                    padding: 4px 12px;
+                    font-size: 12px;
                     font-weight: 500;
-                    min-height: 32px;
+                    min-height: 28px;
                 }
                 QPushButton#invoice_filter_tab:checked {
-                    background: #282935;
-                    color: #e2e1f1;
-                    border: 1px solid rgba(124, 138, 244, 0.3);
+                    background: transparent;
+                    color: #82d8ac;
+                    border-color: #82d8ac;
                 }
                 QPushButton#invoice_filter_tab:hover:!checked {
-                    background: rgba(255, 255, 255, 0.04);
-                    color: #e2e4f0;
+                    background: rgba(200, 203, 223, 0.08);
+                    color: #ffffff;
                 }
             """)
             btn.clicked.connect(lambda checked, s=fs: self.filter_by_status(s))
