@@ -1,115 +1,67 @@
-# Projects Page — Complete Formatting Fix Guide (PySide6)
+# Projects Page — Complete Formatting & Layout Fix Guide (PySide6)
+
+This guide documents the layout and formatting fixes applied to the Projects page (`app/ui/pages/projects_page.py`) to align it with the design specifications and tokens.
 
 ---
 
-## Issues Identified from Screenshot
+## Issues Identified & Resolved
 
-| # | Problem | Location |
-|---|---------|----------|
-| 1 | "New Project" button is cut off on the right edge | Top-right header |
-| 2 | "5 Total" badge looks unstyled / dark box visible | Header row |
-| 3 | Stat cards are uneven height & icon sizes differ | Top stat cards row |
-| 4 | "Workspace Insight" card has no icon, different style | 4th stat card |
-| 5 | "OPTIMIZE SCHEDULE" link has dark background box | Workspace Insight card |
-| 6 | ID column shows "SD-..." text is truncated | Table |
-| 7 | TYPE column text is truncated ("Develop...", "Product...") | Table |
-| 8 | DEADLINE column truncated ("Sep 28, ...") | Table |
-| 9 | ACTIONS column is empty (no edit/delete icons visible) | Table |
-| 10 | Bottom action bar (Ba... / Delete) is cut off | Footer |
-| 11 | Row spacing in table is inconsistent | Table rows |
-| 12 | Status badges have inconsistent border-radius styling | Table STATUS column |
+| # | Problem | Location | Fix Status |
+|---|---------|----------|------------|
+| 1 | "New Project" button is cut off on the right edge | Top-right header | ✅ Resolved |
+| 2 | "5 Total" badge looks unstyled / dark box visible | Header row | ✅ Resolved |
+| 3 | Stat cards are uneven height & icon sizes differ | Top stat cards row | ✅ Resolved |
+| 4 | "Workspace Insight" card has no icon, different style | 4th stat card | ✅ Resolved |
+| 5 | "OPTIMIZE SCHEDULE" link has dark background box | Workspace Insight card | ✅ Resolved |
+| 6 | ID column shows "SD-..." text is truncated | Table | ✅ Resolved |
+| 7 | TYPE column text is truncated ("Develop...", "Product...") | Table | ✅ Resolved |
+| 8 | DEADLINE column truncated ("Sep 28, ...") | Table | ✅ Resolved |
+| 9 | ACTIONS column is empty (no edit/delete icons visible) | Table | ✅ Resolved |
+| 10 | Bottom action bar (Ba... / Delete) is cut off | Footer | ✅ Resolved |
+| 11 | Row spacing in table is inconsistent | Table rows | ✅ Resolved |
+| 12 | Status badges have inconsistent border-radius styling | Table STATUS column | ✅ Resolved |
 
 ---
 
-## Fix 1 — Header Layout (Title + Badge + Button)
+## Fix Details
 
-### Problem:
-- "New Project" button clips off screen
-- "5 Total" badge has wrong styling
-- Header items not aligned properly
+### Fix 1 — Header Layout (Issues 1, 2)
+- Added a `_build_header_row` QHBoxLayout containing:
+  - Title (`Projects`, 32px Bold)
+  - Dynamic Total Badge (`self.total_badge`, 14px Medium, `#282935` background, `#454652` border, `12px` border-radius)
+  - `+ New Project` button (`self.new_project_btn`, 40px height, `#7c8af4` background, `#061987` text, `8px` border-radius)
+- Removed duplicate New Project button from the search and action row.
 
-### Fix:
-```python
-# In your projects page __init__ or setup_ui():
+### Fix 2 — Stat Cards & Workspace Insight (Issues 3, 4, 5)
+- Rebuilt the stat cards with a custom `ProjectStatCard` class inheriting from `QFrame`.
+  - Icon boxes are sized at `40x40px` with a `24px` icon size.
+  - Added a change percentage label at the top-right.
+  - Forced card heights strictly to `140px`.
+- Replaced the 4th stat card with a custom `WorkspaceInsightCard` class.
+  - Sized height strictly to `140px`.
+  - Features the `smart_toy` AI icon and formatted suggestion text.
+  - Option link `OPTIMIZE SCHEDULE` and chevron icon styled with transparent backgrounds (no dark boxes).
+  - Custom `paintEvent` draws a soft linear/radial gradient glow in the bottom-right corner.
 
-# Header layout — use QHBoxLayout with proper margins
-header_layout = QHBoxLayout()
-header_layout.setContentsMargins(20, 20, 20, 20)
-header_layout.setSpacing(12)
+### Fix 3 — Column Widths & Row Heights (Issues 6, 7, 8, 9)
+- Restored horizontal table headers to be visible, styled with uppercase typography, bold weight, and outline borders matching the theme.
+- Increased default row height to `52px` to prevent vertical clipping.
+- Adjusted column widths:
+  - ID: `90px`
+  - CLIENT: `160px`
+  - TYPE: `130px`
+  - STATUS: `120px`
+  - DEADLINE: `140px`
+  - BUDGET: `110px`
+  - ACTIONS: `100px`
+- Action cell buttons styled with clear default color `#9a9cb8` and subtle background hovers.
 
-# Title + subtitle vertical stack
-title_layout = QVBoxLayout()
-title_layout.setSpacing(2)
+### Fix 4 — Table Footer & Pagination (Issue 10)
+- Added a table footer card `table_footer` at the bottom of the table containing:
+  - `Batch Edit` and `Delete Selection` buttons on the left.
+  - Page navigation controls (`Prev` button, `Page X of Y` label, and `Next` button) in the center.
+- Implemented client-side pagination with 10 projects per page.
 
-title_label = QLabel("Projects")
-title_label.setStyleSheet("""
-    font-size: 28px;
-    font-weight: 700;
-    color: #ffffff;
-    background: transparent;
-    border: none;
-""")
-
-subtitle_label = QLabel("Manage and track your active production pipeline.")
-subtitle_label.setStyleSheet("""
-    font-size: 13px;
-    color: #8888aa;
-    background: transparent;
-    border: none;
-""")
-
-title_layout.addWidget(title_label)
-title_layout.addWidget(subtitle_label)
-
-# "5 Total" badge
-total_badge = QLabel("5 Total")
-total_badge.setFixedHeight(32)
-total_badge.setStyleSheet("""
-    QLabel {
-        background-color: #2a2a3e;
-        color: #aaaacc;
-        font-size: 13px;
-        font-weight: 600;
-        border-radius: 8px;
-        padding: 4px 14px;
-        border: 1px solid #3a3a5a;
-    }
-""")
-total_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-# Spacer to push button to right
-spacer = QSpacerItem(
-    40, 20,
-    QSizePolicy.Policy.Expanding,
-    QSizePolicy.Policy.Minimum
-)
-
-# New Project button — FIXED (no clipping)
-new_project_btn = QPushButton("+ New Project")
-new_project_btn.setFixedHeight(42)
-new_project_btn.setMinimumWidth(140)
-new_project_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-new_project_btn.setStyleSheet("""
-    QPushButton {
-        background-color: #6c63ff;
-        color: #ffffff;
-        font-size: 14px;
-        font-weight: 600;
-        border-radius: 10px;
-        padding: 8px 24px;
-        border: none;
-    }
-    QPushButton:hover {
-        background-color: #7c73ff;
-    }
-    QPushButton:pressed {
-        background-color: #5c53ef;
-    }
-""")
-
-header_layout.addLayout(title_layout)
-header_layout.addWidget(total_badge)
-header_layout.addSpacerItem(spacer)
-header_layout.addWidget(new_project_btn)
-
-
+### Fix 5 — Cell Widget Alignment & Badges (Issues 11, 12)
+- Added consistent `16px` contents margins on all custom cell layouts (`client_widget`, `status_widget`, `actions_widget`) to align contents horizontally and vertically.
+- Changed border-radius of the status badge labels to `9999px` for a perfect pill badge design.

@@ -143,20 +143,20 @@ class RecommendationCard(QFrame):
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         if is_recommended:
-            self.setStyleSheet(f"""
-                QFrame {{
+            self.setStyleSheet("""
+                QFrame {
                     background-color: rgba(124, 138, 244, 0.05);
-                    border: 1.5px solid {Colors.ACCENT_PRIMARY};
+                    border: 1.5px solid #7c8af4;
                     border-radius: 12px;
-                }}
+                }
             """)
         else:
-            self.setStyleSheet(f"""
-                QFrame {{
-                    background-color: {Colors.BG_DEEPEST};
-                    border: 1px solid {Colors.BORDER_SUBTLE};
+            self.setStyleSheet("""
+                QFrame {
+                    background-color: #12131d;
+                    border: 1px solid #2d2e42;
                     border-radius: 12px;
-                }}
+                }
             """)
 
         layout = QVBoxLayout(self)
@@ -164,14 +164,14 @@ class RecommendationCard(QFrame):
         layout.setSpacing(4)
         layout.setAlignment(Qt.AlignCenter)
 
-        title_color = Colors.ACCENT_PRIMARY if is_recommended else Colors.TEXT_SECONDARY
+        title_color = "#7c8af4" if is_recommended else "#9a9cb8"
         self.title_lbl = QLabel(title)
         self.title_lbl.setStyleSheet(f"font-size: 12px; font-weight: 600; color: {title_color}; background: transparent;")
         self.title_lbl.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.title_lbl)
 
         self.val_lbl = QLabel("—")
-        self.val_lbl.setStyleSheet(f"font-size: 22px; font-weight: 800; color: {Colors.TEXT_PRIMARY}; background: transparent;")
+        self.val_lbl.setStyleSheet("font-size: 22px; font-weight: 800; color: #e2e4f0; background: transparent;")
         self.val_lbl.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.val_lbl)
 
@@ -179,12 +179,11 @@ class RecommendationCard(QFrame):
 
         self.badge_lbl = QLabel(badge_text.upper())
         self.badge_lbl.setAlignment(Qt.AlignCenter)
-        self.badge_lbl.setContentsMargins(8, 4, 8, 4)
-        badge_bg = "rgba(124, 138, 244, 0.2)" if is_recommended else "rgba(130, 216, 172, 0.12)"
-        badge_fg = Colors.ACCENT_PRIMARY_LIGHT if is_recommended else Colors.ACCENT_SUCCESS
+        badge_bg = "rgba(124, 138, 244, 0.15)" if is_recommended else "rgba(125, 211, 168, 0.15)"
+        badge_fg = "#bcc2ff" if is_recommended else "#7dd3a8"
         if not is_recommended and title == "Premium (High)":
-            badge_bg = "rgba(125, 211, 227, 0.12)"
-            badge_fg = Colors.ACCENT_INFO
+            badge_bg = "rgba(110, 197, 212, 0.15)"
+            badge_fg = "#6ec5d4"
 
         self.badge_lbl.setStyleSheet(f"""
             QLabel {{
@@ -192,7 +191,8 @@ class RecommendationCard(QFrame):
                 color: {badge_fg};
                 font-size: 9px;
                 font-weight: 700;
-                border-radius: 4px;
+                border-radius: 9999px;
+                padding: 4px 10px;
             }}
         """)
         layout.addWidget(self.badge_lbl, 0, Qt.AlignCenter)
@@ -202,16 +202,16 @@ class MatplotlibLineChart(FigureCanvas):
     """Line chart using Matplotlib to represent actual vs projected quarterly forecast."""
 
     def __init__(self, parent=None):
-        fig = Figure(figsize=(8.0, 3.2), facecolor="#222336", dpi=100)
+        fig = Figure(figsize=(8.0, 3.2), facecolor="#1a1b26", dpi=100)
         super().__init__(fig)
         self.setParent(parent)
         self.ax = fig.add_subplot(111)
-        self.ax.set_facecolor("#222336")
+        self.ax.set_facecolor("#1a1b26")
         self.setMinimumSize(400, 240)
 
     def update_forecast(self, historical: list[dict], forecast: list[dict]) -> None:
         self.ax.clear()
-        self.ax.set_facecolor("#222336")
+        self.ax.set_facecolor("#1a1b26")
 
         for spine in ("top", "right", "left"):
             self.ax.spines[spine].set_visible(False)
@@ -296,6 +296,8 @@ class AnalyticsPage(QWidget):
 
     def __init__(self, db: Database):
         super().__init__()
+        self.setObjectName("analytics_page")
+        self.setStyleSheet("QWidget#analytics_page { background-color: #12131d; }")
         self.db = db
         self._pricing_advisor = None
         self._payment_predictor = None
@@ -310,9 +312,12 @@ class AnalyticsPage(QWidget):
         scroll.setFrameShape(QFrame.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll.setStyleSheet("QScrollArea { background-color: #12131d; border: none; }")
 
         content_widget = QWidget()
+        content_widget.setObjectName("analytics_content")
         content_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        content_widget.setStyleSheet("QWidget#analytics_content { background-color: #12131d; }")
 
         layout = QVBoxLayout(content_widget)
         layout.setContentsMargins(32, 32, 32, 32)
@@ -327,18 +332,20 @@ class AnalyticsPage(QWidget):
         refresh_btn = QPushButton("  Refresh AI")
         refresh_btn.setCursor(Qt.PointingHandCursor)
         refresh_btn.setFixedHeight(38)
-        refresh_btn.setIcon(QIcon(_load_svg_icon("bolt", size=16, color="#0f208b")))
+        refresh_btn.setIcon(QIcon(_load_svg_icon("bolt", size=16, color="#e2e4f0")))
         refresh_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: {Colors.ACCENT_PRIMARY};
-                color: #0f208b;
+                color: #e2e4f0;
                 border-radius: 8px;
                 padding: 0 16px;
                 font-weight: 600;
                 font-size: 13px;
+                border: none;
             }}
             QPushButton:hover {{
-                background-color: {Colors.ACCENT_PRIMARY_HOVER};
+                background-color: #383844;
+                color: #e2e4f0;
             }}
         """)
         refresh_btn.clicked.connect(self._run_all)
@@ -348,6 +355,18 @@ class AnalyticsPage(QWidget):
         # 2. QTabWidget Redesign
         self.tabs = QTabWidget()
         self.tabs.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.tabs.setStyleSheet("""
+            QTabWidget::pane {
+                background-color: #1a1b26;
+                border: 1px solid rgba(255, 255, 255, 0.06);
+                border-radius: 14px;
+                padding: 16px;
+            }
+            QTabBar::tab:selected {
+                background-color: rgba(124, 138, 244, 0.15);
+                color: #7c8af4;
+            }
+        """)
 
         self.tabs.addTab(self._build_pricing_tab(), "Smart Pricing")
         self.tabs.addTab(self._build_payment_tab(), "Payment Predictor")
@@ -391,12 +410,22 @@ class AnalyticsPage(QWidget):
         # Left Column (Project Details form, 40%)
         form_card = AnimatedCard()
         form_card.setMinimumHeight(380)
+        form_card.setStyleSheet("""
+            QLabel {
+                color: #9a9cb8;
+                font-family: 'Inter';
+                font-size: 11px;
+                font-weight: bold;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+        """)
         form_layout = QVBoxLayout(form_card)
         form_layout.setContentsMargins(20, 20, 20, 20)
         form_layout.setSpacing(16)
 
         title = QLabel("🔑 Project Details")
-        title.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
+        title.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent; text-transform: none;")
         form_layout.addWidget(title)
 
         form = QFormLayout()
@@ -417,10 +446,10 @@ class AnalyticsPage(QWidget):
             }
             QSlider::handle:horizontal {
                 background: #7c8af4;
-                width: 14px;
-                height: 14px;
-                margin: -4px 0;
-                border-radius: 7px;
+                width: 16px;
+                height: 16px;
+                margin: -5px 0;
+                border-radius: 8px;
             }
         """)
 
@@ -441,46 +470,90 @@ class AnalyticsPage(QWidget):
             QTextEdit {
                 background-color: #1e1f2a;
                 border: 1px solid #2d2e42;
-                border-radius: 8px;
-                padding: 8px;
+                border-radius: 10px;
+                padding: 10px;
                 color: #e2e4f0;
+                font-family: 'Inter';
+                font-size: 14px;
+            }
+            QTextEdit:focus {
+                border: 1px solid #7c8af4;
             }
         """)
 
-        form.addRow("Project Scope", self.pricing_type)
-        form.addRow("Complexity (1-10)", self.pricing_complexity)
-        form.addRow("Duration", self.pricing_duration)
-        form.addRow("Est. Hours", self.pricing_hours)
-        form.addRow("Description", self.pricing_desc)
+        form.addRow("PROJECT SCOPE", self.pricing_type)
+        form.addRow("COMPLEXITY (1-10)", self.pricing_complexity)
+        form.addRow("DURATION", self.pricing_duration)
+        form.addRow("EST. HOURS", self.pricing_hours)
+        form.addRow("DESCRIPTION", self.pricing_desc)
 
-        for combo in (self.pricing_type,):
-            combo.setStyleSheet("""
-                QComboBox {
-                    background-color: #1e1f2a;
-                    border: 1px solid #2d2e42;
-                    border-radius: 6px;
-                    padding: 4px 10px;
-                    color: #e2e4f0;
-                    font-size: 13px;
-                }
-            """)
-        for spin in (self.pricing_duration, self.pricing_hours):
-            spin.setStyleSheet("""
-                QAbstractSpinBox {
-                    background-color: #1e1f2a;
-                    border: 1px solid #2d2e42;
-                    border-radius: 6px;
-                    padding: 4px 10px;
-                    color: #e2e4f0;
-                    font-size: 13px;
-                }
-            """)
+        # Apply standardized elevated styles
+        combo_style = """
+            QComboBox {
+                background-color: #1e1f2a;
+                border: 1px solid #2d2e42;
+                border-radius: 10px;
+                padding: 8px 12px;
+                color: #e2e4f0;
+                font-family: 'Inter';
+                font-size: 14px;
+                min-height: 38px;
+            }
+            QComboBox:hover {
+                border: 1px solid #7c8af4;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 24px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #1e1f2a;
+                border: 1px solid #2d2e42;
+                selection-background-color: rgba(124, 138, 244, 0.15);
+                selection-color: #e2e4f0;
+                color: #9a9cb8;
+            }
+        """
+        
+        spin_style = """
+            QDoubleSpinBox, QSpinBox {
+                background-color: #1e1f2a;
+                border: 1px solid #2d2e42;
+                border-radius: 10px;
+                padding: 8px 12px;
+                color: #e2e4f0;
+                font-family: 'Inter';
+                font-size: 14px;
+                min-height: 38px;
+            }
+            QDoubleSpinBox:focus, QSpinBox:focus {
+                border: 1px solid #7c8af4;
+            }
+        """
+
+        self.pricing_type.setStyleSheet(combo_style)
+        self.pricing_duration.setStyleSheet(spin_style)
+        self.pricing_hours.setStyleSheet(spin_style)
 
         form_layout.addLayout(form)
 
         pricing_btn = AnimatedButton("Calculate Price Range", accent=Colors.ACCENT_PRIMARY)
         pricing_btn.setCursor(Qt.PointingHandCursor)
-        pricing_btn.setFixedHeight(40)
+        pricing_btn.setFixedHeight(38)
+        pricing_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #7c8af4;
+                color: #0f208b;
+                border: none;
+                border-radius: 10px;
+                font-weight: 600;
+                font-size: 14px;
+                min-height: 38px;
+            }
+            QPushButton:hover {
+                background-color: #8a96f6;
+            }
+        """)
         pricing_btn.clicked.connect(self._run_pricing)
         form_layout.addWidget(pricing_btn)
         layout.addWidget(form_card, 4)
@@ -545,12 +618,22 @@ class AnalyticsPage(QWidget):
 
         # Left Column (Transaction Input card, 40%)
         form_card = AnimatedCard()
+        form_card.setStyleSheet("""
+            QLabel {
+                color: #9a9cb8;
+                font-family: 'Inter';
+                font-size: 11px;
+                font-weight: bold;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+        """)
         form_layout = QVBoxLayout(form_card)
         form_layout.setContentsMargins(20, 20, 20, 20)
         form_layout.setSpacing(16)
 
         title = QLabel("📈 Transaction Input")
-        title.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent;")
+        title.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {Colors.TEXT_PRIMARY}; background: transparent; text-transform: none;")
         form_layout.addWidget(title)
 
         form = QFormLayout()
@@ -568,37 +651,62 @@ class AnalyticsPage(QWidget):
         self.pay_type = QComboBox()
         self.pay_type.addItems(["Design", "Video", "Writing", "Music", "Development", "General"])
 
-        form.addRow("Invoice Amount", self.pay_amount)
-        form.addRow("Payment Term", self.pay_term)
-        form.addRow("Project Type", self.pay_type)
+        form.addRow("INVOICE AMOUNT", self.pay_amount)
+        form.addRow("PAYMENT TERM", self.pay_term)
+        form.addRow("PROJECT TYPE", self.pay_type)
 
-        for combo in (self.pay_term, self.pay_type):
-            combo.setStyleSheet("""
-                QComboBox {
-                    background-color: #1e1f2a;
-                    border: 1px solid #2d2e42;
-                    border-radius: 6px;
-                    padding: 4px 10px;
-                    color: #e2e4f0;
-                    font-size: 13px;
-                }
-            """)
-        self.pay_amount.setStyleSheet("""
+        combo_style = """
+            QComboBox {
+                background-color: #1e1f2a;
+                border: 1px solid #2d2e42;
+                border-radius: 10px;
+                padding: 8px 12px;
+                color: #e2e4f0;
+                font-family: 'Inter';
+                font-size: 14px;
+                min-height: 38px;
+            }
+            QComboBox:hover {
+                border: 1px solid #7c8af4;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 24px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #1e1f2a;
+                border: 1px solid #2d2e42;
+                selection-background-color: rgba(124, 138, 244, 0.15);
+                selection-color: #e2e4f0;
+                color: #9a9cb8;
+            }
+        """
+        
+        spin_style = """
             QDoubleSpinBox {
                 background-color: #1e1f2a;
                 border: 1px solid #2d2e42;
-                border-radius: 6px;
-                padding: 4px 10px;
+                border-radius: 10px;
+                padding: 8px 12px;
                 color: #e2e4f0;
-                font-size: 13px;
+                font-family: 'Inter';
+                font-size: 14px;
+                min-height: 38px;
             }
-        """)
+            QDoubleSpinBox:focus {
+                border: 1px solid #7c8af4;
+            }
+        """
+
+        self.pay_term.setStyleSheet(combo_style)
+        self.pay_type.setStyleSheet(combo_style)
+        self.pay_amount.setStyleSheet(spin_style)
 
         form_layout.addLayout(form)
 
         # Client History Grade row
         grade_label = QLabel("CLIENT HISTORY GRADE")
-        grade_label.setStyleSheet(f"font-size: 11px; font-weight: 700; color: {Colors.TEXT_MUTED};")
+        grade_label.setStyleSheet("font-size: 11px; font-weight: 700; color: #9a9cb8; letter-spacing: 0.05em;")
         form_layout.addWidget(grade_label)
 
         self.grade_layout = QHBoxLayout()
@@ -621,7 +729,21 @@ class AnalyticsPage(QWidget):
 
         predict_btn = AnimatedButton("Run Prediction", accent=Colors.ACCENT_PRIMARY)
         predict_btn.setCursor(Qt.PointingHandCursor)
-        predict_btn.setFixedHeight(40)
+        predict_btn.setFixedHeight(38)
+        predict_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #7c8af4;
+                color: #0f208b;
+                border: none;
+                border-radius: 10px;
+                font-weight: 600;
+                font-size: 14px;
+                min-height: 38px;
+            }
+            QPushButton:hover {
+                background-color: #8a96f6;
+            }
+        """)
         predict_btn.clicked.connect(self._run_payment_prediction)
         form_layout.addWidget(predict_btn)
 
@@ -789,15 +911,15 @@ class AnalyticsPage(QWidget):
     def _update_grade_button_styles(self) -> None:
         for grade, btn in self.grade_buttons.items():
             if grade == self.selected_grade:
-                btn.setStyleSheet(f"""
-                    QPushButton {{
-                        background-color: {Colors.ACCENT_PRIMARY};
-                        color: #FFFFFF;
+                btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #7c8af4;
+                        color: #0f208b;
                         border: none;
-                        border-radius: 8px;
+                        border-radius: 10px;
                         font-weight: 700;
                         font-size: 14px;
-                    }}
+                    }
                 """)
             else:
                 btn.setStyleSheet("""
@@ -805,12 +927,12 @@ class AnalyticsPage(QWidget):
                         background-color: #1e1f2a;
                         color: #9a9cb8;
                         border: 1px solid #2d2e42;
-                        border-radius: 8px;
+                        border-radius: 10px;
                         font-weight: 600;
                         font-size: 14px;
                     }
                     QPushButton:hover {
-                        border-color: #454652;
+                        border-color: #7c8af4;
                         color: #e2e4f0;
                     }
                 """)

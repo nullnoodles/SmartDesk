@@ -42,6 +42,7 @@ from PySide6.QtWidgets import (
     QTextEdit,
     QVBoxLayout,
     QWidget,
+    QAbstractItemView,
 )
 
 from app.config import ASSETS_DIR
@@ -51,6 +52,8 @@ from app.data.repositories.project_repo import ProjectRepository
 from app.ui.styles.theme import Colors
 from app.core.signals import emit_data_changed
 from app.ui.widgets.stat_card import StatCard
+from app.ui.widgets.page_header import PageHeader
+
 
 
 def _format_short_currency(val: float) -> str:
@@ -145,6 +148,129 @@ class CustomProjectsTableWidget(QTableWidget):
     def minimumSizeHint(self) -> QSize:
         return self.sizeHint()
 
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        width = self.viewport().width()
+        if self.columnCount() == 8:
+            self.setColumnWidth(0, 90)   # ID
+            self.setColumnWidth(2, 160)  # CLIENT
+            self.setColumnWidth(3, 110)  # TYPE
+            self.setColumnWidth(4, 120)  # STATUS
+            self.setColumnWidth(5, 130)  # DEADLINE
+            self.setColumnWidth(6, 110)  # BUDGET
+            self.setColumnWidth(7, 90)   # ACTIONS
+            # Project name column stretches to fill remaining space
+            self.setColumnWidth(1, width - (90 + 160 + 110 + 120 + 130 + 110 + 90))
+
+
+
+class WorkspaceInsightCard(QFrame):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("insightCard")
+        self.setMinimumHeight(140)
+        self.setMaximumHeight(140)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.setStyleSheet("""
+            QFrame#insightCard {
+                background-color: #1a1b26;
+                border: 1px solid rgba(255,255,255,0.06);
+                border-radius: 12px;
+            }
+        """)
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(20, 16, 20, 16)
+        layout.setSpacing(16)
+
+        # Left side: Icon bubble and text stack
+        left_layout = QVBoxLayout()
+        left_layout.setSpacing(8)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Header: AI icon + Title
+        hdr = QHBoxLayout()
+        hdr.setSpacing(8)
+        hdr.setContentsMargins(0, 0, 0, 0)
+
+        icon_lbl = QLabel()
+        icon_lbl.setPixmap(_load_svg_icon("smart_toy", size=20, color="#bcc2ff"))
+        icon_lbl.setStyleSheet("background: transparent; border: none;")
+        hdr.addWidget(icon_lbl)
+
+        title = QLabel("Workspace Insight")
+        title.setStyleSheet("color: #e2e4f0; font-size: 14px; font-weight: bold; background: transparent; border: none;")
+        hdr.addWidget(title)
+        hdr.addStretch()
+        left_layout.addLayout(hdr)
+
+        # Body Suggestion
+        self.body_lbl = QLabel("Schedule optimization recommended: 3 projects have overlapping milestones this week.")
+        self.body_lbl.setWordWrap(True)
+        self.body_lbl.setStyleSheet("color: #9a9cb8; font-size: 12px; background: transparent; border: none;")
+        left_layout.addWidget(self.body_lbl)
+        
+        layout.addLayout(left_layout, 1)
+
+        # Right side: CTA button link
+        self.cta_btn = QPushButton("OPTIMIZE")
+        self.cta_btn.setCursor(Qt.PointingHandCursor)
+        self.cta_btn.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                color: #bcc2ff;
+                font-family: 'Inter';
+                font-size: 11px;
+                font-weight: bold;
+                border: none;
+                padding: 0;
+            }
+            QPushButton:hover {
+                color: #7c8af4;
+            }
+        """)
+        
+        chevron = QLabel()
+        chevron.setPixmap(_load_svg_icon("chevron_right", size=16, color="#bcc2ff"))
+        chevron.setStyleSheet("background: transparent; border: none;")
+
+        cta_layout = QHBoxLayout()
+        cta_layout.setSpacing(4)
+        cta_layout.setContentsMargins(0, 0, 0, 0)
+        cta_layout.addWidget(self.cta_btn)
+        cta_layout.addWidget(chevron)
+
+        # Align CTA to the right vertical center
+        cta_container = QWidget()
+        cta_container.setStyleSheet("background: transparent; border: none;")
+        cta_container_layout = QVBoxLayout(cta_container)
+        cta_container_layout.setContentsMargins(0, 0, 0, 0)
+        cta_container_layout.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        cta_container_layout.addLayout(cta_layout)
+
+        layout.addWidget(cta_container, 0)
+
+    def paintEvent(self, event) -> None:
+        super().paintEvent(event)
+        # Soft radial gradient glow in bottom-right corner
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        rect = self.rect()
+        gradient = QLinearGradient(rect.width() * 0.7, rect.height() * 0.7, rect.width(), rect.height())
+        gradient.setColorAt(0.0, QColor(0, 0, 0, 0))
+        gradient.setColorAt(1.0, QColor(124, 138, 244, 15))  # #7c8af4 with 6% opacity
+        
+        painter.setBrush(QBrush(gradient))
+        painter.setPen(Qt.NoPen)
+        
+        # Clip inside the rounded card border
+        path = QPainterPath()
+        path.addRoundedRect(0, 0, rect.width(), rect.height(), 12, 12)
+        painter.setClipPath(path)
+        
+        painter.drawRect(rect)
+        painter.end()
 
 
 class ProjectsPage(QWidget):
@@ -211,6 +337,47 @@ class ProjectsPage(QWidget):
         layout.setSpacing(32)  # gap from tokens (mb-8 = 32px)
         layout.setAlignment(Qt.AlignTop)
 
+        # 1. Header Section
+        self.header = PageHeader(
+            title="Projects",
+            subtitle="Manage client projects, timelines, and budgets",
+        )
+        self.total_badge = QLabel("— Total")
+        self.total_badge.setStyleSheet(
+            "background-color: #282935;"
+            "color: #9a9cb8;"
+            "border: 1px solid #383844;"
+            "border-radius: 9999px;"
+            "padding: 4px 14px;"
+            "font-family: 'Inter';"
+            "font-size: 11px;"
+            "font-weight: 700;"
+            "letter-spacing: 0.05em;"
+        )
+        self.header.add_action(self.total_badge)
+        
+        self.new_project_btn = QPushButton("+ New Project")
+        self.new_project_btn.setCursor(Qt.PointingHandCursor)
+        self.new_project_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: #7c8af4;
+                color: #0f208b;
+                border-radius: 10px;
+                padding: 10px 22px;
+                font-weight: 600;
+                font-size: 14px;
+                border: none;
+                min-height: 38px;
+            }}
+            QPushButton:hover {{
+                background-color: #8a96f6;
+            }}
+        """)
+        self.new_project_btn.clicked.connect(self._add_project)
+        self.header.add_action(self.new_project_btn)
+
+        layout.addWidget(self.header)
+
         # Build UI sections
         self._build_stats_row(layout)
         self._build_search_and_action_row(layout)
@@ -225,9 +392,12 @@ class ProjectsPage(QWidget):
 
 
     def _build_search_and_action_row(self, parent_layout: QVBoxLayout) -> None:
-        """Build search and action row matching clients_page.py."""
+        """Build search and action row with search input and filter button."""
         row = QHBoxLayout()
         row.setSpacing(16)
+
+        left_side = QHBoxLayout()
+        left_side.setSpacing(12)
 
         # Search field with embedded icon
         self.search_input = QLineEdit()
@@ -235,16 +405,17 @@ class ProjectsPage(QWidget):
         self.search_input.setFixedWidth(500)
         self.search_input.setStyleSheet(f"""
             QLineEdit {{
-                background-color: {Colors.BG_DARK};
-                border: 1px solid {Colors.BORDER_DEFAULT};
+                background-color: #1e1f2a;
+                border: 1px solid #2d2e42;
                 border-radius: 10px;
                 padding: 10px 14px 10px 32px;
-                color: {Colors.TEXT_PRIMARY};
+                color: #e2e4f0;
                 font-family: 'Inter';
-                font-size: 13px;
+                font-size: 14px;
+                min-height: 38px;
             }}
             QLineEdit:focus {{
-                border: 1px solid {Colors.ACCENT_PRIMARY_LIGHT};
+                border: 1px solid #7c8af4;
             }}
         """)
         self.search_input.textChanged.connect(self._on_search)
@@ -259,34 +430,39 @@ class ProjectsPage(QWidget):
         search_layout.setContentsMargins(0, 0, 0, 0)
         self.search_input.setTextMargins(28, 0, 0, 0)
 
-        row.addWidget(self.search_input)
-        row.addStretch()
+        left_side.addWidget(self.search_input)
 
-        # New Project button
-        add_btn = QPushButton("+ New Project")
-        add_btn.setObjectName("add_project_btn")
-        add_btn.setCursor(Qt.PointingHandCursor)
-        add_btn.setFixedHeight(36)
-        add_btn.setStyleSheet(f"""
-            QPushButton#add_project_btn {{
-                background-color: #7c8af4;
+        # Filter button
+        self.filter_btn = QPushButton("  Filter")
+        self.filter_btn.setObjectName("filter_btn")
+        self.filter_btn.setCursor(Qt.PointingHandCursor)
+        self.filter_btn.setFixedHeight(38)
+        filter_icon = _load_svg_icon("filter_list", size=16, color=Colors.TEXT_PRIMARY)
+        self.filter_btn.setIcon(QIcon(filter_icon))
+        self.filter_btn.clicked.connect(self._toggle_filter_dropdown)
+        
+        self.filter_btn.setStyleSheet(f"""
+            QPushButton#filter_btn {{
+                background-color: transparent;
                 color: #e2e4f0;
-                border-radius: 8px;
-                padding: 8px 16px;
-                font-weight: 600;
-                font-size: 13px;
-                border: none;
+                border: 1px solid #2d2e42;
+                border-radius: 10px;
+                padding: 10px 22px;
+                font-size: 14px;
+                min-height: 38px;
             }}
-            QPushButton#add_project_btn:hover {{
-                background-color: #383844;
-                color: #e2e4f0;
+            QPushButton#filter_btn:hover {{
+                background-color: rgba(255, 255, 255, 0.04);
+                border-color: #454652;
             }}
-            QPushButton#add_project_btn:pressed {{
-                background-color: #252840;
+            QPushButton#filter_btn:pressed {{
+                background-color: rgba(124, 138, 244, 0.10);
             }}
         """)
-        add_btn.clicked.connect(self._add_project)
-        row.addWidget(add_btn)
+        left_side.addWidget(self.filter_btn)
+
+        row.addLayout(left_side)
+        row.addStretch()
 
         parent_layout.addLayout(row)
 
@@ -365,12 +541,12 @@ class ProjectsPage(QWidget):
                     self.table.setRowHidden(row, True)
 
     def _build_stats_row(self, parent_layout: QVBoxLayout) -> None:
-        """Build stats row: 4 stat cards with hover animation matching Dashboard style."""
+        """Build stats row: 3 stat cards and 1 AI insight card matching Dashboard style."""
         stats_layout = QHBoxLayout()
         stats_layout.setSpacing(16)
         stats_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Create the 4 stat cards using DashboardStatCard with hover animation
+        # Create the 3 stat cards using DashboardStatCard with hover animation
         from app.ui.pages.dashboard_page import DashboardStatCard
         
         self.card_total = DashboardStatCard(
@@ -388,14 +564,12 @@ class ProjectsPage(QWidget):
             icon="task_alt",
             accent=Colors.ACCENT_SUCCESS,
         )
-        self.card_total_budget = DashboardStatCard(
-            "Total Budget", "—",
-            icon="account_balance_wallet",
-            accent=Colors.ACCENT_WARNING,
-        )
+        
+        self.insight_card = WorkspaceInsightCard()
 
-        for card in (self.card_total, self.card_in_progress, self.card_completed, self.card_total_budget):
+        for card in (self.card_total, self.card_in_progress, self.card_completed):
             stats_layout.addWidget(card, 1)
+        stats_layout.addWidget(self.insight_card, 1)
 
         parent_layout.addLayout(stats_layout)
 
@@ -420,9 +594,10 @@ class ProjectsPage(QWidget):
         self.table.setAlternatingRowColors(False)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setSelectionMode(QTableWidget.SingleSelection)
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         
-        # Hide the horizontal and vertical headers
-        self.table.horizontalHeader().setVisible(False)
+        # Make horizontal header visible, hide vertical header
+        self.table.horizontalHeader().setVisible(True)
         self.table.verticalHeader().setVisible(False)
         
         self.table.setShowGrid(False)
@@ -430,53 +605,51 @@ class ProjectsPage(QWidget):
         self.table.setFocusPolicy(Qt.NoFocus)
         self.table.verticalHeader().setDefaultSectionSize(48)
 
-        # Apply custom style sheet matching dashboard_page.py
+        # Apply custom style sheet matching design tokens
         self.table.setStyleSheet("""
             QTableWidget {
                 background-color: #1a1b26;
-                border: none;
+                alternate-background-color: rgba(26, 27, 38, 0.20);
+                gridline-color: transparent;
                 color: #e2e4f0;
+                font-family: 'Inter';
                 font-size: 13px;
                 outline: none;
+                border: none;
             }
             QTableWidget::item {
                 border: none;
-                padding: 8px 12px;
+                padding: 10px 16px;
                 border-bottom: 1px solid rgba(255,255,255,0.06);
             }
             QTableWidget::item:selected {
                 background-color: rgba(124, 138, 244, 0.12);
                 border: none;
-                color: white;
+                color: #ffffff;
             }
             QTableWidget::item:hover {
                 background-color: rgba(255, 255, 255, 0.04);
                 border: none;
             }
+            QHeaderView::section {
+                background-color: rgba(26, 27, 38, 0.50);
+                color: #9a9cb8;
+                font-family: 'Inter';
+                font-size: 11px;
+                font-weight: bold;
+                border: none;
+                border-bottom: 1px solid #2d2e42;
+                padding: 10px 12px;
+            }
         """)
 
-        # Set fixed column widths to prevent collapse during filtering
+        # Set column resize modes to Fixed to support dynamic resizing via resizeEvent
         header = self.table.horizontalHeader()
         header.setStretchLastSection(False)
         header.setDefaultAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         from PySide6.QtWidgets import QHeaderView
-        
-        # Set all columns to Fixed mode first
         for col in range(8):
             header.setSectionResizeMode(col, QHeaderView.Fixed)
-        
-        # Set fixed column widths
-        self.table.setColumnWidth(0, 90)   # ID
-        self.table.setColumnWidth(1, 220)  # PROJECT
-        self.table.setColumnWidth(2, 160)  # CLIENT
-        self.table.setColumnWidth(3, 110)  # TYPE
-        self.table.setColumnWidth(4, 120)  # STATUS
-        self.table.setColumnWidth(5, 130)  # DEADLINE
-        self.table.setColumnWidth(6, 110)  # BUDGET
-        self.table.setColumnWidth(7, 80)   # ACTIONS
-        
-        # Make PROJECT column stretch to fill remaining space
-        header.setSectionResizeMode(1, QHeaderView.Stretch)
 
         self.table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -568,8 +741,11 @@ class ProjectsPage(QWidget):
         self._all_projects_raw = projects
         self._all_projects = projects
 
-        # 1. TOTAL PROJECTS
+        # Update total badge
         total_count = len(projects)
+        self.total_badge.setText(f"{total_count} Total")
+
+        # 1. TOTAL PROJECTS
         self.card_total.set_value(str(total_count))
         
         # Calculate projects added this month vs last month
@@ -653,42 +829,28 @@ class ProjectsPage(QWidget):
             sub, color = "—", "#9a9cb8"
         self.card_completed.set_sub_text(sub, color)
 
-        # 4. TOTAL BUDGET
+        # 4. TOTAL BUDGET & AI INSIGHT
         try:
             # SUM budget of all projects
             res_budget = self.db.execute("""
                 SELECT COALESCE(SUM(budget), 0) as total FROM projects
             """)
             total_budget = res_budget[0]["total"] if res_budget else 0.0
+            budget_str = _format_short_currency(total_budget)
             
-            # Calculate budget added this month vs last month
-            res_budget_this_month = self.db.execute("""
-                SELECT COALESCE(SUM(budget), 0) as total FROM projects 
-                WHERE strftime('%m-%Y', created_date) = strftime('%m-%Y', 'now')
+            # Find timeline info
+            res_overlap = self.db.execute("""
+                SELECT COUNT(*) as cnt FROM projects WHERE status = 'In Progress' AND deadline IS NOT NULL
             """)
-            this_month_budget = res_budget_this_month[0]["total"] if res_budget_this_month else 0.0
-            
-            res_budget_last_month = self.db.execute("""
-                SELECT COALESCE(SUM(budget), 0) as total FROM projects 
-                WHERE strftime('%m-%Y', created_date) = strftime('%m-%Y', date('now','-1 month'))
-            """)
-            last_month_budget = res_budget_last_month[0]["total"] if res_budget_last_month else 0.0
-            
-            self.card_total_budget.set_value(_format_short_currency(total_budget))
-            
-            if this_month_budget > last_month_budget:
-                diff = this_month_budget - last_month_budget
-                sub, color = f"▲ +{_format_short_currency(diff)} from last month", "#7dd3a8"
-            elif this_month_budget == last_month_budget:
-                sub, color = "→ Same as last month", "#9a9cb8"
+            overlap_cnt = res_overlap[0]["cnt"] if res_overlap else 0
+            if overlap_cnt > 0:
+                msg = f"Pipeline Value: {budget_str}. Schedule optimization recommended: {overlap_cnt} projects are currently active."
             else:
-                diff = last_month_budget - this_month_budget
-                sub, color = f"▼ -{_format_short_currency(diff)} from last month", "#e87c8a"
+                msg = f"Pipeline Value: {budget_str}. All clear! No active project timeline overlaps detected."
+            self.insight_card.body_lbl.setText(msg)
         except Exception as e:
-            print(f"Error calculating total budget: {e}")
-            self.card_total_budget.set_value("₹0")
-            sub, color = "—", "#9a9cb8"
-        self.card_total_budget.set_sub_text(sub, color)
+            print(f"Error calculating total budget/insight: {e}")
+            self.insight_card.body_lbl.setText("Optimization suggestion: milestone timelines are currently stable.")
 
         # Re-apply all filters to table
         self._apply_all_filters()
@@ -1028,29 +1190,29 @@ class ProjectDialog(QDialog):
         self.setMinimumWidth(550)
         
         # Apply styling per design tokens
-        self.setStyleSheet("""
-            QDialog {
-                background-color: #1a1b26;
-            }
-            QLabel {
+        self.setStyleSheet(f"""
+            QDialog {{
+                background-color: {Colors.BG_DARK};
+            }}
+            QLabel {{
                 color: #9a9cb8;
-                font-size: 13px;
-                font-weight: 500;
-                background: transparent;
-                border: none;
-            }
-            QLineEdit, QTextEdit, QComboBox, QDateEdit, QDoubleSpinBox {
-                background-color: #12131d;
-                border: 1px solid #454652;
-                border-radius: 8px;
-                padding: 8px 12px;
+                font-family: 'Inter';
+                font-size: 11px;
+                font-weight: bold;
+            }}
+            QLineEdit, QTextEdit, QComboBox, QDateEdit, QDoubleSpinBox {{
+                background-color: #1e1f2a;
+                border: 1px solid #2d2e42;
+                border-radius: 10px;
+                padding: 10px 14px;
                 color: #e2e4f0;
                 font-family: 'Inter';
                 font-size: 14px;
-            }
-            QLineEdit:focus, QTextEdit:focus, QComboBox:focus, QDateEdit:focus, QDoubleSpinBox:focus {
-                border: 1px solid #bcc2ff;
-            }
+                min-height: 38px;
+            }}
+            QLineEdit:focus, QTextEdit:focus, QComboBox:focus, QDateEdit:focus, QDoubleSpinBox:focus {{
+                border: 1px solid #7c8af4;
+            }}
         """)
 
         layout = QVBoxLayout(self)
@@ -1076,19 +1238,19 @@ class ProjectDialog(QDialog):
             idx = self.client_combo.findData(project["client_id"])
             if idx >= 0:
                 self.client_combo.setCurrentIndex(idx)
-        form.addRow("Client *", self.client_combo)
+        form.addRow("CLIENT *", self.client_combo)
 
         # Project name
         self.name_input = QLineEdit(project["name"] if project else "")
         self.name_input.setPlaceholderText("Enter project name")
-        form.addRow("Project Name *", self.name_input)
+        form.addRow("PROJECT NAME *", self.name_input)
 
         # Type
         self.type_combo = QComboBox()
         self.type_combo.addItems(self.TYPES)
         if project and project["type"]:
             self.type_combo.setCurrentText(project["type"])
-        form.addRow("Type", self.type_combo)
+        form.addRow("TYPE", self.type_combo)
 
         # Description
         self.desc_input = QTextEdit()
@@ -1096,7 +1258,7 @@ class ProjectDialog(QDialog):
         self.desc_input.setPlaceholderText("Brief project description...")
         if project and project["description"]:
             self.desc_input.setPlainText(project["description"])
-        form.addRow("Description", self.desc_input)
+        form.addRow("DESCRIPTION", self.desc_input)
 
         # Deadline
         self.deadline_input = QDateEdit()
@@ -1104,7 +1266,7 @@ class ProjectDialog(QDialog):
         self.deadline_input.setDate(QDate.currentDate().addDays(30))
         if project and project["deadline"]:
             self.deadline_input.setDate(QDate.fromString(project["deadline"], "yyyy-MM-dd"))
-        form.addRow("Deadline", self.deadline_input)
+        form.addRow("DEADLINE", self.deadline_input)
 
         # Budget
         self.budget_input = QDoubleSpinBox()
@@ -1112,14 +1274,14 @@ class ProjectDialog(QDialog):
         self.budget_input.setPrefix("₹ ")
         if project and project["budget"]:
             self.budget_input.setValue(project["budget"])
-        form.addRow("Budget", self.budget_input)
+        form.addRow("BUDGET", self.budget_input)
 
         # Status (only for edit mode)
         if project:
             self.status_combo = QComboBox()
             self.status_combo.addItems(self.STATUSES)
             self.status_combo.setCurrentText(project["status"])
-            form.addRow("Status", self.status_combo)
+            form.addRow("STATUS", self.status_combo)
         else:
             self.status_combo = None
 
@@ -1140,16 +1302,17 @@ class ProjectDialog(QDialog):
         buttons.button(QDialogButtonBox.Ok).setStyleSheet("""
             QPushButton {
                 background-color: #7c8af4;
-                color: #061987;
+                color: #0f208b;
                 border: none;
-                border-radius: 8px;
-                padding: 10px 24px;
-                font-weight: 700;
-                font-size: 13px;
+                border-radius: 10px;
+                padding: 10px 22px;
+                font-weight: 600;
+                font-size: 14px;
+                min-height: 38px;
                 min-width: 120px;
             }
             QPushButton:hover {
-                background-color: #9aa4f7;
+                background-color: #8a96f6;
             }
         """)
         
@@ -1157,15 +1320,17 @@ class ProjectDialog(QDialog):
             QPushButton {
                 background-color: transparent;
                 color: #e2e4f0;
-                border: 1px solid #454652;
-                border-radius: 8px;
-                padding: 10px 24px;
+                border: 1px solid #2d2e42;
+                border-radius: 10px;
+                padding: 10px 22px;
                 font-weight: 600;
-                font-size: 13px;
+                font-size: 14px;
+                min-height: 38px;
                 min-width: 120px;
             }
             QPushButton:hover {
-                background-color: #282935;
+                background-color: rgba(255, 255, 255, 0.04);
+                border: 1px solid #454652;
             }
         """)
         
@@ -1198,3 +1363,196 @@ class ProjectDialog(QDialog):
         if self.status_combo:
             data["status"] = self.status_combo.currentText()
         return data
+
+
+class ProjectFilterDropdown(QFrame):
+    def __init__(self, parent_page: ProjectsPage, anchor_widget: QWidget):
+        super().__init__(parent_page, Qt.Popup | Qt.Window)
+        self.parent_page = parent_page
+        self.anchor_widget = anchor_widget
+        self._is_closing = False
+        
+        self.setObjectName("filter_dropdown")
+        self.setStyleSheet(f"""
+            QFrame#filter_dropdown {{
+                background-color: #1a1b26;
+                border: 1px solid #2d2e42;
+                border-radius: 12px;
+            }}
+            QLabel {{
+                color: #9a9cb8;
+                font-family: 'Inter';
+                font-size: 11px;
+                font-weight: bold;
+            }}
+            QLineEdit {{
+                background-color: #1e1f2a;
+                border: 1px solid #2d2e42;
+                border-radius: 10px;
+                padding: 10px 14px;
+                font-size: 14px;
+                color: #e2e4f0;
+                min-height: 38px;
+            }}
+            QLineEdit:focus {{
+                border: 1px solid #7c8af4;
+            }}
+            QComboBox {{
+                background-color: #1e1f2a;
+                border: 1px solid #2d2e42;
+                border-radius: 10px;
+                padding: 8px 12px;
+                font-size: 14px;
+                min-height: 38px;
+                color: #e2e4f0;
+            }}
+            QComboBox:focus {{
+                border: 1px solid #7c8af4;
+            }}
+            QPushButton {{
+                border-radius: 10px;
+                font-size: 13px;
+                font-weight: 600;
+                padding: 8px 16px;
+                min-height: 38px;
+            }}
+        """)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(16)
+
+        form = QFormLayout()
+        form.setSpacing(12)
+        form.setLabelAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+
+        # Status
+        self.status_combo = QComboBox()
+        self.status_combo.addItems(["All"] + ProjectDialog.STATUSES)
+        form.addRow("STATUS", self.status_combo)
+
+        # Type
+        self.type_combo = QComboBox()
+        self.type_combo.addItems(["All"] + ProjectDialog.TYPES)
+        form.addRow("TYPE", self.type_combo)
+
+        # Date range From
+        self.date_from = QLineEdit()
+        self.date_from.setPlaceholderText("YYYY-MM-DD (From)")
+        form.addRow("DEADLINE FROM", self.date_from)
+
+        # Date range To
+        self.date_to = QLineEdit()
+        self.date_to.setPlaceholderText("YYYY-MM-DD (To)")
+        form.addRow("DEADLINE TO", self.date_to)
+
+        layout.addLayout(form)
+
+        # Buttons
+        btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(8)
+
+        self.reset_btn = QPushButton("Reset")
+        self.reset_btn.setCursor(Qt.PointingHandCursor)
+        self.reset_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: transparent;
+                color: #e2e4f0;
+                border: 1px solid #2d2e42;
+            }}
+            QPushButton:hover {{
+                background-color: rgba(255, 255, 255, 0.04);
+                border-color: #454652;
+            }}
+        """)
+        self.reset_btn.clicked.connect(self.reset_filters)
+
+        self.apply_btn = QPushButton("Apply Filter")
+        self.apply_btn.setCursor(Qt.PointingHandCursor)
+        self.apply_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: #7c8af4;
+                color: #0f208b;
+                border: none;
+            }}
+            QPushButton:hover {{
+                background-color: #8a96f6;
+            }}
+        """)
+        self.apply_btn.clicked.connect(self.apply_filters)
+
+        btn_layout.addWidget(self.reset_btn)
+        btn_layout.addWidget(self.apply_btn)
+        layout.addLayout(btn_layout)
+
+    def reset_filters(self):
+        self.status_combo.setCurrentIndex(0)
+        self.type_combo.setCurrentIndex(0)
+        self.date_from.clear()
+        self.date_to.clear()
+        self.apply_filters()
+
+    def apply_filters(self):
+        status = self.status_combo.currentText()
+        project_type = self.type_combo.currentText()
+        d_from = self.date_from.text().strip()
+        d_to = self.date_to.text().strip()
+
+        self.parent_page.apply_filter_rules(status, project_type, d_from, d_to)
+        self.close()
+
+    def get_dropdown_height(self) -> int:
+        return self.height()
+
+    def set_dropdown_height(self, h: int) -> None:
+        self.setFixedHeight(h)
+
+    dropdownHeight = Property(int, get_dropdown_height, set_dropdown_height)
+
+    def _on_animation_finished(self):
+        self.setMinimumHeight(0)
+        self.setMaximumHeight(16777215)
+
+    def show_below_anchor(self):
+        self._is_closing = False
+        pos = self.anchor_widget.mapToGlobal(self.anchor_widget.rect().bottomLeft())
+        pos.setY(pos.y() + 4)
+        self.move(pos)
+        
+        self.adjustSize()
+        target_height = self.sizeHint().height()
+        if target_height <= 0:
+            target_height = 240
+        
+        self.setFixedHeight(0)
+        self.show()
+        self.raise_()
+        self.activateWindow()
+        
+        self._slide_anim = QPropertyAnimation(self, b"dropdownHeight")
+        self._slide_anim.setDuration(250)
+        self._slide_anim.setStartValue(0)
+        self._slide_anim.setEndValue(target_height)
+        self._slide_anim.setEasingCurve(QEasingCurve.OutCubic)
+        self._slide_anim.finished.connect(self._on_animation_finished)
+        self._slide_anim.start()
+
+    def closeEvent(self, event):
+        if self._is_closing:
+            event.accept()
+            return
+
+        self._is_closing = True
+        event.ignore()
+        
+        self._slide_anim = QPropertyAnimation(self, b"dropdownHeight")
+        self._slide_anim.setDuration(200)
+        self._slide_anim.setStartValue(self.height())
+        self._slide_anim.setEndValue(0)
+        self._slide_anim.setEasingCurve(QEasingCurve.OutCubic)
+        self._slide_anim.finished.connect(self.real_close)
+        self._slide_anim.start()
+
+    def real_close(self):
+        super().close()
+

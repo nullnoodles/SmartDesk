@@ -18,9 +18,9 @@ def _hex_to_rgba(hex_color: str, alpha: float) -> str:
 class StatusPill(QWidget):
     """Pill-shaped tag with a colored dot prefix."""
 
-    def __init__(self, label: str, color: str = Colors.ACCENT_PRIMARY, parent=None):
+    def __init__(self, label: str, color: str = Colors.ACCENT_PRIMARY, bg_color: str | None = None, parent=None):
         super().__init__(parent)
-        bg = _hex_to_rgba(color, 0.12)
+        bg = bg_color if bg_color is not None else _hex_to_rgba(color, 0.12)
         self.setStyleSheet(
             f"background-color: {bg}; border-radius: 999px;"
         )

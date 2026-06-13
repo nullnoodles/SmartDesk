@@ -38,13 +38,14 @@ from PySide6.QtWidgets import (
     QWidget,
     QAbstractScrollArea,
     QComboBox,
+    QAbstractItemView,
 )
 
 from app.config import ASSETS_DIR
 from app.data.database import Database
 from app.data.repositories.client_repo import ClientRepository
 from app.ui.styles.theme import Colors
-from app.ui.widgets.stat_card import StatCard
+from app.ui.pages.dashboard_page import DashboardStatCard
 from app.ui.widgets.animated import GradientBar
 from app.core.signals import emit_data_changed
 from app.ui.pages.dashboard_page import is_reduced_motion
@@ -177,6 +178,23 @@ class PaginationTableWidget(QTableWidget):
     def minimumSizeHint(self) -> QSize:
         return self.sizeHint()
 
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        width = self.viewport().width()
+        if self.columnCount() == 8:
+            self.setColumnWidth(0, 85)                               # ID
+            self.setColumnWidth(2, 110)                              # Status
+            self.setColumnWidth(4, 130)                              # Phone
+            self.setColumnWidth(6, 110)                              # Created
+            self.setColumnWidth(7, 90)                               # Actions
+            
+            # Remaining width for client, email, company (3 columns stretch proportionally)
+            rem = width - (85 + 110 + 130 + 110 + 90)
+            col_w = max(100, rem // 3)
+            self.setColumnWidth(1, col_w)                            # Client
+            self.setColumnWidth(3, col_w)                            # Email
+            self.setColumnWidth(5, width - (85 + 110 + 130 + 110 + 90 + col_w * 2)) # Company
+
 
 class ClientsPage(QWidget):
     """Clients page - matches the reference screen layout."""
@@ -246,15 +264,14 @@ class ClientsPage(QWidget):
         stat_row.setSpacing(16)
 
         # Card 1: New Clients
-        self.card_new = StatCard(
+        self.card_new = DashboardStatCard(
             "New Clients", "0",
             icon="person_add",
             accent=Colors.ACCENT_PRIMARY_LIGHT,
-            sub_text=""
         )
 
         # Card 2: Avg. Revenue
-        self.card_avg = StatCard(
+        self.card_avg = DashboardStatCard(
             "Avg. Revenue", "₹0.0L",
             icon="payments",
             accent=Colors.ACCENT_INFO,
@@ -262,89 +279,14 @@ class ClientsPage(QWidget):
         )
 
         # Card 3: Retention Rate
-        self.card_retention = StatCard(
+        self.card_retention = DashboardStatCard(
             "Retention Rate", "94%",
             icon="favorite",
             accent=Colors.ACCENT_WARNING,
             sub_text="High satisfaction rating"
         )
 
-        tints = {
-            Colors.ACCENT_PRIMARY_LIGHT: "rgba(188, 194, 255, 0.10)",
-            Colors.ACCENT_INFO: "rgba(110, 197, 212, 0.10)",
-            Colors.ACCENT_WARNING: "rgba(240, 200, 120, 0.10)",
-            Colors.ACCENT_SUCCESS: "rgba(125, 211, 168, 0.10)",
-        }
-
-        card_configs = [
-            (self.card_new, Colors.ACCENT_PRIMARY_LIGHT, "person_add"),
-            (self.card_avg, Colors.ACCENT_INFO, "payments"),
-            (self.card_retention, Colors.ACCENT_WARNING, "favorite"),
-        ]
-
-        for card, accent, icon_name in card_configs:
-            # Enable mouse tracking for hover effects
-            card.setAttribute(Qt.WA_Hover, True)
-            card.setMouseTracking(True)
-
-            # Setup shadow effect for hover animation
-            card_shadow = QGraphicsDropShadowEffect(card)
-            card_shadow.setBlurRadius(0)
-            card_shadow.setColor(QColor(124, 138, 244, 180))  # Purple glow
-            card_shadow.setOffset(0, 0)
-            card.setGraphicsEffect(card_shadow)
-            
-            # Create animation for blur radius
-            shadow_animation = QPropertyAnimation(card_shadow, b"blurRadius")
-            shadow_animation.setDuration(200 if not is_reduced_motion() else 0)  # 200ms animation
-            shadow_animation.setEasingCurve(QEasingCurve.OutCubic)
-
-
-            
-            # Store references for later use
-            card._shadow = card_shadow
-            card._shadow_animation = shadow_animation
-            card.setObjectName("statCard")
-            card._original_stylesheet = "QFrame#statCard { background-color: #1a1b26; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }"
-            card._hover_stylesheet = "QFrame#statCard { background-color: #383844; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; }"
-            
-            # 1. Height and size policy constraints
-            # Add extra margins to accommodate the shadow without causing layout shift
-            card.setMinimumHeight(140)
-            card.setMaximumHeight(140)
-            card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-            card.setStyleSheet(card._original_stylesheet)
-            card.setContentsMargins(4, 4, 4, 4)  # Add margin to prevent shadow clipping
-            
-            # Fix icon bubble to prevent any movement during shadow animation
-            card._icon_bubble.setAttribute(Qt.WA_TranslucentBackground, False)
-            card._icon_bubble.setMinimumSize(24, 24)
-            card._icon_bubble.setMaximumSize(24, 24)
-            
-            # 2. Internal layout
-            layout = card.layout()
-            if layout:
-                layout.setAlignment(Qt.Alignment())
-                layout.setContentsMargins(20, 16, 20, 16)
-                layout.setSpacing(4)
-                
-            # 3. Icon bubble background tint and fixed positioning
-            rgba_color = tints.get(accent, "rgba(124, 138, 244, 0.10)")
-            # Ensure icon bubble maintains fixed size and doesn't shift
-            card._icon_bubble.setFixedSize(24, 24)
-            card._icon_bubble.setScaledContents(False)
-            if icon_name and (_ICONS_DIR / f"{icon_name}.svg").exists():
-                icon_pixmap = _load_svg_icon(icon_name, size=16, color=accent)
-                card._icon_bubble.setPixmap(icon_pixmap)
-            card._icon_bubble.setStyleSheet(f"background-color: {rgba_color}; border-radius: 4px; border: none; min-width: 24px; max-width: 24px; min-height: 24px; max-height: 24px;")
-            
-            # Let the StatCard's natural QSS class styling govern the typography
-            pass
-
-            
-            # Install event filter for hover events
-            card.installEventFilter(self)
-
+        for card in (self.card_new, self.card_avg, self.card_retention):
             stat_row.addWidget(card, 1)
 
         parent_layout.addLayout(stat_row)
@@ -384,6 +326,21 @@ class ClientsPage(QWidget):
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Search clients...")
         self.search_input.setFixedWidth(500)
+        self.search_input.setStyleSheet(f"""
+            QLineEdit {{
+                background-color: #1e1f2a;
+                border: 1px solid #2d2e42;
+                border-radius: 10px;
+                padding: 10px 14px 10px 32px;
+                color: #e2e4f0;
+                font-family: 'Inter';
+                font-size: 14px;
+                min-height: 38px;
+            }}
+            QLineEdit:focus {{
+                border: 1px solid #7c8af4;
+            }}
+        """)
         self.search_input.textChanged.connect(self._on_search)
 
         search_icon = QLabel()
@@ -402,7 +359,7 @@ class ClientsPage(QWidget):
         self.filter_btn = QPushButton("  Filter")
         self.filter_btn.setObjectName("filter_btn")
         self.filter_btn.setCursor(Qt.PointingHandCursor)
-        self.filter_btn.setFixedHeight(36)
+        self.filter_btn.setFixedHeight(38)
         filter_icon = _load_svg_icon("filter_list", size=16, color=Colors.TEXT_PRIMARY)
         self.filter_btn.setIcon(QIcon(filter_icon))
         self.filter_btn.clicked.connect(self._toggle_filter_dropdown)
@@ -410,15 +367,16 @@ class ClientsPage(QWidget):
         self.filter_btn.setStyleSheet(f"""
             QPushButton#filter_btn {{
                 background-color: transparent;
-                color: #8B8FA8;
-                border: 1px solid #3D3F55;
-                border-radius: 8px;
-                padding: 0px 16px;
-                font-size: 13px;
+                color: #e2e4f0;
+                border: 1px solid #2d2e42;
+                border-radius: 10px;
+                padding: 10px 22px;
+                font-size: 14px;
+                min-height: 38px;
             }}
             QPushButton#filter_btn:hover {{
-                border-color: #7C8AF4;
-                color: #FFFFFF;
+                background-color: rgba(255, 255, 255, 0.04);
+                border-color: #454652;
             }}
             QPushButton#filter_btn:pressed {{
                 background-color: rgba(124, 138, 244, 0.10);
@@ -457,14 +415,15 @@ class ClientsPage(QWidget):
         self.clear_btn.setStyleSheet("""
             QPushButton {
                 background-color: #e87c8a;
-                color: #e2e4f0;
-                border-radius: 8px;
+                color: #3d0a12;
+                border-radius: 10px;
                 padding: 0px 16px;
-                font-size: 13px;
+                font-size: 14px;
                 font-weight: 600;
+                border: none;
             }
             QPushButton:hover {
-                background-color: #383844;
+                background-color: #eb929d;
             }
         """)
         self.clear_btn.clicked.connect(self._clear_all_clients)
@@ -477,22 +436,22 @@ class ClientsPage(QWidget):
         self.add_btn.setStyleSheet(f"""
             QPushButton#add_client_btn {{
                 background-color: #7c8af4;
-                color: #e2e4f0;
-                border-radius: 8px;
-                padding: 8px 16px;
+                color: #0f208b;
+                border-radius: 10px;
+                padding: 10px 22px;
                 font-weight: 600;
-                font-size: 13px;
+                font-size: 14px;
                 border: none;
+                min-height: 38px;
             }}
             QPushButton#add_client_btn:hover {{
-                background-color: #383844;
-                color: #e2e4f0;
+                background-color: #8a96f6;
             }}
             QPushButton#add_client_btn:pressed {{
-                background-color: #252840;
+                background-color: #6c7ae0;
             }}
         """)
-        add_icon = _load_svg_icon("add", size=16, color="#ffffff")
+        add_icon = _load_svg_icon("add", size=16, color="#0f208b")
         self.add_btn.setIcon(QIcon(add_icon))
         self.add_btn.clicked.connect(self._add_client)
         right_side.addWidget(self.add_btn)
@@ -519,53 +478,54 @@ class ClientsPage(QWidget):
         self.table.setAlternatingRowColors(True)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setSelectionMode(QTableWidget.SingleSelection)
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.verticalHeader().setVisible(False)
         self.table.setShowGrid(False)
         self.table.setFocusPolicy(Qt.NoFocus)
-        self.table.verticalHeader().setDefaultSectionSize(48)
+        self.table.verticalHeader().setDefaultSectionSize(52)
         self.table.setFrameShape(QFrame.NoFrame)
         self.table.setStyleSheet("""
             QTableWidget {
                 background-color: #1a1b26;
+                alternate-background-color: rgba(26, 27, 38, 0.20);
+                gridline-color: transparent;
+                color: #e2e4f0;
+                font-family: 'Inter';
+                font-size: 13px;
+                outline: none;
             }
             QTableWidget::item {
                 border: none;
-                padding: 8px 12px;
+                padding: 10px 16px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.06);
             }
             QTableWidget::item:selected {
                 background-color: rgba(124, 138, 244, 0.12);
                 border: none;
-                color: white;
+                color: #ffffff;
             }
             QTableWidget::item:hover {
                 background-color: rgba(255, 255, 255, 0.04);
                 border: none;
             }
             QHeaderView::section {
-                background-color: #1a1b26;
-                padding-left: 12px;
-                padding-right: 12px;
+                background-color: rgba(26, 27, 38, 0.50);
+                color: #9a9cb8;
+                font-family: 'Inter';
+                font-size: 11px;
+                font-weight: bold;
+                border: none;
+                border-bottom: 1px solid #2d2e42;
+                padding: 10px 12px;
             }
         """)
 
-        # Proportional column sizing
+        # Set column resize modes to Fixed to support the custom resizeEvent
         header = self.table.horizontalHeader()
         header.setStretchLastSection(False)
         from PySide6.QtWidgets import QHeaderView
-        header.setSectionResizeMode(0, QHeaderView.Fixed)            # ID
-        header.setSectionResizeMode(1, QHeaderView.Stretch)          # Client
-        header.setSectionResizeMode(2, QHeaderView.Fixed)            # Status
-        header.setSectionResizeMode(3, QHeaderView.Stretch)          # Email
-        header.setSectionResizeMode(4, QHeaderView.Fixed)            # Phone
-        header.setSectionResizeMode(5, QHeaderView.Stretch)          # Company
-        header.setSectionResizeMode(6, QHeaderView.Fixed)            # Created
-        header.setSectionResizeMode(7, QHeaderView.Fixed)            # Actions
-
-        self.table.setColumnWidth(0, 85)
-        self.table.setColumnWidth(2, 120)
-        self.table.setColumnWidth(4, 110)
-        self.table.setColumnWidth(6, 110)
-        self.table.setColumnWidth(7, 80)
+        for col in range(8):
+            header.setSectionResizeMode(col, QHeaderView.Fixed)
 
         self.table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -698,30 +658,9 @@ class ClientsPage(QWidget):
     # ══════════════════════════════════════════════════════════════════
     
     def eventFilter(self, obj, event):
-        """Handle hover events for stat cards to trigger shadow animation."""
+        """Handle hover events for custom buttons."""
         from PySide6.QtCore import QEvent
-        # Check if the object is one of our stat cards
-
-        if obj in (self.card_new, self.card_avg, self.card_retention):
-            if hasattr(obj, '_shadow') and hasattr(obj, '_shadow_animation'):
-                event_type = event.type()
-                if event_type == QEvent.Enter:
-                    # Mouse entered - animate shadow in and lighten background
-                    obj._shadow_animation.stop()
-                    obj._shadow_animation.setStartValue(obj._shadow.blurRadius())
-                    obj._shadow_animation.setEndValue(20 if not is_reduced_motion() else 0)
-                    obj._shadow_animation.start()
-                    if hasattr(obj, '_hover_stylesheet'):
-                        obj.setStyleSheet(obj._hover_stylesheet)
-                elif event_type == QEvent.Leave:
-                    # Mouse left - animate shadow out and restore background
-                    obj._shadow_animation.stop()
-                    obj._shadow_animation.setStartValue(obj._shadow.blurRadius())
-                    obj._shadow_animation.setEndValue(0)
-                    obj._shadow_animation.start()
-                    if hasattr(obj, '_original_stylesheet'):
-                        obj.setStyleSheet(obj._original_stylesheet)
-        elif obj == self.filter_btn:
+        if obj == self.filter_btn:
             shadow = self.filter_btn.graphicsEffect()
             if shadow and hasattr(self, '_filter_btn_shadow_animation'):
                 event_type = event.type()
@@ -787,7 +726,7 @@ class ClientsPage(QWidget):
 
         # Update KPI Cards
         self.card_new.set_value(str(new_count))
-        self.card_new.set_sub_text('<span style="color: #7dd3a8;">▲ this month</span>')
+        self.card_new.set_sub_text("▲ this month", "#7dd3a8")
         self.card_avg.set_value(_format_lakhs(avg_revenue))
         self.card_avg.set_sub_text("per active client")
         self.card_retention.set_value(f"{retention_rate:.0f}%")
@@ -1492,9 +1431,23 @@ class ClientDialog(QDialog):
                 background-color: {Colors.BG_DARK};
             }}
             QLabel {{
-                color: {Colors.TEXT_SECONDARY};
-                font-size: 13px;
-                font-weight: 500;
+                color: #9a9cb8;
+                font-family: 'Inter';
+                font-size: 11px;
+                font-weight: bold;
+            }}
+            QLineEdit {{
+                background-color: #1e1f2a;
+                border: 1px solid #2d2e42;
+                border-radius: 10px;
+                padding: 10px 14px;
+                color: #e2e4f0;
+                font-family: 'Inter';
+                font-size: 14px;
+                min-height: 38px;
+            }}
+            QLineEdit:focus {{
+                border: 1px solid #7c8af4;
             }}
         """)
 
@@ -1531,18 +1484,18 @@ class ClientDialog(QDialog):
         self.company_input = QLineEdit(client["company"] if client else "")
         self.company_input.setPlaceholderText("Company or organization")
 
-        form.addRow("Name", self.name_input)
-        form.addRow("Email", self.email_input)
-        form.addRow("Phone", self.phone_input)
-        form.addRow("Address", self.address_input)
-        form.addRow("Company", self.company_input)
+        form.addRow("NAME", self.name_input)
+        form.addRow("EMAIL", self.email_input)
+        form.addRow("PHONE", self.phone_input)
+        form.addRow("ADDRESS", self.address_input)
+        form.addRow("COMPANY", self.company_input)
         
         layout.addLayout(form)
 
         helper = QLabel("* Required field")
         helper.setStyleSheet(f"""
             color: {Colors.TEXT_MUTED};
-            font-size: 8px;
+            font-size: 10px;
             font-style: italic;
         """)
         layout.addWidget(helper)
@@ -1555,34 +1508,36 @@ class ClientDialog(QDialog):
         
         buttons.button(QDialogButtonBox.Ok).setStyleSheet(f"""
             QPushButton {{
-                background-color: {Colors.ACCENT_PRIMARY};
-                color: {Colors.TEXT_INVERSE};
+                background-color: #7c8af4;
+                color: #0f208b;
                 border: none;
-                border-radius: 8px;
-                padding: 4px 16px;
-                font-weight: 700;
-                font-size: 13px;
-                min-width: 80px;
+                border-radius: 10px;
+                padding: 10px 22px;
+                font-weight: 600;
+                font-size: 14px;
+                min-height: 38px;
+                min-width: 100px;
             }}
             QPushButton:hover {{
-                background-color: {Colors.ACCENT_PRIMARY_HOVER};
+                background-color: #8a96f6;
             }}
         """)
         
         buttons.button(QDialogButtonBox.Cancel).setStyleSheet(f"""
             QPushButton {{
                 background-color: transparent;
-                color: {Colors.TEXT_PRIMARY};
-                border: 1px solid {Colors.BORDER_SUBTLE};
-                border-radius: 8px;
-                padding: 4px 16px;
+                color: #e2e4f0;
+                border: 1px solid #2d2e42;
+                border-radius: 10px;
+                padding: 10px 22px;
                 font-weight: 600;
-                font-size: 13px;
-                min-width: 80px;
+                font-size: 14px;
+                min-height: 38px;
+                min-width: 100px;
             }}
             QPushButton:hover {{
-                background-color: {Colors.BG_HOVER};
-                border: 1px solid {Colors.BORDER_DEFAULT};
+                background-color: rgba(255, 255, 255, 0.04);
+                border: 1px solid #454652;
             }}
         """)
         
@@ -1628,67 +1583,76 @@ class FilterDropdown(QFrame):
         self.setObjectName("filter_dropdown")
         self.setStyleSheet(f"""
             QFrame#filter_dropdown {{
-                background-color: {Colors.BG_CARD};
-                border: 1px solid {Colors.BORDER_DEFAULT};
-                border-radius: 8px;
+                background-color: #1a1b26;
+                border: 1px solid #2d2e42;
+                border-radius: 12px;
             }}
             QLabel {{
-                color: {Colors.TEXT_SECONDARY};
-                font-size: 12px;
-                font-weight: 500;
+                color: #9a9cb8;
+                font-family: 'Inter';
+                font-size: 11px;
+                font-weight: bold;
             }}
             QLineEdit {{
-                background-color: {Colors.BG_ELEVATED};
-                border: 1px solid {Colors.BORDER_SUBTLE};
-                border-radius: 6px;
-                padding: 6px 10px;
-                font-size: 12px;
-                color: {Colors.TEXT_PRIMARY};
+                background-color: #1e1f2a;
+                border: 1px solid #2d2e42;
+                border-radius: 10px;
+                padding: 10px 14px;
+                font-size: 14px;
+                color: #e2e4f0;
+                min-height: 38px;
+            }}
+            QLineEdit:focus {{
+                border: 1px solid #7c8af4;
             }}
             QComboBox {{
-                background-color: {Colors.BG_ELEVATED};
-                border: 1px solid {Colors.BORDER_SUBTLE};
-                border-radius: 6px;
-                padding: 4px 10px;
-                font-size: 12px;
-                min-height: 24px;
-                color: {Colors.TEXT_PRIMARY};
+                background-color: #1e1f2a;
+                border: 1px solid #2d2e42;
+                border-radius: 10px;
+                padding: 8px 12px;
+                font-size: 14px;
+                min-height: 38px;
+                color: #e2e4f0;
+            }}
+            QComboBox:focus {{
+                border: 1px solid #7c8af4;
             }}
             QPushButton {{
-                border-radius: 6px;
-                font-size: 12px;
+                border-radius: 10px;
+                font-size: 13px;
                 font-weight: 600;
-                padding: 6px 12px;
+                padding: 8px 16px;
+                min-height: 38px;
             }}
         """)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(12)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(16)
 
         form = QFormLayout()
-        form.setSpacing(10)
+        form.setSpacing(12)
         form.setLabelAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
         # Status
         self.status_combo = QComboBox()
         self.status_combo.addItems(["All", "Active", "Inactive", "Pending"])
-        form.addRow("Status", self.status_combo)
+        form.addRow("STATUS", self.status_combo)
 
         # Company
         self.company_input = QLineEdit()
         self.company_input.setPlaceholderText("Enter company name")
-        form.addRow("Company", self.company_input)
+        form.addRow("COMPANY", self.company_input)
 
         # Date range From
         self.date_from = QLineEdit()
         self.date_from.setPlaceholderText("YYYY-MM-DD (From)")
-        form.addRow("From Date", self.date_from)
+        form.addRow("FROM DATE", self.date_from)
 
         # Date range To
         self.date_to = QLineEdit()
         self.date_to.setPlaceholderText("YYYY-MM-DD (To)")
-        form.addRow("To Date", self.date_to)
+        form.addRow("TO DATE", self.date_to)
 
         layout.addLayout(form)
 
@@ -1701,11 +1665,12 @@ class FilterDropdown(QFrame):
         self.reset_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: transparent;
-                color: {Colors.TEXT_PRIMARY};
-                border: 1px solid {Colors.BORDER_SUBTLE};
+                color: #e2e4f0;
+                border: 1px solid #2d2e42;
             }}
             QPushButton:hover {{
-                background-color: {Colors.BG_HOVER};
+                background-color: rgba(255, 255, 255, 0.04);
+                border-color: #454652;
             }}
         """)
         self.reset_btn.clicked.connect(self.reset_filters)
@@ -1714,12 +1679,12 @@ class FilterDropdown(QFrame):
         self.apply_btn.setCursor(Qt.PointingHandCursor)
         self.apply_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {Colors.ACCENT_PRIMARY};
-                color: {Colors.TEXT_INVERSE};
+                background-color: #7c8af4;
+                color: #0f208b;
                 border: none;
             }}
             QPushButton:hover {{
-                background-color: {Colors.ACCENT_PRIMARY_HOVER};
+                background-color: #8a96f6;
             }}
         """)
         self.apply_btn.clicked.connect(self.apply_filters)

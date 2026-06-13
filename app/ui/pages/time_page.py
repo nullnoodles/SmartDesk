@@ -48,7 +48,7 @@ from app.data.repositories.project_repo import ProjectRepository
 from app.data.repositories.time_log_repo import TimeLogRepository
 from app.core.time_tracker import TimeTracker
 from app.ui.styles.theme import Colors
-from app.ui.widgets.stat_card import StatCard
+from app.ui.pages.dashboard_page import DashboardStatCard
 from app.ui.widgets.page_header import PageHeader
 from app.core.signals import emit_data_changed
 from app.ui.pages.dashboard_page import is_reduced_motion
@@ -202,6 +202,21 @@ class TimeLogsTableWidget(QTableWidget):
     def minimumSizeHint(self) -> QSize:
         return self.sizeHint()
 
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        width = self.viewport().width()
+        if self.columnCount() == 5:
+            self.setColumnWidth(1, 120)  # DATE
+            self.setColumnWidth(2, 100)  # HOURS
+            self.setColumnWidth(4, 90)   # ACTIONS
+            
+            # Remaining width split between PROJECT and DESCRIPTION
+            rem = width - 310
+            col_w = max(120, rem // 2)
+            self.setColumnWidth(0, col_w)             # PROJECT
+            self.setColumnWidth(3, max(120, width - 310 - col_w)) # DESCRIPTION
+
+
 
 class TimePage(QWidget):
     """Time tracking page rebuilt with Studio Graphite design tokens."""
@@ -278,7 +293,7 @@ class TimePage(QWidget):
         stat_row.setSpacing(16)
 
         # Total Hours Card
-        self.card_total = StatCard(
+        self.card_total = DashboardStatCard(
             "Total Hours Logged", "0.0h",
             icon="timer",
             accent=Colors.ACCENT_PRIMARY_LIGHT,
@@ -286,7 +301,7 @@ class TimePage(QWidget):
         )
 
         # This Week Card
-        self.card_week = StatCard(
+        self.card_week = DashboardStatCard(
             "This Week", "0.0h",
             icon="schedule",
             accent=Colors.ACCENT_SUCCESS,
@@ -294,68 +309,14 @@ class TimePage(QWidget):
         )
 
         # Entries Card
-        self.card_entries = StatCard(
+        self.card_entries = DashboardStatCard(
             "Entries", "0",
             icon="description",
             accent=Colors.ACCENT_INFO,
             sub_text="Total logs recorded"
         )
 
-        tints = {
-            Colors.ACCENT_PRIMARY_LIGHT: "rgba(188, 194, 255, 0.10)",
-            Colors.ACCENT_SUCCESS: "rgba(125, 211, 168, 0.10)",
-            Colors.ACCENT_INFO: "rgba(110, 197, 212, 0.10)",
-        }
-
-        card_configs = [
-            (self.card_total, Colors.ACCENT_PRIMARY_LIGHT, "timer"),
-            (self.card_week, Colors.ACCENT_SUCCESS, "schedule"),
-            (self.card_entries, Colors.ACCENT_INFO, "description"),
-        ]
-
-        for card, accent, icon_name in card_configs:
-            card.setAttribute(Qt.WA_Hover, True)
-            card.setMouseTracking(True)
-
-            card_shadow = QGraphicsDropShadowEffect(card)
-            card_shadow.setBlurRadius(0)
-            card_shadow.setColor(QColor(124, 138, 244, 180))  # Purple glow
-            card_shadow.setOffset(0, 0)
-            card.setGraphicsEffect(card_shadow)
-
-            shadow_animation = QPropertyAnimation(card_shadow, b"blurRadius")
-            shadow_animation.setDuration(200 if not is_reduced_motion() else 0)
-            shadow_animation.setEasingCurve(QEasingCurve.OutCubic)
-
-            card._shadow = card_shadow
-            card._shadow_animation = shadow_animation
-            card.setObjectName("statCard")
-            card._original_stylesheet = "QFrame#statCard { background-color: #1a1b26; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }"
-            card._hover_stylesheet = "QFrame#statCard { background-color: #383844; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; }"
-
-            card.setMinimumHeight(140)
-            card.setMaximumHeight(140)
-            card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-            card.setStyleSheet(card._original_stylesheet)
-            card.setContentsMargins(4, 4, 4, 4)
-
-            card._icon_bubble.setAttribute(Qt.WA_TranslucentBackground, False)
-            card._icon_bubble.setFixedSize(24, 24)
-            card._icon_bubble.setScaledContents(False)
-
-            rgba_color = tints.get(accent, "rgba(124, 138, 244, 0.10)")
-            if icon_name and (_ICONS_DIR / f"{icon_name}.svg").exists():
-                icon_pixmap = _load_svg_icon(icon_name, size=16, color=accent)
-                card._icon_bubble.setPixmap(icon_pixmap)
-            card._icon_bubble.setStyleSheet(f"background-color: {rgba_color}; border-radius: 4px; border: none; min-width: 24px; max-width: 24px; min-height: 24px; max-height: 24px;")
-
-            layout = card.layout()
-            if layout:
-                layout.setAlignment(Qt.Alignment())
-                layout.setContentsMargins(20, 16, 20, 16)
-                layout.setSpacing(4)
-
-            card.installEventFilter(self)
+        for card in (self.card_total, self.card_week, self.card_entries):
             stat_row.addWidget(card, 1)
 
         parent_layout.addLayout(stat_row)
@@ -383,15 +344,27 @@ class TimePage(QWidget):
         self.timer_project_combo.setMinimumWidth(180)
         self.timer_project_combo.setStyleSheet("""
             QComboBox {
-                background-color: #1a1b26;
+                background-color: #1e1f2a;
                 border: 1px solid #2d2e42;
-                border-radius: 6px;
-                padding: 4px 10px;
-                color: #9a9cb8;
-                font-size: 13px;
+                border-radius: 10px;
+                padding: 8px 12px;
+                color: #e2e4f0;
+                font-size: 14px;
+                min-height: 38px;
             }
             QComboBox:hover {
                 border: 1px solid #7c8af4;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 24px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #1e1f2a;
+                border: 1px solid #2d2e42;
+                selection-background-color: rgba(124, 138, 244, 0.15);
+                selection-color: #e2e4f0;
+                color: #9a9cb8;
             }
         """)
         timer_header.addWidget(self.timer_project_combo)
@@ -401,16 +374,16 @@ class TimePage(QWidget):
         self.timer_desc_input.setPlaceholderText("What are you working on?")
         self.timer_desc_input.setStyleSheet("""
             QLineEdit {
-                background-color: transparent;
-                border: none;
-                padding: 0px;
-                color: #e2e1f1;
-                font-size: 16px;
-                font-weight: 500;
+                background-color: #1e1f2a;
+                border: 1px solid #2d2e42;
+                border-radius: 10px;
+                padding: 10px 14px;
+                color: #e2e4f0;
+                font-size: 14px;
+                min-height: 38px;
             }
             QLineEdit:focus {
-                border: none;
-                outline: none;
+                border: 1px solid #7c8af4;
             }
             QLineEdit::placeholder {
                 color: #6b6d85;
@@ -433,7 +406,7 @@ class TimePage(QWidget):
 
         self.timer_btn = QPushButton("Start")
         self.timer_btn.setCursor(Qt.PointingHandCursor)
-        self.timer_btn.setFixedSize(120, 40)
+        self.timer_btn.setFixedSize(120, 38)
         self._update_timer_button_style(False)
         self.timer_btn.clicked.connect(self._toggle_timer)
         timer_bottom.addWidget(self.timer_btn)
@@ -459,15 +432,27 @@ class TimePage(QWidget):
         self.manual_project_combo.setMinimumWidth(180)
         self.manual_project_combo.setStyleSheet("""
             QComboBox {
-                background-color: #1a1b26;
+                background-color: #1e1f2a;
                 border: 1px solid #2d2e42;
-                border-radius: 6px;
-                padding: 4px 10px;
-                color: #9a9cb8;
-                font-size: 13px;
+                border-radius: 10px;
+                padding: 8px 12px;
+                color: #e2e4f0;
+                font-size: 14px;
+                min-height: 38px;
             }
             QComboBox:hover {
                 border: 1px solid #7c8af4;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 24px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #1e1f2a;
+                border: 1px solid #2d2e42;
+                selection-background-color: rgba(124, 138, 244, 0.15);
+                selection-color: #e2e4f0;
+                color: #9a9cb8;
             }
         """)
         manual_header.addWidget(self.manual_project_combo)
@@ -484,12 +469,13 @@ class TimePage(QWidget):
         self.manual_hours_input.setFixedWidth(120)
         self.manual_hours_input.setStyleSheet("""
             QDoubleSpinBox {
-                background-color: #1a1b26;
+                background-color: #1e1f2a;
                 border: 1px solid #2d2e42;
-                border-radius: 8px;
+                border-radius: 10px;
                 padding: 8px 12px;
-                color: #e2e1f1;
+                color: #e2e4f0;
                 font-size: 14px;
+                min-height: 38px;
             }
             QDoubleSpinBox:focus {
                 border: 1px solid #7c8af4;
@@ -501,12 +487,13 @@ class TimePage(QWidget):
         self.manual_desc_input.setPlaceholderText("Description")
         self.manual_desc_input.setStyleSheet("""
             QLineEdit {
-                background-color: #1a1b26;
+                background-color: #1e1f2a;
                 border: 1px solid #2d2e42;
-                border-radius: 8px;
+                border-radius: 10px;
                 padding: 8px 12px;
-                color: #e2e1f1;
+                color: #e2e4f0;
                 font-size: 14px;
+                min-height: 38px;
             }
             QLineEdit:focus {
                 border: 1px solid #7c8af4;
@@ -521,22 +508,22 @@ class TimePage(QWidget):
 
         self.manual_add_btn = QPushButton("+ Add Entry")
         self.manual_add_btn.setCursor(Qt.PointingHandCursor)
-        self.manual_add_btn.setFixedHeight(40)
+        self.manual_add_btn.setFixedHeight(38)
         self.manual_add_btn.setStyleSheet("""
             QPushButton {
                 background-color: #7c8af4;
-                color: #e2e4f0;
+                color: #0f208b;
                 border: none;
-                border-radius: 8px;
-                font-weight: 700;
+                border-radius: 10px;
+                font-weight: 600;
                 font-size: 14px;
+                min-height: 38px;
             }
             QPushButton:hover {
-                background-color: #383844;
-                color: #e2e4f0;
+                background-color: #8a96f6;
             }
             QPushButton:pressed {
-                background-color: #252840;
+                background-color: #6c7ae6;
             }
         """)
         self.manual_add_btn.clicked.connect(self._add_manual)
@@ -552,18 +539,18 @@ class TimePage(QWidget):
             self.timer_btn.setStyleSheet("""
                 QPushButton {
                     background-color: #e87c8a;
-                    color: #12131d;
+                    color: #3d0a12;
                     border: none;
-                    border-radius: 20px;
+                    border-radius: 10px;
                     font-size: 14px;
-                    font-weight: 700;
+                    font-weight: 600;
+                    min-height: 38px;
                 }
                 QPushButton:hover {
-                    background-color: #383844;
-                    color: #e2e4f0;
+                    background-color: #eb929d;
                 }
                 QPushButton:pressed {
-                    background-color: #252840;
+                    background-color: #d56b78;
                 }
             """)
             self.timer_lbl.setStyleSheet("""
@@ -577,19 +564,19 @@ class TimePage(QWidget):
             self.timer_btn.setText("Start")
             self.timer_btn.setStyleSheet("""
                 QPushButton {
-                    background-color: #7dd3a8;
-                    color: #12131d;
+                    background-color: #7c8af4;
+                    color: #0f208b;
                     border: none;
-                    border-radius: 20px;
+                    border-radius: 10px;
                     font-size: 14px;
-                    font-weight: 700;
+                    font-weight: 600;
+                    min-height: 38px;
                 }
                 QPushButton:hover {
-                    background-color: #383844;
-                    color: #e2e4f0;
+                    background-color: #8a96f6;
                 }
                 QPushButton:pressed {
-                    background-color: #252840;
+                    background-color: #6c7ae6;
                 }
             """)
             self.timer_lbl.setStyleSheet("""
@@ -662,7 +649,7 @@ class TimePage(QWidget):
         self.table.verticalHeader().setVisible(False)
         self.table.setShowGrid(False)
         self.table.setFocusPolicy(Qt.NoFocus)
-        self.table.verticalHeader().setDefaultSectionSize(48)
+        self.table.verticalHeader().setDefaultSectionSize(52)
         self.table.setFrameShape(QFrame.NoFrame)
 
         self.table.setStyleSheet("""
@@ -707,13 +694,6 @@ class TimePage(QWidget):
 
         for col in range(5):
             header.setSectionResizeMode(col, QHeaderView.Fixed)
-
-        self.table.setColumnWidth(1, 140)  # DATE
-        self.table.setColumnWidth(2, 100)  # HOURS
-        self.table.setColumnWidth(4, 90)   # ACTIONS
-
-        header.setSectionResizeMode(0, QHeaderView.Stretch)  # PROJECT
-        header.setSectionResizeMode(3, QHeaderView.Stretch)  # DESCRIPTION
 
         self.table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -841,27 +821,7 @@ class TimePage(QWidget):
         table_layout.addWidget(self.footer_widget)
         parent_layout.addWidget(self.table_card)
 
-    def eventFilter(self, obj, event):
-        """Handle hover events for stat cards to trigger shadow animation."""
-        from PySide6.QtCore import QEvent
-        if obj in (self.card_total, self.card_week, self.card_entries):
-            if hasattr(obj, '_shadow') and hasattr(obj, '_shadow_animation'):
-                event_type = event.type()
-                if event_type == QEvent.Enter:
-                    obj._shadow_animation.stop()
-                    obj._shadow_animation.setStartValue(obj._shadow.blurRadius())
-                    obj._shadow_animation.setEndValue(20 if not is_reduced_motion() else 0)
-                    obj._shadow_animation.start()
-                    if hasattr(obj, '_hover_stylesheet'):
-                        obj.setStyleSheet(obj._hover_stylesheet)
-                elif event_type == QEvent.Leave:
-                    obj._shadow_animation.stop()
-                    obj._shadow_animation.setStartValue(obj._shadow.blurRadius())
-                    obj._shadow_animation.setEndValue(0)
-                    obj._shadow_animation.start()
-                    if hasattr(obj, '_original_stylesheet'):
-                        obj.setStyleSheet(obj._original_stylesheet)
-        return super().eventFilter(obj, event)
+    # eventFilter removed as DashboardStatCard handles its own hover animations.
 
     def refresh(self) -> None:
         # 1. Reload Projects Combos
@@ -912,12 +872,11 @@ class TimePage(QWidget):
         if last_week_total > 0:
             diff_pct = ((this_week_total - last_week_total) / last_week_total) * 100
             if diff_pct >= 0:
-                trend_text = f'<span style="color: #82d8ac;">▲ {diff_pct:.0f}% vs last week</span>'
+                self.card_week.set_sub_text(f"▲ {diff_pct:.0f}% vs last week", "#82d8ac")
             else:
-                trend_text = f'<span style="color: #e87c8a;">▼ {abs(diff_pct):.0f}% vs last week</span>'
+                self.card_week.set_sub_text(f"▼ {abs(diff_pct):.0f}% vs last week", "#e87c8a")
         else:
-            trend_text = "No previous data"
-        self.card_week.set_sub_text(trend_text)
+            self.card_week.set_sub_text("No previous data", "#9a9cb8")
 
         # Entries Count
         self.card_entries.set_value(str(len(logs)))
@@ -1338,23 +1297,26 @@ class TimeLogDialog(QDialog):
                 background-color: {Colors.BG_DARK};
             }}
             QLabel {{
-                color: {Colors.TEXT_SECONDARY};
-                font-size: 13px;
-                font-weight: 500;
+                color: #9a9cb8;
+                font-family: 'Inter';
+                font-size: 11px;
+                font-weight: bold;
                 background: transparent;
                 border: none;
+                text-transform: uppercase;
             }}
             QLineEdit, QComboBox, QDateTimeEdit, QDoubleSpinBox {{
-                background-color: {Colors.BG_ELEVATED};
-                border: 1px solid {Colors.BORDER_DEFAULT};
-                border-radius: 8px;
-                padding: 8px 12px;
-                color: {Colors.TEXT_PRIMARY};
+                background-color: #1e1f2a;
+                border: 1px solid #2d2e42;
+                border-radius: 10px;
+                padding: 10px 14px;
+                color: #e2e4f0;
                 font-family: 'Inter';
                 font-size: 14px;
+                min-height: 38px;
             }}
             QLineEdit:focus, QComboBox:focus, QDateTimeEdit:focus, QDoubleSpinBox:focus {{
-                border: 1px solid {Colors.ACCENT_PRIMARY_LIGHT};
+                border: 1px solid #7c8af4;
             }}
         """)
 
@@ -1370,6 +1332,7 @@ class TimeLogDialog(QDialog):
             font-size: 20px;
             font-weight: 700;
             letter-spacing: -0.01em;
+            text-transform: none;
         """)
         layout.addWidget(title)
 
@@ -1391,7 +1354,7 @@ class TimeLogDialog(QDialog):
             idx = self.project_combo.findData(log["project_id"])
             if idx >= 0:
                 self.project_combo.setCurrentIndex(idx)
-        form.addRow("Project *", self.project_combo)
+        form.addRow("PROJECT *", self.project_combo)
 
         # Start Date/Time
         self.start_dt_input = QDateTimeEdit()
@@ -1404,7 +1367,7 @@ class TimeLogDialog(QDialog):
                 self.start_dt_input.setDateTime(QDateTime.currentDateTime())
         else:
             self.start_dt_input.setDateTime(QDateTime.currentDateTime())
-        form.addRow("Start Time *", self.start_dt_input)
+        form.addRow("START TIME *", self.start_dt_input)
 
         # Hours
         self.hours_input = QDoubleSpinBox()
@@ -1415,20 +1378,20 @@ class TimeLogDialog(QDialog):
             self.hours_input.setValue(log["duration_hours"])
         else:
             self.hours_input.setValue(1.0)
-        form.addRow("Hours *", self.hours_input)
+        form.addRow("HOURS *", self.hours_input)
 
         # Description
         self.desc_input = QLineEdit()
         self.desc_input.setPlaceholderText("Describe the work done...")
         if log and log["description"]:
             self.desc_input.setText(log["description"])
-        form.addRow("Description", self.desc_input)
+        form.addRow("DESCRIPTION", self.desc_input)
 
         layout.addLayout(form)
 
         # Helper
         helper = QLabel("* Required field")
-        helper.setStyleSheet(f"color: {Colors.TEXT_MUTED}; font-size: 11px; font-style: italic;")
+        helper.setStyleSheet("color: #6b6d85; font-size: 11px; font-style: italic; text-transform: none; font-weight: normal;")
         layout.addWidget(helper)
 
         # Actions
@@ -1436,39 +1399,39 @@ class TimeLogDialog(QDialog):
         buttons.button(QDialogButtonBox.Ok).setText("Save Entry")
         buttons.button(QDialogButtonBox.Cancel).setText("Cancel")
 
-        buttons.button(QDialogButtonBox.Ok).setStyleSheet(f"""
-            QPushButton {{
-                background-color: {Colors.ACCENT_PRIMARY};
-                color: {Colors.TEXT_INVERSE};
+        buttons.button(QDialogButtonBox.Ok).setStyleSheet("""
+            QPushButton {
+                background-color: #7c8af4;
+                color: #0f208b;
                 border: none;
-                border-radius: 8px;
-                padding: 8px 20px;
-                font-weight: 700;
-                font-size: 13px;
+                border-radius: 10px;
+                padding: 10px 22px;
+                font-weight: 600;
+                font-size: 14px;
                 min-width: 100px;
-                min-height: 36px;
-            }}
-            QPushButton:hover {{
-                background-color: {Colors.ACCENT_PRIMARY_HOVER};
-            }}
+                min-height: 38px;
+            }
+            QPushButton:hover {
+                background-color: #8a96f6;
+            }
         """)
         
-        buttons.button(QDialogButtonBox.Cancel).setStyleSheet(f"""
-            QPushButton {{
+        buttons.button(QDialogButtonBox.Cancel).setStyleSheet("""
+            QPushButton {
                 background-color: transparent;
-                color: {Colors.TEXT_PRIMARY};
-                border: 1px solid {Colors.BORDER_SUBTLE};
-                border-radius: 8px;
-                padding: 8px 20px;
+                color: #e2e4f0;
+                border: 1px solid #2d2e42;
+                border-radius: 10px;
+                padding: 10px 22px;
                 font-weight: 600;
-                font-size: 13px;
+                font-size: 14px;
                 min-width: 100px;
-                min-height: 36px;
-            }}
-            QPushButton:hover {{
-                background-color: {Colors.BG_HOVER};
-                border: 1px solid {Colors.BORDER_DEFAULT};
-            }}
+                min-height: 38px;
+            }
+            QPushButton:hover {
+                background-color: rgba(255, 255, 255, 0.04);
+                border: 1px solid #454652;
+            }
         """)
 
         buttons.accepted.connect(self.accept)

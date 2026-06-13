@@ -57,10 +57,10 @@ class TopBar(QWidget):
         layout.setContentsMargins(32, 0, 32, 0)  # Stitch: px-8 = 32px
         layout.setSpacing(16)
 
-        # ─── Left: Page title ─────────────────────────────────────────────
-        self._title = QLabel("Overview")
+        # ─── Left: Page title (Removed per user request) ──────────────────
+        self._title = QLabel("")
         self._title.setObjectName("top_bar_title")
-        layout.addWidget(self._title)
+        self._title.hide()
 
         layout.addStretch()
 

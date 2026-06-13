@@ -720,7 +720,7 @@ class DashboardPage(QWidget):
         
         # Setup shadow effect for hover animation
         period_combo_shadow = QGraphicsDropShadowEffect(self.period_combo)
-        period_combo_shadow.setBlurRadius(20)  # Test with static blur to verify shadow is visible
+        period_combo_shadow.setBlurRadius(10)  # Test with static blur to verify shadow is visible
         period_combo_shadow.setColor(QColor(124, 138, 244, 200))  # Purple glow with higher opacity
         period_combo_shadow.setOffset(0, 0)
         self.period_combo.setGraphicsEffect(period_combo_shadow)
@@ -733,47 +733,52 @@ class DashboardPage(QWidget):
         
         self.period_combo.setStyleSheet("""
             QComboBox {
-                background-color: #222336;
+                background-color: #1a1b26;
                 color: #e0e2f0;
                 border: 1px solid rgba(255,255,255,0.10);
-                border-radius: 8px;
-                padding: 5px 18px 5px 12px;
+                border-radius: 10px;
+                padding: 5px 12px;
                 font-size: 12px;
                 min-width: 50px;
-                outline: none;
             }
+
             QComboBox:hover {
                 border-color: rgba(124, 138, 244, 0.5);
-                background-color: #2a2c3e;
+                
             }
+
             QComboBox:focus {
-                border: 1px solid rgba(124, 138, 244, 0.5);
-                outline: none;
+                border: 1px solid rgba(124, 138, 244, 0.8);
             }
+
             QComboBox::drop-down {
-                border: none;
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
                 width: 24px;
+                border: none;
+                background: transparent;
             }
+
             QComboBox::down-arrow {
                 image: none;
-                width: 0; height: 0;
-                border-left: 4px solid transparent;
-                border-right: 4px solid transparent;
-                border-top: 5px solid #8b8fa8;
             }
+
             QComboBox QAbstractItemView {
-                background-color: #2a2c3e;
+                background-color: #1a1b26;
                 color: #e0e2f0;
                 border: 1px solid rgba(255,255,255,0.12);
-                border-radius: 8px;
                 selection-background-color: #3c3f5c;
-                outline: none;
+                selection-color: #ffffff;
                 padding: 2px;
             }
+
             QComboBox QAbstractItemView::item {
                 min-height: 20px;
-                max-height: 20px;
-                padding: 0px 8px;
+                padding: 4px 8px;
+            }
+
+            QComboBox QAbstractItemView::item:hover {
+                background-color: #2a2c3e;
             }
         """)
         
