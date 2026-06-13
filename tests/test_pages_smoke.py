@@ -166,10 +166,16 @@ class TestPagesSmoke:
         # Test background color is set correctly
         assert "background-color: #12131d" in page.styleSheet()
 
-        # Test stat cards have new colors
-        for card in (page.card_total, page.card_avg, page.card_critical):
-            assert card.objectName() == "statCard"
-            assert "background-color: #1a1b26" in card.styleSheet()
+        # Test analyzer widgets exist
+        assert page.circular_score is not None
+        assert page.multi_progress is not None
+        assert page.upload_area is not None
+        assert len(page.risk_cards) == 5
+        assert "ip_transfer" in page.risk_cards
+        assert "payment_terms" in page.risk_cards
+        assert "revision_scope" in page.risk_cards
+        assert "termination" in page.risk_cards
+        assert "indemnity" in page.risk_cards
 
     def test_dashboard_page(self, db, qapp):
         from app.ui.pages.dashboard_page import DashboardPage, _format_short_currency
@@ -233,6 +239,15 @@ class TestPagesSmoke:
         page = AnalyticsPage(db)
         page.refresh()
 
+        # Test background color is set correctly
+        assert "background-color: #12131d" in page.styleSheet()
+
+        # Test matplotlib figure background color
+        facecolor = page.chart_canvas.figure.get_facecolor()
+        assert abs(facecolor[0] - 26/255) < 1e-4
+        assert abs(facecolor[1] - 27/255) < 1e-4
+        assert abs(facecolor[2] - 38/255) < 1e-4
+
 
 class TestNewPagesSmoke:
     def test_settings_page_builds(self, db, qapp):
@@ -241,3 +256,6 @@ class TestNewPagesSmoke:
         page = SettingsPage(db)
         page.refresh()
         assert page.name_input is not None
+
+        # Test background color is set correctly
+        assert "background-color: #12131d" in page.styleSheet()

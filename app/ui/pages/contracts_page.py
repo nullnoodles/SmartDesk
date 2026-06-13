@@ -26,6 +26,7 @@ from PySide6.QtCore import Qt, QSize, QPropertyAnimation, QEasingCurve, QEvent, 
 from PySide6.QtGui import QColor, QIcon, QPixmap, QPainter, QBrush, QFont, QPen, QLinearGradient, QPainterPath
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QComboBox,
     QDoubleSpinBox,
     QFileDialog,
@@ -598,7 +599,7 @@ class ContractDeleteConfirmDialog(QDialog):
 
 
 class PaginationTableWidget(QTableWidget):
-    """QTableWidget subclass that dynamically sizes its height to fit its contents."""
+    """QTableWidget subclass that dynamically sizes its height to fit its contents and handles column resizing."""
 
     def sizeHint(self) -> QSize:
         sh = super().sizeHint()
@@ -613,6 +614,57 @@ class PaginationTableWidget(QTableWidget):
 
     def minimumSizeHint(self) -> QSize:
         return self.sizeHint()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        width = self.viewport().width()
+        if self.columnCount() == 6:
+            self.setColumnWidth(0, int(width * 0.32)) # PROJECT
+            self.setColumnWidth(1, int(width * 0.12)) # DATE
+            self.setColumnWidth(2, int(width * 0.13)) # RISK SCORE
+            self.setColumnWidth(3, int(width * 0.14)) # RISK LEVEL
+            self.setColumnWidth(4, int(width * 0.14)) # HOURLY RATE
+            self.setColumnWidth(5, width - (self.columnWidth(0) + self.columnWidth(1) + self.columnWidth(2) + self.columnWidth(3) + self.columnWidth(4))) # ACTIONS
+
+
+class RiskScorePill(QWidget):
+    """Pill-shaped tag showing risk score with dynamic colors."""
+
+    def __init__(self, score: float, parent=None):
+        super().__init__(parent)
+        
+        # Color coding based on risk score:
+        # High (>= 70) = red (#e87c8a)
+        # Medium (40 to 69) = yellow (#f0c878)
+        # Low (< 40) = green (#82d8ac)
+        if score >= 70:
+            color = "#e87c8a"  # Red
+            bg_color = "rgba(232, 124, 138, 0.15)"
+        elif score >= 40:
+            color = "#f0c878"  # Yellow
+            bg_color = "rgba(240, 200, 120, 0.15)"
+        else:
+            color = "#82d8ac"  # Green
+            bg_color = "rgba(130, 216, 172, 0.15)"
+            
+        self.setStyleSheet(
+            f"background-color: {bg_color}; border-radius: 999px;"
+        )
+        self.setFixedHeight(22)
+        self.setMinimumWidth(50)
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(8, 2, 8, 2)
+        layout.setSpacing(0)
+        layout.setAlignment(Qt.AlignCenter)
+
+        text = QLabel(f"{int(score)}")
+        text.setAlignment(Qt.AlignCenter)
+        text.setStyleSheet(
+            f"background: transparent; color: {color}; "
+            f"font-size: 11px; font-weight: 700; font-family: 'Inter';"
+        )
+        layout.addWidget(text)
 
 
 class ContractsPage(QWidget):
@@ -941,6 +993,7 @@ class ContractsPage(QWidget):
         self.table.setAlternatingRowColors(True)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setSelectionMode(QTableWidget.SingleSelection)
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.horizontalHeader().setVisible(True)
         self.table.verticalHeader().setVisible(False)
         self.table.setShowGrid(False)
@@ -1003,18 +1056,10 @@ class ContractsPage(QWidget):
         """)
 
         header = self.table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.Stretch)
-        header.setSectionResizeMode(1, QHeaderView.Fixed)
-        header.setSectionResizeMode(2, QHeaderView.Fixed)
-        header.setSectionResizeMode(3, QHeaderView.Fixed)
-        header.setSectionResizeMode(4, QHeaderView.Fixed)
-        header.setSectionResizeMode(5, QHeaderView.Fixed)
-
-        self.table.setColumnWidth(1, 140)
-        self.table.setColumnWidth(2, 110)
-        self.table.setColumnWidth(3, 140)
-        self.table.setColumnWidth(4, 130)
-        self.table.setColumnWidth(5, 100)
+        header.setStretchLastSection(False)
+        header.setDefaultAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        for col in range(6):
+            header.setSectionResizeMode(col, QHeaderView.Fixed)
 
         self.table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -1871,12 +1916,14 @@ class ContractsPage(QWidget):
                 date_item.setForeground(QColor(Colors.TEXT_SECONDARY))
                 self.table.setItem(i, 1, date_item)
 
-                # 3. Risk Score
-                score_item = QTableWidgetItem(str(c["risk_score"]))
-                score_item.setFont(QFont("Inter", 11, QFont.Bold))
-                score_item.setTextAlignment(Qt.AlignCenter)
-                score_item.setForeground(QColor(Colors.TEXT_PRIMARY))
-                self.table.setItem(i, 2, score_item)
+                # 3. Risk Score (Pill Badge)
+                score_pill = RiskScorePill(c["risk_score"])
+                score_container = QWidget()
+                score_layout = QHBoxLayout(score_container)
+                score_layout.setContentsMargins(0, 0, 0, 0)
+                score_layout.setAlignment(Qt.AlignCenter)
+                score_layout.addWidget(score_pill)
+                self.table.setCellWidget(i, 2, score_container)
 
                 # 4. Risk Level (StatusPill)
                 level = c["risk_level"]
