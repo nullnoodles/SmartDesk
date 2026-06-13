@@ -737,35 +737,6 @@ class ContractsPage(QWidget):
         history_layout.setContentsMargins(0, 0, 0, 0)
         history_layout.setSpacing(24)
 
-        # Top KPI Cards row
-        stat_row = QHBoxLayout()
-        stat_row.setContentsMargins(0, 0, 0, 0)
-        stat_row.setSpacing(16)
-
-        self.card_total = DashboardStatCard(
-            "Total Contracts", "0",
-            icon="description",
-            accent=Colors.ACCENT_PRIMARY_LIGHT,
-            sub_text="Analyzed history"
-        )
-        self.card_avg = DashboardStatCard(
-            "Avg. Risk Score", "0.0",
-            icon="analytics",
-            accent=Colors.ACCENT_INFO,
-            sub_text="Score index"
-        )
-        self.card_critical = DashboardStatCard(
-            "Critical Risks", "0",
-            icon="warning",
-            accent=Colors.ACCENT_DANGER,
-            sub_text="High alert contracts"
-        )
-
-        for card in (self.card_total, self.card_avg, self.card_critical):
-            stat_row.addWidget(card)
-
-        history_layout.addLayout(stat_row)
-
         # Search and Action Row
         search_row = QHBoxLayout()
         search_row.setSpacing(16)
@@ -1664,7 +1635,7 @@ class ContractsPage(QWidget):
         return super().eventFilter(obj, event)
 
     def refresh(self) -> None:
-        """Reload project dropdowns, retrieve contracts from DB, recalculate KPIs, and populate table."""
+        """Reload project dropdowns, retrieve contracts from DB, and populate table."""
         try:
             contracts = self.contract_repo.get_all()
         except Exception:
@@ -1684,19 +1655,6 @@ class ContractsPage(QWidget):
         self.project_combo.addItem("Select Project", None)
         for p in projects:
             self.project_combo.addItem(p["name"], p["id"])
-
-        # Recalculate KPIs
-        total_count = len(self.all_contracts_raw)
-        avg_score = 0.0
-        critical_count = 0
-
-        if total_count > 0:
-            avg_score = sum(c["risk_score"] for c in self.all_contracts_raw) / total_count
-            critical_count = sum(1 for c in self.all_contracts_raw if c["risk_level"] == "CRITICAL" or c["risk_score"] >= 100)
-
-        self.card_total.set_value(str(total_count))
-        self.card_avg.set_value(f"{avg_score:.1f}")
-        self.card_critical.set_value(str(critical_count))
 
         # Re-apply filter rules & search
         self._on_search(self.search_input.text())
